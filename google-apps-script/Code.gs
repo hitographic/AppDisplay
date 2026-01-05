@@ -1,5 +1,6 @@
 // =====================================================
 // VALID DISPLAY - Google Apps Script untuk Google Sheets Database
+// VERSI JSONP - Bypass CORS
 // =====================================================
 // 
 // CARA SETUP:
@@ -30,62 +31,111 @@ function getRecordsSheet() {
   return getSpreadsheet().getSheetByName('Records');
 }
 
-// Handle GET requests
+// Handle GET requests - dengan JSONP support
 function doGet(e) {
-  var output;
-  
   try {
     const action = e.parameter.action || 'getAll';
+    const callback = e.parameter.callback; // JSONP callback
+    
+    var result;
     
     if (action === 'getAll') {
-      output = getAllRecords();
+      result = getAllRecordsData();
     } else if (action === 'get') {
       const id = e.parameter.id;
-      output = getRecordById(id);
+      result = getRecordByIdData(id);
     } else {
-      output = createResponse({ success: false, error: 'Invalid action' });
+      result = { success: false, error: 'Invalid action' };
     }
+    
+    // Return JSONP jika callback ada, otherwise JSON biasa
+    if (callback) {
+      return ContentService
+        .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    } else {
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
   } catch (error) {
-    output = createResponse({ success: false, error: error.message });
+    const errorResult = { success: false, error: error.message };
+    const callback = e.parameter.callback;
+    
+    if (callback) {
+      return ContentService
+        .createTextOutput(callback + '(' + JSON.stringify(errorResult) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    } else {
+      return ContentService
+        .createTextOutput(JSON.stringify(errorResult))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
   }
-  
-  return output;
 }
 
 // Handle POST requests
 function doPost(e) {
-  var output;
-  
   try {
-    const data = JSON.parse(e.postData.contents);
+    var data;
+    
+    // Handle form data atau JSON
+    if (e.parameter && e.parameter.data) {
+      data = JSON.parse(e.parameter.data);
+    } else if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else {
+      throw new Error('No data received');
+    }
+    
     const action = data.action;
+    var result;
     
     if (action === 'add') {
-      output = addRecord(data.record);
+      result = addRecordData(data.record);
     } else if (action === 'update') {
-      output = updateRecord(data.recordId, data.record);
+      result = updateRecordData(data.recordId, data.record);
     } else if (action === 'delete') {
-      output = deleteRecord(data.recordId);
+      result = deleteRecordData(data.recordId);
     } else {
-      output = createResponse({ success: false, error: 'Invalid action' });
+      result = { success: false, error: 'Invalid action' };
     }
+    
+    // Return HTML dengan postMessage untuk komunikasi ke parent window
+    const callback = data.callback;
+    if (callback) {
+      const html = '<html><body><script>' +
+        'var result = ' + JSON.stringify(result) + ';' +
+        'result.callbackName = "' + callback + '";' +
+        'if (window.parent && window.parent.postMessage) {' +
+        '  window.parent.postMessage(JSON.stringify(result), "*");' +
+        '}' +
+        '</script></body></html>';
+      return HtmlService.createHtmlOutput(html);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
   } catch (error) {
-    output = createResponse({ success: false, error: error.message });
+    const errorResult = { success: false, error: error.message };
+    return ContentService
+      .createTextOutput(JSON.stringify(errorResult))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  return output;
 }
 
-// Get all records
-function getAllRecords() {
+// Get all records - returns data object
+function getAllRecordsData() {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
   if (data.length <= 1) {
-    return createResponse({ success: true, records: [] });
+    return { success: true, records: [] };
   }
   
-  const headers = data[0];
   const records = [];
   
   for (let i = 1; i < data.length; i++) {
@@ -116,11 +166,11 @@ function getAllRecords() {
   // Sort by createdAt descending (newest first)
   records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   
-  return createResponse({ success: true, records: records });
+  return { success: true, records: records };
 }
 
-// Get record by ID
-function getRecordById(id) {
+// Get record by ID - returns data object
+function getRecordByIdData(id) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
@@ -145,15 +195,15 @@ function getRecordById(id) {
         },
         kodeProduksi: row[13] ? JSON.parse(row[13]) : []
       };
-      return createResponse({ success: true, record: record });
+      return { success: true, record: record };
     }
   }
   
-  return createResponse({ success: false, error: 'Record not found' });
+  return { success: false, error: 'Record not found' };
 }
 
-// Add new record
-function addRecord(record) {
+// Add new record - returns data object
+function addRecordData(record) {
   const sheet = getRecordsSheet();
   
   const row = [
@@ -175,11 +225,11 @@ function addRecord(record) {
   
   sheet.appendRow(row);
   
-  return createResponse({ success: true, message: 'Record added', id: record.id });
+  return { success: true, message: 'Record added', id: record.id };
 }
 
-// Update record
-function updateRecord(recordId, updatedRecord) {
+// Update record - returns data object
+function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
@@ -206,37 +256,30 @@ function updateRecord(recordId, updatedRecord) {
       
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
       
-      return createResponse({ success: true, message: 'Record updated' });
+      return { success: true, message: 'Record updated' };
     }
   }
   
-  return createResponse({ success: false, error: 'Record not found' });
+  return { success: false, error: 'Record not found' };
 }
 
-// Delete record
-function deleteRecord(recordId) {
+// Delete record - returns data object
+function deleteRecordData(recordId) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === recordId) {
       sheet.deleteRow(i + 1); // 1-indexed
-      return createResponse({ success: true, message: 'Record deleted' });
+      return { success: true, message: 'Record deleted' };
     }
   }
   
-  return createResponse({ success: false, error: 'Record not found' });
-}
-
-// Create JSON response
-function createResponse(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+  return { success: false, error: 'Record not found' };
 }
 
 // Test function
 function testGetAll() {
-  const result = getAllRecords();
-  Logger.log(result.getContent());
+  const result = getAllRecordsData();
+  Logger.log(JSON.stringify(result));
 }
