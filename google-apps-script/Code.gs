@@ -4,13 +4,58 @@
 // =====================================================
 // 
 // SHEETS:
-// 1. Records - Data display produk
+// 1. Records - Data display produk (14 kolom)
 // 2. Users - Data user (NIK, password, name, role)
+//
+// STRUKTUR RECORDS (14 kolom):
+// A:id, B:tanggal, C:flavor, D:negara, E:createdAt, F:updatedAt,
+// G:photo_bumbu, H:photo_mbumbu, I:photo_si, J:photo_karton,
+// K:photo_etiket, L:photo_etiketbanded, M:photo_plakban, N:kodeProduksi
 // =====================================================
+
+// Header yang benar untuk Records
+var CORRECT_HEADERS = ['id', 'tanggal', 'flavor', 'negara', 'createdAt', 'updatedAt', 
+                       'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_karton',
+                       'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi'];
 
 // Spreadsheet ID - otomatis dari spreadsheet yang aktif
 function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+// Fungsi untuk memperbaiki struktur sheet Records
+function fixRecordsStructure() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
+  
+  if (!sheet) {
+    // Buat sheet baru dengan struktur yang benar
+    sheet = ss.insertSheet('Records');
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { success: true, message: 'Sheet Records dibuat baru dengan struktur yang benar' };
+  }
+  
+  // Cek header yang ada
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  // Jika header sudah benar, tidak perlu fix
+  if (JSON.stringify(currentHeaders) === JSON.stringify(CORRECT_HEADERS)) {
+    return { success: true, message: 'Struktur sudah benar' };
+  }
+  
+  // Perbaiki header
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+  
+  // Hapus kolom berlebih jika ada
+  var lastCol = sheet.getLastColumn();
+  if (lastCol > CORRECT_HEADERS.length) {
+    sheet.deleteColumns(CORRECT_HEADERS.length + 1, lastCol - CORRECT_HEADERS.length);
+  }
+  
+  return { success: true, message: 'Struktur diperbaiki. Header diupdate ke: ' + CORRECT_HEADERS.join(', ') };
 }
 
 function getRecordsSheet() {
@@ -20,13 +65,8 @@ function getRecordsSheet() {
   // Jika sheet "Records" belum ada, buat otomatis
   if (!sheet) {
     sheet = ss.insertSheet('Records');
-    // Header sesuai dengan struktur yang ada (14 kolom)
-    var headers = ['id', 'tanggal', 'flavor', 'negara', 'createdAt', 'updatedAt', 
-                   'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_karton',
-                   'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi'];
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    // Format header
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
     sheet.setFrozenRows(1);
   }
   
@@ -72,7 +112,10 @@ function doGet(e) {
     } else if (action === 'get') {
       const id = e.parameter.id;
       result = getRecordByIdData(id);
-    } 
+    } else if (action === 'fixStructure') {
+      // Action untuk memperbaiki struktur
+      result = fixRecordsStructure();
+    }
     // User actions
     else if (action === 'getUsers') {
       result = getAllUsersData();
