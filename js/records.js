@@ -348,6 +348,10 @@ function proceedToCreateDisplay() {
 function openPreview(recordId) {
     currentPreviewRecord = storage.getRecordById(recordId);
     
+    console.log('🔍 Opening preview for:', recordId);
+    console.log('🔍 Record data:', currentPreviewRecord);
+    console.log('🔍 Photos:', currentPreviewRecord?.photos);
+    
     if (!currentPreviewRecord) {
         showToast('Record tidak ditemukan', 'error');
         return;
@@ -402,10 +406,23 @@ function showPreviewTab(tabId) {
     }
 
     const photo = currentPreviewRecord.photos[tabId];
+    console.log('📷 Preview tab:', tabId);
+    console.log('📷 Photo data:', photo);
     
     if (photo) {
         const imgSrc = photo.directLink || photo.base64;
-        previewContent.innerHTML = `<img src="${imgSrc}" alt="${tabId}">`;
+        console.log('📷 Image source:', imgSrc ? imgSrc.substring(0, 100) + '...' : 'NONE');
+        
+        if (imgSrc) {
+            previewContent.innerHTML = `<img src="${imgSrc}" alt="${tabId}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-exclamation-triangle\\'></i><p>Gagal memuat gambar</p></div>';">`;
+        } else {
+            previewContent.innerHTML = `
+                <div class="no-image">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Link foto tidak tersedia</p>
+                </div>
+            `;
+        }
     } else {
         previewContent.innerHTML = `
             <div class="no-image">
