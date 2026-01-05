@@ -1,25 +1,11 @@
 // =====================================================
 // VALID DISPLAY - Google Apps Script untuk Google Sheets Database
-// VERSI JSONP - Bypass CORS
+// VERSI JSONP - Bypass CORS + User Management
 // =====================================================
 // 
-// CARA SETUP:
-// 1. Buka Google Sheets baru: https://sheets.google.com
-// 2. Buat spreadsheet baru dengan nama: "AppDisplay_Database"
-// 3. Rename Sheet1 menjadi "Records"
-// 4. Di baris pertama (header), isi kolom A-N:
-//    A: id | B: tanggal | C: flavor | D: negara | E: createdAt | F: updatedAt
-//    G: photo_bumbu | H: photo_mbumbu | I: photo_si | J: photo_karton
-//    K: photo_etiket | L: photo_etiketbanded | M: photo_plakban | N: kodeProduksi
-// 
-// 5. Klik Extensions > Apps Script
-// 6. Hapus semua kode default, paste kode di bawah ini
-// 7. Klik Deploy > New deployment
-// 8. Pilih type: Web app
-// 9. Execute as: Me
-// 10. Who has access: Anyone
-// 11. Deploy dan copy URL Web App
-// 12. Paste URL ke config.js di GOOGLE_SHEETS_WEBAPP_URL
+// SHEETS:
+// 1. Records - Data display produk
+// 2. Users - Data user (NIK, password, name, role)
 // =====================================================
 
 // Spreadsheet ID - otomatis dari spreadsheet yang aktif
@@ -47,6 +33,31 @@ function getRecordsSheet() {
   return sheet;
 }
 
+// Get or create Users sheet
+function getUsersSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Users');
+  
+  // Jika sheet "Users" belum ada, buat otomatis dengan default users
+  if (!sheet) {
+    sheet = ss.insertSheet('Users');
+    var headers = ['nik', 'password', 'name', 'role', 'createdAt', 'updatedAt'];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    
+    // Add default users
+    var defaultUsers = [
+      ['50086913', 'Ind0f00d25', 'Admin User', 'admin', new Date().toISOString(), new Date().toISOString()],
+      ['12345678', 'viewer123', 'Viewer User', 'viewer', new Date().toISOString(), new Date().toISOString()],
+      ['11111111', 'lihat123', 'Staff View', 'viewer', new Date().toISOString(), new Date().toISOString()]
+    ];
+    sheet.getRange(2, 1, defaultUsers.length, defaultUsers[0].length).setValues(defaultUsers);
+  }
+  
+  return sheet;
+}
+
 // Handle GET requests - dengan JSONP support
 function doGet(e) {
   try {
@@ -55,11 +66,23 @@ function doGet(e) {
     
     var result;
     
+    // Records actions
     if (action === 'getAll') {
       result = getAllRecordsData();
     } else if (action === 'get') {
       const id = e.parameter.id;
       result = getRecordByIdData(id);
+    } 
+    // User actions
+    else if (action === 'getUsers') {
+      result = getAllUsersData();
+    } else if (action === 'login') {
+      const nik = e.parameter.nik;
+      const password = e.parameter.password;
+      result = loginUser(nik, password);
+    } else if (action === 'getUser') {
+      const nik = e.parameter.nik;
+      result = getUserByNik(nik);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -108,12 +131,21 @@ function doPost(e) {
     const action = data.action;
     var result;
     
+    // Records actions
     if (action === 'add') {
       result = addRecordData(data.record);
     } else if (action === 'update') {
       result = updateRecordData(data.recordId, data.record);
     } else if (action === 'delete') {
       result = deleteRecordData(data.recordId);
+    } 
+    // User actions
+    else if (action === 'addUser') {
+      result = addUserData(data.user);
+    } else if (action === 'updateUser') {
+      result = updateUserData(data.nik, data.user);
+    } else if (action === 'deleteUser') {
+      result = deleteUserData(data.nik);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -143,79 +175,154 @@ function doPost(e) {
   }
 }
 
-// Get all records - returns data object
-function getAllRecordsData() {
-  const sheet = getRecordsSheet();
-  const data = sheet.getDataRange().getValues();
+// =====================================================
+// USER MANAGEMENT FUNCTIONS
+// =====================================================
+
+// Login user - verify credentials
+function loginUser(nik, password) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
   
-  if (data.length <= 1) {
-    return { success: true, records: [] };
-  }
-  
-  const records = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (row[0]) { // if has ID
-      const record = {
-        id: row[0],
-        tanggal: row[1],
-        flavor: row[2],
-        negara: row[3],
-        createdAt: row[4],
-        updatedAt: row[5],
-        photos: {
-          bumbu: row[6] ? JSON.parse(row[6]) : null,
-          'm-bumbu': row[7] ? JSON.parse(row[7]) : null,
-          si: row[8] ? JSON.parse(row[8]) : null,
-          karton: row[9] ? JSON.parse(row[9]) : null,
-          etiket: row[10] ? JSON.parse(row[10]) : null,
-          'etiket-banded': row[11] ? JSON.parse(row[11]) : null,
-          plakban: row[12] ? JSON.parse(row[12]) : null
-        },
-        kodeProduksi: row[13] ? JSON.parse(row[13]) : []
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == nik && data[i][1] == password) {
+      return { 
+        success: true, 
+        user: {
+          nik: data[i][0],
+          name: data[i][2],
+          role: data[i][3]
+        }
       };
-      records.push(record);
     }
   }
-  
-  // Sort by createdAt descending (newest first)
-  records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  
-  return { success: true, records: records };
+  return { success: false, error: 'NIK atau password salah' };
 }
 
-// Get record by ID - returns data object
-function getRecordByIdData(id) {
-  const sheet = getRecordsSheet();
-  const data = sheet.getDataRange().getValues();
+// Get all users
+function getAllUsersData() {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
   
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === id) {
-      const row = data[i];
-      const record = {
-        id: row[0],
-        tanggal: row[1],
-        flavor: row[2],
-        negara: row[3],
+  if (data.length <= 1) {
+    return { success: true, users: [] };
+  }
+  
+  var users = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (row[0]) {
+      users.push({
+        nik: row[0],
+        password: row[1], // Include password for admin view
+        name: row[2],
+        role: row[3],
         createdAt: row[4],
-        updatedAt: row[5],
-        photos: {
-          bumbu: row[6] ? JSON.parse(row[6]) : null,
-          'm-bumbu': row[7] ? JSON.parse(row[7]) : null,
-          si: row[8] ? JSON.parse(row[8]) : null,
-          karton: row[9] ? JSON.parse(row[9]) : null,
-          etiket: row[10] ? JSON.parse(row[10]) : null,
-          'etiket-banded': row[11] ? JSON.parse(row[11]) : null,
-          plakban: row[12] ? JSON.parse(row[12]) : null
-        },
-        kodeProduksi: row[13] ? JSON.parse(row[13]) : []
-      };
-      return { success: true, record: record };
+        updatedAt: row[5]
+      });
     }
   }
   
-  return { success: false, error: 'Record not found' };
+  return { success: true, users: users };
+}
+
+// Get user by NIK
+function getUserByNik(nik) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == nik) {
+      return { 
+        success: true, 
+        user: {
+          nik: data[i][0],
+          name: data[i][2],
+          role: data[i][3]
+        }
+      };
+    }
+  }
+  return { success: false, error: 'User not found' };
+}
+
+// Add new user
+function addUserData(user) {
+  var sheet = getUsersSheet();
+  
+  // Check if NIK already exists
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == user.nik) {
+      return { success: false, error: 'NIK sudah terdaftar' };
+    }
+  }
+  
+  var row = [
+    user.nik,
+    user.password,
+    user.name,
+    user.role || 'viewer',
+    new Date().toISOString(),
+    new Date().toISOString()
+  ];
+  
+  sheet.appendRow(row);
+  return { success: true, message: 'User berhasil ditambahkan', nik: user.nik };
+}
+
+// Update user
+function updateUserData(nik, updatedUser) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == nik) {
+      var row = [
+        nik, // NIK tidak bisa diubah
+        updatedUser.password || data[i][1],
+        updatedUser.name || data[i][2],
+        updatedUser.role || data[i][3],
+        data[i][4], // Keep original createdAt
+        new Date().toISOString()
+      ];
+      
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+      return { success: true, message: 'User berhasil diupdate' };
+    }
+  }
+  
+  return { success: false, error: 'User not found' };
+}
+
+// Delete user
+function deleteUserData(nik) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  // Prevent deleting last admin
+  var adminCount = 0;
+  var targetRow = -1;
+  var targetIsAdmin = false;
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][3] === 'admin') adminCount++;
+    if (data[i][0] == nik) {
+      targetRow = i + 1;
+      targetIsAdmin = data[i][3] === 'admin';
+    }
+  }
+  
+  if (targetRow === -1) {
+    return { success: false, error: 'User not found' };
+  }
+  
+  if (targetIsAdmin && adminCount <= 1) {
+    return { success: false, error: 'Tidak bisa menghapus admin terakhir' };
+  }
+  
+  sheet.deleteRow(targetRow);
+  return { success: true, message: 'User berhasil dihapus' };
 }
 
 // Add new record - returns data object

@@ -1,5 +1,6 @@
 // =====================================================
 // VALID DISPLAY - Authentication Module
+// Supports Google Sheets User Database
 // =====================================================
 
 class Auth {
@@ -7,6 +8,7 @@ class Auth {
         this.currentUser = null;
         this.isGoogleLoaded = false;
         this.tokenClient = null;
+        this.webAppUrl = CONFIG.GOOGLE_SHEETS_WEBAPP_URL || '';
     }
 
     // Check if user is logged in
@@ -19,8 +21,62 @@ class Auth {
         return false;
     }
 
-    // Login with NIK and Password
-    login(nik, password) {
+    // JSONP request untuk bypass CORS
+    jsonpRequest(url) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'authCallback_' + Date.now();
+            const timeoutId = setTimeout(() => {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                reject(new Error('Request timeout'));
+            }, 15000);
+
+            window[callbackName] = (data) => {
+                clearTimeout(timeoutId);
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                resolve(data);
+            };
+
+            const script = document.createElement('script');
+            script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+            script.onerror = () => {
+                clearTimeout(timeoutId);
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                reject(new Error('Script load error'));
+            };
+            document.head.appendChild(script);
+        });
+    }
+
+    // Login with NIK and Password - try Google Sheets first, fallback to config
+    async login(nik, password) {
+        // Try Google Sheets login first
+        if (this.webAppUrl && this.webAppUrl !== 'YOUR_WEBAPP_URL') {
+            try {
+                const result = await this.jsonpRequest(
+                    `${this.webAppUrl}?action=login&nik=${encodeURIComponent(nik)}&password=${encodeURIComponent(password)}`
+                );
+                
+                if (result.success && result.user) {
+                    this.currentUser = {
+                        nik: result.user.nik,
+                        name: result.user.name,
+                        role: result.user.role || 'viewer',
+                        loginTime: new Date().toISOString()
+                    };
+                    localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
+                    return { success: true, user: this.currentUser };
+                } else {
+                    return { success: false, message: result.error || 'NIK atau Password salah!' };
+                }
+            } catch (error) {
+                console.warn('Google Sheets login failed, trying local:', error);
+            }
+        }
+        
+        // Fallback to local config
         const user = CONFIG.USERS.find(u => u.nik === nik && u.password === password);
         if (user) {
             this.currentUser = {

@@ -222,6 +222,23 @@ body {
     font-weight: 500;
 }
 
+.btn-nav {
+    background: rgba(255,255,255,0.2);
+    color: var(--white);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-nav:hover {
+    background: rgba(255,255,255,0.3);
+}
+
 .btn-logout,
 .btn-back {
     background: rgba(255,255,255,0.2);

@@ -22,7 +22,7 @@ function initLoginForm() {
     });
 }
 
-function handleLogin() {
+async function handleLogin() {
     const nik = document.getElementById('nik').value.trim();
     const password = document.getElementById('password').value;
     
@@ -35,9 +35,8 @@ function handleLogin() {
     // Show loading
     showLoading('Memproses login...');
 
-    // Simulate network delay
-    setTimeout(() => {
-        const result = auth.login(nik, password);
+    try {
+        const result = await auth.login(nik, password);
         
         hideLoading();
         
@@ -57,7 +56,11 @@ function handleLogin() {
                 loginBox.style.animation = '';
             }, 500);
         }
-    }, 800);
+    } catch (error) {
+        hideLoading();
+        showToast('Terjadi kesalahan. Coba lagi.', 'error');
+        console.error('Login error:', error);
+    }
 }
 
 function togglePassword() {

@@ -42,6 +42,14 @@ async function initRecordsPage() {
 
 function setupRoleBasedUI() {
     const addDataBtn = document.querySelector('.btn-primary[onclick="openAddDataPopup()"]');
+    const userMgmtLink = document.getElementById('userManagementLink');
+    
+    if (isAdmin()) {
+        // Show user management link for admin
+        if (userMgmtLink) {
+            userMgmtLink.style.display = 'inline-flex';
+        }
+    }
     
     if (isViewer()) {
         // Hide add button for viewers
