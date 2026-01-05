@@ -313,11 +313,32 @@ async function simpanSemua() {
         return;
     }
 
+    // Check if any photo needs upload (has base64 but no id)
+    const photosNeedUpload = Object.keys(uploadedPhotos).some(key => {
+        const photo = uploadedPhotos[key];
+        return photo && !photo.id && (photo.base64 || photo.file);
+    });
+
+    // Warn user if Google Drive not connected but photos need upload
+    if (photosNeedUpload && (!auth.hasGoogleToken() || !checkConfig())) {
+        const proceed = confirm(
+            '⚠️ Google Drive belum terkoneksi!\n\n' +
+            'Foto akan disimpan di local storage browser saja.\n' +
+            'Jika Anda clear browser data, foto akan hilang.\n\n' +
+            'Untuk menyimpan foto permanen, hubungkan Google Drive terlebih dahulu.\n\n' +
+            'Lanjutkan tanpa Google Drive?'
+        );
+        if (!proceed) {
+            return;
+        }
+    }
+
     showLoading('Menyimpan semua data...');
 
     try {
-        // Upload remaining photos to Google Drive
+        // Upload photos to Google Drive if connected
         if (auth.hasGoogleToken() && checkConfig()) {
+            showLoading('Mengupload foto ke Google Drive...');
             await uploadPhotosToGoogleDrive();
         }
 
@@ -342,7 +363,7 @@ async function simpanSemua() {
             updatedBy: userName
         };
 
-        // Copy photo data without file objects
+        // Copy photo data - include base64 for local storage (preview), but sheets-db will strip it
         for (const key in uploadedPhotos) {
             if (uploadedPhotos[key]) {
                 record.photos[key] = {
@@ -354,18 +375,15 @@ async function simpanSemua() {
             }
         }
 
-        console.log('📦 Saving record:', JSON.stringify(record, null, 2));
+        console.log('📦 Saving record');
         console.log('📦 Photos keys:', Object.keys(record.photos));
         console.log('📦 Is edit mode:', currentData.isEdit);
-        console.log('📦 Record ID:', currentData.id);
 
         // Save to storage (Google Sheets + local)
         if (currentData.isEdit) {
-            console.log('✏️ Calling storage.updateRecord...');
             await storage.updateRecord(currentData.id, record);
             console.log('✅ Record updated');
         } else {
-            console.log('➕ Calling storage.addRecord...');
             await storage.addRecord(record);
             console.log('✅ Record added');
         }
@@ -374,7 +392,16 @@ async function simpanSemua() {
         storage.clearTempData();
 
         hideLoading();
-        showToast('Data berhasil disimpan!', 'success');
+        
+        // Show appropriate success message
+        const hasUploadedToDrive = Object.values(record.photos).some(p => p && p.id);
+        if (hasUploadedToDrive) {
+            showToast('Data & foto berhasil disimpan ke Google Drive!', 'success');
+        } else if (photosNeedUpload) {
+            showToast('Data disimpan. Foto hanya di local storage.', 'warning');
+        } else {
+            showToast('Data berhasil disimpan!', 'success');
+        }
 
         // Navigate back to records
         setTimeout(() => {
