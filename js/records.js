@@ -134,10 +134,10 @@ function renderRecords() {
                     <span><i class="fas fa-calendar-plus"></i> ${formatDate(record.tanggal)}</span>
                 </div>
                 <div class="card-meta">
-                    <span title="Dibuat"><i class="fas fa-plus-circle"></i> ${formatDateTime(record.createdAt)}</span>
+                    <span title="Dibuat"><i class="fas fa-plus-circle"></i> ${formatDateTime(record.createdAt)}${record.createdBy ? ` oleh ${escapeHtml(record.createdBy)}` : ''}</span>
                 </div>
                 <div class="card-meta">
-                    <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}</span>
+                    <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}${record.updatedBy ? ` oleh ${escapeHtml(record.updatedBy)}` : ''}</span>
                 </div>
                 <span class="card-badge">${escapeHtml(record.negara)}</span>
             </div>

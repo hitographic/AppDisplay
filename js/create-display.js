@@ -324,7 +324,11 @@ async function simpanSemua() {
         // Collect kode produksi
         const kodeProduksi = collectKodeProduksi();
 
-        // Prepare final record (14 kolom - tanpa createdBy/updatedBy)
+        // Get current user for tracking
+        const currentUser = auth.getUser();
+        const userName = currentUser ? currentUser.name : 'Unknown';
+
+        // Prepare final record (16 kolom - dengan createdBy/updatedBy)
         const record = {
             id: currentData.id,
             tanggal: currentData.tanggal,
@@ -333,7 +337,9 @@ async function simpanSemua() {
             photos: {},
             kodeProduksi: kodeProduksi,
             createdAt: currentData.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            createdBy: currentData.createdBy || userName,
+            updatedBy: userName
         };
 
         // Copy photo data without file objects

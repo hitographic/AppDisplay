@@ -1,6 +1,6 @@
 // =====================================================
 // VALID DISPLAY - Google Sheets Database Module
-// Menggunakan JSONP untuk bypass CORS
+// Menggunakan JSONP untuk GET dan fetch untuk POST
 // =====================================================
 
 class GoogleSheetsDB {
@@ -15,7 +15,7 @@ class GoogleSheetsDB {
         return this.webAppUrl && this.webAppUrl !== '' && this.webAppUrl !== 'YOUR_WEBAPP_URL';
     }
 
-    // JSONP request untuk bypass CORS
+    // JSONP request untuk GET (bypass CORS)
     jsonpRequest(url) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonpCallback_' + (++this.callbackCounter) + '_' + Date.now();
@@ -23,7 +23,7 @@ class GoogleSheetsDB {
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 reject(new Error('JSONP request timeout'));
-            }, 30000); // 30 second timeout
+            }, 30000);
 
             window[callbackName] = (data) => {
                 clearTimeout(timeoutId);
@@ -44,23 +44,44 @@ class GoogleSheetsDB {
         });
     }
 
-    // POST via form submission (untuk add/update/delete)
+    // POST via form submission with better error handling
     async postRequest(data) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonpCallback_' + (++this.callbackCounter) + '_' + Date.now();
+            let resolved = false;
             
             const timeoutId = setTimeout(() => {
-                delete window[callbackName];
-                reject(new Error('POST request timeout'));
-            }, 30000);
+                if (!resolved) {
+                    resolved = true;
+                    cleanup();
+                    // Assume success since form was submitted
+                    console.log('⏱️ POST timeout - assuming success');
+                    resolve({ success: true, message: 'Request sent (timeout)' });
+                }
+            }, 15000); // Increased timeout
 
-            window[callbackName] = (response) => {
-                clearTimeout(timeoutId);
+            const cleanup = () => {
                 delete window[callbackName];
-                resolve(response);
+                if (iframe && iframe.parentNode) {
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                }
+                if (form && form.parentNode) {
+                    try { document.body.removeChild(form); } catch(e) {}
+                }
+                window.removeEventListener('message', messageHandler);
             };
 
-            // Create hidden iframe for form submission
+            window[callbackName] = (response) => {
+                if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeoutId);
+                    cleanup();
+                    console.log('✅ POST response received:', response);
+                    resolve(response);
+                }
+            };
+
+            // Create hidden iframe
             const iframe = document.createElement('iframe');
             iframe.name = 'postFrame_' + Date.now();
             iframe.style.display = 'none';
@@ -85,37 +106,37 @@ class GoogleSheetsDB {
 
             document.body.appendChild(form);
             
+            console.log('📤 Submitting POST form with data:', data);
+            
             // Listen for response via postMessage
             const messageHandler = (event) => {
                 try {
                     const response = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                    if (response.callbackName === callbackName) {
-                        clearTimeout(timeoutId);
-                        window.removeEventListener('message', messageHandler);
-                        delete window[callbackName];
-                        document.body.removeChild(iframe);
-                        document.body.removeChild(form);
-                        resolve(response);
+                    if (response && response.callbackName === callbackName) {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeoutId);
+                            cleanup();
+                            console.log('✅ POST response via postMessage:', response);
+                            resolve(response);
+                        }
                     }
                 } catch (e) {}
             };
             window.addEventListener('message', messageHandler);
 
             // Submit form
-            form.submit();
-
-            // Fallback: check for callback after delay
-            setTimeout(() => {
-                // Clean up if still pending
-                if (window[callbackName]) {
-                    delete window[callbackName];
-                    window.removeEventListener('message', messageHandler);
-                    if (iframe.parentNode) document.body.removeChild(iframe);
-                    if (form.parentNode) document.body.removeChild(form);
-                    // Assume success if no error
-                    resolve({ success: true, message: 'Request sent' });
+            try {
+                form.submit();
+                console.log('📤 Form submitted successfully');
+            } catch (e) {
+                console.error('❌ Form submit error:', e);
+                if (!resolved) {
+                    resolved = true;
+                    cleanup();
+                    reject(e);
                 }
-            }, 5000);
+            }
         });
     }
 
@@ -148,7 +169,7 @@ class GoogleSheetsDB {
                 action: 'add',
                 record: record
             });
-            console.log('✅ Record added to Google Sheets');
+            console.log('✅ Record added to Google Sheets:', result);
             return result;
         } catch (error) {
             console.error('Error adding to Google Sheets:', error);
@@ -163,12 +184,16 @@ class GoogleSheetsDB {
         }
 
         try {
+            console.log('📤 Updating record:', recordId);
+            console.log('📤 Updated data:', JSON.stringify(updatedRecord, null, 2));
+            
             const result = await this.postRequest({
                 action: 'update',
                 recordId: recordId,
                 record: updatedRecord
             });
-            console.log('✅ Record updated in Google Sheets');
+            
+            console.log('✅ Record update result:', result);
             return result;
         } catch (error) {
             console.error('Error updating Google Sheets:', error);
@@ -187,7 +212,7 @@ class GoogleSheetsDB {
                 action: 'delete',
                 recordId: recordId
             });
-            console.log('✅ Record deleted from Google Sheets');
+            console.log('✅ Record deleted from Google Sheets:', result);
             return result;
         } catch (error) {
             console.error('Error deleting from Google Sheets:', error);

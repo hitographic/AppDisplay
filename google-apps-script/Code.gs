@@ -4,17 +4,19 @@
 // =====================================================
 // 
 // SHEETS:
-// 1. Records - Data display produk (14 kolom)
+// 1. Records - Data display produk (16 kolom)
 // 2. Users - Data user (NIK, password, name, role)
 //
-// STRUKTUR RECORDS (14 kolom):
+// STRUKTUR RECORDS (16 kolom):
 // A:id, B:tanggal, C:flavor, D:negara, E:createdAt, F:updatedAt,
-// G:photo_bumbu, H:photo_mbumbu, I:photo_si, J:photo_karton,
-// K:photo_etiket, L:photo_etiketbanded, M:photo_plakban, N:kodeProduksi
+// G:createdBy, H:updatedBy,
+// I:photo_bumbu, J:photo_mbumbu, K:photo_si, L:photo_karton,
+// M:photo_etiket, N:photo_etiketbanded, O:photo_plakban, P:kodeProduksi
 // =====================================================
 
-// Header yang benar untuk Records
+// Header yang benar untuk Records (16 kolom dengan createdBy/updatedBy)
 var CORRECT_HEADERS = ['id', 'tanggal', 'flavor', 'negara', 'createdAt', 'updatedAt', 
+                       'createdBy', 'updatedBy',
                        'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_karton',
                        'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi'];
 
@@ -391,9 +393,10 @@ function deleteUserData(nik) {
 // =====================================================
 
 // Get all records
-// Struktur: id(0), tanggal(1), flavor(2), negara(3), createdAt(4), updatedAt(5),
-//           photo_bumbu(6), photo_mbumbu(7), photo_si(8), photo_karton(9),
-//           photo_etiket(10), photo_etiketbanded(11), photo_plakban(12), kodeProduksi(13)
+// Struktur 16 kolom: id(0), tanggal(1), flavor(2), negara(3), createdAt(4), updatedAt(5),
+//                    createdBy(6), updatedBy(7),
+//                    photo_bumbu(8), photo_mbumbu(9), photo_si(10), photo_karton(11),
+//                    photo_etiket(12), photo_etiketbanded(13), photo_plakban(14), kodeProduksi(15)
 function getAllRecordsData() {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
@@ -413,16 +416,18 @@ function getAllRecordsData() {
         negara: row[3],
         createdAt: row[4],
         updatedAt: row[5],
+        createdBy: row[6] || '',
+        updatedBy: row[7] || '',
         photos: {
-          bumbu: row[6] ? safeJsonParse(row[6]) : null,
-          'm-bumbu': row[7] ? safeJsonParse(row[7]) : null,
-          si: row[8] ? safeJsonParse(row[8]) : null,
-          karton: row[9] ? safeJsonParse(row[9]) : null,
-          etiket: row[10] ? safeJsonParse(row[10]) : null,
-          'etiket-banded': row[11] ? safeJsonParse(row[11]) : null,
-          plakban: row[12] ? safeJsonParse(row[12]) : null
+          bumbu: row[8] ? safeJsonParse(row[8]) : null,
+          'm-bumbu': row[9] ? safeJsonParse(row[9]) : null,
+          si: row[10] ? safeJsonParse(row[10]) : null,
+          karton: row[11] ? safeJsonParse(row[11]) : null,
+          etiket: row[12] ? safeJsonParse(row[12]) : null,
+          'etiket-banded': row[13] ? safeJsonParse(row[13]) : null,
+          plakban: row[14] ? safeJsonParse(row[14]) : null
         },
-        kodeProduksi: row[13] ? safeJsonParse(row[13]) : []
+        kodeProduksi: row[15] ? safeJsonParse(row[15]) : []
       });
     }
   }
@@ -445,7 +450,7 @@ function getRecordByIdData(id) {
   const data = sheet.getDataRange().getValues();
   
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === id) {
+    if (String(data[i][0]) === String(id)) {
       const row = data[i];
       return { 
         success: true, 
@@ -456,16 +461,18 @@ function getRecordByIdData(id) {
           negara: row[3],
           createdAt: row[4],
           updatedAt: row[5],
+          createdBy: row[6] || '',
+          updatedBy: row[7] || '',
           photos: {
-            bumbu: row[6] ? safeJsonParse(row[6]) : null,
-            'm-bumbu': row[7] ? safeJsonParse(row[7]) : null,
-            si: row[8] ? safeJsonParse(row[8]) : null,
-            karton: row[9] ? safeJsonParse(row[9]) : null,
-            etiket: row[10] ? safeJsonParse(row[10]) : null,
-            'etiket-banded': row[11] ? safeJsonParse(row[11]) : null,
-            plakban: row[12] ? safeJsonParse(row[12]) : null
+            bumbu: row[8] ? safeJsonParse(row[8]) : null,
+            'm-bumbu': row[9] ? safeJsonParse(row[9]) : null,
+            si: row[10] ? safeJsonParse(row[10]) : null,
+            karton: row[11] ? safeJsonParse(row[11]) : null,
+            etiket: row[12] ? safeJsonParse(row[12]) : null,
+            'etiket-banded': row[13] ? safeJsonParse(row[13]) : null,
+            plakban: row[14] ? safeJsonParse(row[14]) : null
           },
-          kodeProduksi: row[13] ? safeJsonParse(row[13]) : []
+          kodeProduksi: row[15] ? safeJsonParse(row[15]) : []
         }
       };
     }
@@ -475,7 +482,7 @@ function getRecordByIdData(id) {
 }
 
 // Add new record - returns data object
-// Struktur 14 kolom: id, tanggal, flavor, negara, createdAt, updatedAt,
+// Struktur 16 kolom: id, tanggal, flavor, negara, createdAt, updatedAt, createdBy, updatedBy,
 //                    photo_bumbu, photo_mbumbu, photo_si, photo_karton,
 //                    photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi
 function addRecordData(record) {
@@ -488,6 +495,8 @@ function addRecordData(record) {
     record.negara,
     record.createdAt || new Date().toISOString(),
     record.updatedAt || new Date().toISOString(),
+    record.createdBy || '',
+    record.updatedBy || '',
     record.photos?.bumbu ? JSON.stringify(record.photos.bumbu) : '',
     record.photos?.['m-bumbu'] ? JSON.stringify(record.photos['m-bumbu']) : '',
     record.photos?.si ? JSON.stringify(record.photos.si) : '',
@@ -504,18 +513,24 @@ function addRecordData(record) {
 }
 
 // Update record - returns data object
-// Struktur 14 kolom: id(0), tanggal(1), flavor(2), negara(3), createdAt(4), updatedAt(5),
-//                    photo_bumbu(6), photo_mbumbu(7), photo_si(8), photo_karton(9),
-//                    photo_etiket(10), photo_etiketbanded(11), photo_plakban(12), kodeProduksi(13)
+// Struktur 16 kolom: id(0), tanggal(1), flavor(2), negara(3), createdAt(4), updatedAt(5),
+//                    createdBy(6), updatedBy(7),
+//                    photo_bumbu(8), photo_mbumbu(9), photo_si(10), photo_karton(11),
+//                    photo_etiket(12), photo_etiketbanded(13), photo_plakban(14), kodeProduksi(15)
 function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
+  Logger.log('Looking for recordId: ' + recordId);
+  Logger.log('Total rows: ' + data.length);
+  
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === recordId) {
+    // Compare as strings to handle type mismatch
+    if (String(data[i][0]) === String(recordId)) {
       const rowIndex = i + 1; // 1-indexed
       
       // Log untuk debugging
+      Logger.log('Found record at row: ' + rowIndex);
       Logger.log('Updating record: ' + recordId);
       Logger.log('Updated photos: ' + JSON.stringify(updatedRecord.photos));
       
@@ -526,25 +541,29 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.negara || data[i][3],
         data[i][4], // keep original createdAt
         new Date().toISOString(), // update updatedAt
-        updatedRecord.photos?.bumbu ? JSON.stringify(updatedRecord.photos.bumbu) : (data[i][6] || ''),
-        updatedRecord.photos?.['m-bumbu'] ? JSON.stringify(updatedRecord.photos['m-bumbu']) : (data[i][7] || ''),
-        updatedRecord.photos?.si ? JSON.stringify(updatedRecord.photos.si) : (data[i][8] || ''),
-        updatedRecord.photos?.karton ? JSON.stringify(updatedRecord.photos.karton) : (data[i][9] || ''),
-        updatedRecord.photos?.etiket ? JSON.stringify(updatedRecord.photos.etiket) : (data[i][10] || ''),
-        updatedRecord.photos?.['etiket-banded'] ? JSON.stringify(updatedRecord.photos['etiket-banded']) : (data[i][11] || ''),
-        updatedRecord.photos?.plakban ? JSON.stringify(updatedRecord.photos.plakban) : (data[i][12] || ''),
-        updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : (data[i][13] || '[]')
+        data[i][6] || '', // keep original createdBy
+        updatedRecord.updatedBy || data[i][7] || '', // update updatedBy
+        updatedRecord.photos?.bumbu ? JSON.stringify(updatedRecord.photos.bumbu) : (data[i][8] || ''),
+        updatedRecord.photos?.['m-bumbu'] ? JSON.stringify(updatedRecord.photos['m-bumbu']) : (data[i][9] || ''),
+        updatedRecord.photos?.si ? JSON.stringify(updatedRecord.photos.si) : (data[i][10] || ''),
+        updatedRecord.photos?.karton ? JSON.stringify(updatedRecord.photos.karton) : (data[i][11] || ''),
+        updatedRecord.photos?.etiket ? JSON.stringify(updatedRecord.photos.etiket) : (data[i][12] || ''),
+        updatedRecord.photos?.['etiket-banded'] ? JSON.stringify(updatedRecord.photos['etiket-banded']) : (data[i][13] || ''),
+        updatedRecord.photos?.plakban ? JSON.stringify(updatedRecord.photos.plakban) : (data[i][14] || ''),
+        updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : (data[i][15] || '[]')
       ];
       
       Logger.log('Row to save: ' + JSON.stringify(row));
       
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
       
+      Logger.log('Record updated successfully');
       return { success: true, message: 'Record updated' };
     }
   }
   
-  return { success: false, error: 'Record not found' };
+  Logger.log('Record not found: ' + recordId);
+  return { success: false, error: 'Record not found: ' + recordId };
 }
 
 // Delete record - returns data object
