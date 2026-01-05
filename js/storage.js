@@ -71,17 +71,26 @@ class Storage {
 
     // Update record (in Google Sheets and local)
     async updateRecord(id, updatedData) {
+        console.log('📝 Storage.updateRecord called with id:', id);
+        console.log('📝 Storage.updateRecord data:', JSON.stringify(updatedData, null, 2));
+        
         // Update local first
         const updated = this.updateRecordLocal(id, updatedData);
+        console.log('📝 Local update result:', updated ? 'success' : 'failed');
         
         // Sync to Google Sheets if available
-        if (this.useGoogleSheets && this.isOnline && updated) {
+        if (this.useGoogleSheets && this.isOnline) {
             try {
-                await sheetsDB.updateRecord(id, updated);
-                console.log('✅ Record updated in Google Sheets');
+                console.log('📝 Syncing to Google Sheets...');
+                const result = await sheetsDB.updateRecord(id, updated || updatedData);
+                console.log('✅ Google Sheets sync result:', result);
             } catch (error) {
-                console.error('Error updating Google Sheets:', error);
+                console.error('❌ Error updating Google Sheets:', error);
             }
+        } else {
+            console.log('⚠️ Google Sheets not available or offline');
+            console.log('   - useGoogleSheets:', this.useGoogleSheets);
+            console.log('   - isOnline:', this.isOnline);
         }
         
         return updated;

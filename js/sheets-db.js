@@ -180,23 +180,53 @@ class GoogleSheetsDB {
     // Update record in Google Sheets
     async updateRecord(recordId, updatedRecord) {
         if (!this.isConfigured()) {
+            console.log('❌ Google Sheets not configured for update');
             return null;
         }
 
         try {
             console.log('📤 Updating record:', recordId);
-            console.log('📤 Updated data:', JSON.stringify(updatedRecord, null, 2));
+            console.log('📤 Updated record full:', JSON.stringify(updatedRecord, null, 2));
+            console.log('📤 Photos object:', JSON.stringify(updatedRecord.photos, null, 2));
+            
+            // Ensure photos object has correct keys
+            const cleanRecord = {
+                ...updatedRecord,
+                photos: {}
+            };
+            
+            // Normalize photo keys to match Apps Script expectations
+            if (updatedRecord.photos) {
+                const photoKeyMap = {
+                    'bumbu': 'bumbu',
+                    'm-bumbu': 'm-bumbu',
+                    'si': 'si',
+                    'karton': 'karton',
+                    'etiket': 'etiket',
+                    'etiket-banded': 'etiket-banded',
+                    'plakban': 'plakban'
+                };
+                
+                for (const key in updatedRecord.photos) {
+                    const normalizedKey = photoKeyMap[key] || key;
+                    if (updatedRecord.photos[key]) {
+                        cleanRecord.photos[normalizedKey] = updatedRecord.photos[key];
+                    }
+                }
+            }
+            
+            console.log('📤 Clean record photos:', JSON.stringify(cleanRecord.photos, null, 2));
             
             const result = await this.postRequest({
                 action: 'update',
-                recordId: recordId,
-                record: updatedRecord
+                recordId: String(recordId), // Ensure string type
+                record: cleanRecord
             });
             
             console.log('✅ Record update result:', result);
             return result;
         } catch (error) {
-            console.error('Error updating Google Sheets:', error);
+            console.error('❌ Error updating Google Sheets:', error);
             return null;
         }
     }

@@ -354,16 +354,20 @@ async function simpanSemua() {
             }
         }
 
-        console.log('Saving record:', record);
-        console.log('Is edit mode:', currentData.isEdit);
+        console.log('📦 Saving record:', JSON.stringify(record, null, 2));
+        console.log('📦 Photos keys:', Object.keys(record.photos));
+        console.log('📦 Is edit mode:', currentData.isEdit);
+        console.log('📦 Record ID:', currentData.id);
 
         // Save to storage (Google Sheets + local)
         if (currentData.isEdit) {
+            console.log('✏️ Calling storage.updateRecord...');
             await storage.updateRecord(currentData.id, record);
-            console.log('Record updated');
+            console.log('✅ Record updated');
         } else {
+            console.log('➕ Calling storage.addRecord...');
             await storage.addRecord(record);
-            console.log('Record added');
+            console.log('✅ Record added');
         }
 
         // Clear temp data

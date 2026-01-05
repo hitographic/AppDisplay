@@ -10,7 +10,7 @@ const CONFIG = {
     
     // Google Sheets Web App URL (akan diisi setelah deploy Apps Script)
     // PENTING: Ganti dengan URL Web App Anda setelah deploy
-    GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxe4dfV14jyMd5PyDpGEuwpobj5bSgaWqmuH8cQ9spD5PuQy9Ni3HW3sSOS3SaK0wdVIw/exec',
+    GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzErCITjSs1pq9USzivpECzn0HJS1wf0cAB4J8HzOGs0r6x57Mdz6QiCbTiW-ByxjERSg/exec',
     
     // Google Drive API Scopes
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
