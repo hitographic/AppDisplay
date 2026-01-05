@@ -348,16 +348,11 @@ async function simpanSemua() {
             }
         }
 
-        // Save to local storage
+        // Save to storage (Google Sheets + local)
         if (currentData.isEdit) {
-            storage.updateRecordLocal(currentData.id, record);
+            await storage.updateRecord(currentData.id, record);
         } else {
-            storage.addRecordLocal(record);
-        }
-
-        // Sync with Google Drive
-        if (auth.hasGoogleToken()) {
-            await storage.syncRecordsToGoogleDrive();
+            await storage.addRecord(record);
         }
 
         // Clear temp data

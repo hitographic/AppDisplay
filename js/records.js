@@ -53,13 +53,12 @@ function setupRoleBasedUI() {
 
 async function initGoogleDriveConnection() {
     try {
-        // Initialize Google API
+        // Initialize Google API only for admin who needs to upload
         await auth.initGoogleAPI();
         await auth.initGoogleIdentity();
 
         // Check for existing token
         if (!auth.hasGoogleToken() && checkConfig()) {
-            // Show connect button or auto-request
             console.log('Google Drive belum terkoneksi');
         }
     } catch (error) {
@@ -71,13 +70,8 @@ async function loadRecords() {
     showLoadingRecords();
 
     try {
-        // Try to load from Google Drive first
-        if (auth.hasGoogleToken()) {
-            allRecords = await storage.loadRecordsFromGoogleDrive();
-        } else {
-            allRecords = storage.getRecordsLocal();
-        }
-
+        // Load from Google Sheets (if configured) or local storage
+        allRecords = await storage.getAllRecords();
         filteredRecords = [...allRecords];
         renderRecords();
     } catch (error) {
@@ -394,7 +388,7 @@ async function deleteRecord(recordId) {
     try {
         const record = storage.getRecordById(recordId);
         
-        // Delete photos from Google Drive
+        // Delete photos from Google Drive if available
         if (record && record.photos && auth.hasGoogleToken()) {
             for (const key in record.photos) {
                 if (record.photos[key]?.id) {
@@ -407,15 +401,12 @@ async function deleteRecord(recordId) {
             }
         }
 
-        // Delete from local storage
-        storage.deleteRecordLocal(recordId);
+        // Delete from storage (Google Sheets + local)
+        await storage.deleteRecordComplete(recordId);
 
         // Update local array
         allRecords = allRecords.filter(r => r.id !== recordId);
         filteredRecords = filteredRecords.filter(r => r.id !== recordId);
-
-        // Sync with Google Drive
-        await storage.syncRecordsToGoogleDrive();
 
         renderRecords();
         

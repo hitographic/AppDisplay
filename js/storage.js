@@ -1,11 +1,15 @@
 // =====================================================
-// VALID DISPLAY - Storage Module (Google Drive + Local)
+// VALID DISPLAY - Storage Module (Google Sheets + Google Drive + Local)
 // =====================================================
 
 class Storage {
     constructor() {
         this.isOnline = navigator.onLine;
         this.pendingUploads = [];
+        this.useGoogleSheets = false;
+        
+        // Check if Google Sheets is configured
+        this.checkGoogleSheets();
         
         // Listen for online/offline events
         window.addEventListener('online', () => {
@@ -15,6 +19,90 @@ class Storage {
         window.addEventListener('offline', () => {
             this.isOnline = false;
         });
+    }
+
+    // Check if Google Sheets is configured
+    checkGoogleSheets() {
+        if (typeof sheetsDB !== 'undefined' && sheetsDB.isConfigured()) {
+            this.useGoogleSheets = true;
+            console.log('✅ Google Sheets database connected');
+        } else {
+            this.useGoogleSheets = false;
+            console.log('ℹ️ Using local storage (Google Sheets not configured)');
+        }
+    }
+
+    // ==================== MAIN DATA OPERATIONS ====================
+    
+    // Get all records (from Google Sheets or local)
+    async getAllRecords() {
+        if (this.useGoogleSheets && this.isOnline) {
+            try {
+                const records = await sheetsDB.getAllRecords();
+                if (records !== null) {
+                    // Cache to local storage
+                    this.saveRecordsLocal(records);
+                    return records;
+                }
+            } catch (error) {
+                console.error('Error fetching from Google Sheets:', error);
+            }
+        }
+        return this.getRecordsLocal();
+    }
+
+    // Add record (to Google Sheets and local)
+    async addRecord(record) {
+        // Always save to local first
+        this.addRecordLocal(record);
+        
+        // Sync to Google Sheets if available
+        if (this.useGoogleSheets && this.isOnline) {
+            try {
+                await sheetsDB.addRecord(record);
+                console.log('✅ Record synced to Google Sheets');
+            } catch (error) {
+                console.error('Error syncing to Google Sheets:', error);
+            }
+        }
+        
+        return record;
+    }
+
+    // Update record (in Google Sheets and local)
+    async updateRecord(id, updatedData) {
+        // Update local first
+        const updated = this.updateRecordLocal(id, updatedData);
+        
+        // Sync to Google Sheets if available
+        if (this.useGoogleSheets && this.isOnline && updated) {
+            try {
+                await sheetsDB.updateRecord(id, updated);
+                console.log('✅ Record updated in Google Sheets');
+            } catch (error) {
+                console.error('Error updating Google Sheets:', error);
+            }
+        }
+        
+        return updated;
+    }
+
+    // Delete record (from Google Sheets and local)
+    async deleteRecordComplete(id) {
+        // Delete from local first
+        this.deleteRecordLocal(id);
+        
+        // Delete from Google Sheets if available
+        if (this.useGoogleSheets && this.isOnline) {
+            try {
+                await sheetsDB.deleteRecord(id);
+                console.log('✅ Record deleted from Google Sheets');
+            } catch (error) {
+                console.error('Error deleting from Google Sheets:', error);
+            }
+        }
+        
+        return true;
     }
 
     // ==================== LOCAL STORAGE ====================
