@@ -21,10 +21,12 @@ class GoogleSheetsDB {
         }
 
         try {
+            // Use no-cors mode with redirect follow for Google Apps Script
             const response = await fetch(`${this.webAppUrl}?action=getAll`, {
                 method: 'GET',
+                redirect: 'follow',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 }
             });
 
@@ -32,7 +34,8 @@ class GoogleSheetsDB {
                 throw new Error('Failed to fetch from Google Sheets');
             }
 
-            const data = await response.json();
+            const text = await response.text();
+            const data = JSON.parse(text);
             return data.records || [];
         } catch (error) {
             console.error('Error fetching from Google Sheets:', error);
@@ -48,18 +51,24 @@ class GoogleSheetsDB {
         }
 
         try {
+            // For POST, we need to use form data approach
+            const formData = new FormData();
+            formData.append('data', JSON.stringify({
+                action: 'add',
+                record: record
+            }));
+
             const response = await fetch(this.webAppUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     action: 'add',
                     record: record
-                })
+                }),
+                redirect: 'follow'
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            const data = JSON.parse(text);
             return data;
         } catch (error) {
             console.error('Error adding to Google Sheets:', error);
@@ -76,17 +85,16 @@ class GoogleSheetsDB {
         try {
             const response = await fetch(this.webAppUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     action: 'update',
                     recordId: recordId,
                     record: updatedRecord
-                })
+                }),
+                redirect: 'follow'
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            const data = JSON.parse(text);
             return data;
         } catch (error) {
             console.error('Error updating Google Sheets:', error);
@@ -103,16 +111,15 @@ class GoogleSheetsDB {
         try {
             const response = await fetch(this.webAppUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     action: 'delete',
                     recordId: recordId
-                })
+                }),
+                redirect: 'follow'
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            const data = JSON.parse(text);
             return data;
         } catch (error) {
             console.error('Error deleting from Google Sheets:', error);
@@ -128,10 +135,12 @@ class GoogleSheetsDB {
 
         try {
             const response = await fetch(`${this.webAppUrl}?action=get&id=${recordId}`, {
-                method: 'GET'
+                method: 'GET',
+                redirect: 'follow'
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            const data = JSON.parse(text);
             return data.record || null;
         } catch (error) {
             console.error('Error getting record:', error);

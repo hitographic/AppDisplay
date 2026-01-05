@@ -32,40 +32,48 @@ function getRecordsSheet() {
 
 // Handle GET requests
 function doGet(e) {
-  const action = e.parameter.action || 'getAll';
+  var output;
   
   try {
+    const action = e.parameter.action || 'getAll';
+    
     if (action === 'getAll') {
-      return getAllRecords();
+      output = getAllRecords();
     } else if (action === 'get') {
       const id = e.parameter.id;
-      return getRecordById(id);
+      output = getRecordById(id);
+    } else {
+      output = createResponse({ success: false, error: 'Invalid action' });
     }
   } catch (error) {
-    return createResponse({ success: false, error: error.message });
+    output = createResponse({ success: false, error: error.message });
   }
   
-  return createResponse({ success: false, error: 'Invalid action' });
+  return output;
 }
 
 // Handle POST requests
 function doPost(e) {
+  var output;
+  
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
     
     if (action === 'add') {
-      return addRecord(data.record);
+      output = addRecord(data.record);
     } else if (action === 'update') {
-      return updateRecord(data.recordId, data.record);
+      output = updateRecord(data.recordId, data.record);
     } else if (action === 'delete') {
-      return deleteRecord(data.recordId);
+      output = deleteRecord(data.recordId);
+    } else {
+      output = createResponse({ success: false, error: 'Invalid action' });
     }
   } catch (error) {
-    return createResponse({ success: false, error: error.message });
+    output = createResponse({ success: false, error: error.message });
   }
   
-  return createResponse({ success: false, error: 'Invalid action' });
+  return output;
 }
 
 // Get all records
