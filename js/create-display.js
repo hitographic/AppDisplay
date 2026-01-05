@@ -540,16 +540,63 @@ function formatDate(dateString) {
     });
 }
 
+// Loading messages configuration
+const LOADING_MESSAGES = {
+    'Memproses...': {
+        title: 'Memproses',
+        message: 'Mohon tunggu sebentar...',
+        hint: 'Jangan tutup halaman ini'
+    },
+    'Menghubungkan ke Google Drive...': {
+        title: 'Menghubungkan',
+        message: 'Sedang menghubungkan ke Google Drive...',
+        hint: 'Popup Google mungkin muncul untuk login'
+    },
+    'Memproses gambar...': {
+        title: 'Memproses Gambar',
+        message: 'Sedang memproses gambar yang diambil...',
+        hint: 'Tunggu sebentar'
+    },
+    'Menyimpan sementara...': {
+        title: 'Menyimpan',
+        message: 'Menyimpan data sementara...',
+        hint: 'Sebentar lagi selesai'
+    },
+    'Menyimpan semua data...': {
+        title: 'Menyimpan Data',
+        message: 'Sedang menyimpan semua data ke database...',
+        hint: 'Jangan tutup halaman ini'
+    },
+    'Mengupload foto ke Google Drive...': {
+        title: 'Mengupload Foto',
+        message: 'Sedang mengupload foto ke Google Drive...',
+        hint: 'Proses ini mungkin memakan waktu beberapa detik'
+    }
+};
+
 function showLoading(message = 'Memproses...') {
     const overlay = document.getElementById('loadingOverlay');
-    const text = document.getElementById('loadingText');
-    if (text) text.textContent = message;
-    overlay.classList.remove('hidden');
+    const titleEl = document.getElementById('loadingTitle');
+    const messageEl = document.getElementById('loadingMessage');
+    const hintEl = document.getElementById('loadingHint');
+    
+    // Get custom messages or use defaults
+    const config = LOADING_MESSAGES[message] || {
+        title: message,
+        message: 'Mohon tunggu sebentar...',
+        hint: 'Jangan tutup halaman ini'
+    };
+    
+    if (titleEl) titleEl.textContent = config.title;
+    if (messageEl) messageEl.textContent = config.message;
+    if (hintEl) hintEl.textContent = config.hint;
+    
+    overlay.classList.add('active');
 }
 
 function hideLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.add('hidden');
+    overlay.classList.remove('active');
 }
 
 function showToast(message, type = 'info') {

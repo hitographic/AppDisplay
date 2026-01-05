@@ -276,9 +276,16 @@
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <p id="loadingText">Memproses...</p>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p class="loading-title" id="loadingTitle">Memproses...</p>
+            <p class="loading-message" id="loadingMessage">Mohon tunggu sebentar</p>
+            <div class="loading-progress">
+                <div class="loading-progress-bar" id="loadingProgressBar"></div>
+            </div>
+            <p class="loading-hint" id="loadingHint">Jangan tutup halaman ini</p>
+        </div>
     </div>
 
     <script src="js/config.js"></script>
