@@ -183,11 +183,31 @@ function renderRecords() {
 
     const userIsAdmin = isAdmin();
 
-    grid.innerHTML = filteredRecords.map(record => `
+    grid.innerHTML = filteredRecords.map(record => {
+        // Get first available photo for card preview
+        const previewPhoto = record.photos?.bumbu || record.photos?.karton || record.photos?.si || 
+                            record.photos?.etiket || record.photos?.['m-bumbu'] || 
+                            record.photos?.['etiket-banded'] || record.photos?.plakban;
+        
+        // Use Google thumbnail URL if photo has ID
+        let previewSrc = '';
+        if (previewPhoto?.id) {
+            previewSrc = `https://lh3.googleusercontent.com/d/${previewPhoto.id}`;
+        } else if (previewPhoto?.directLink) {
+            previewSrc = previewPhoto.directLink;
+        } else if (previewPhoto?.base64) {
+            previewSrc = previewPhoto.base64;
+        }
+        
+        return `
         <div class="record-card" onclick="openPreview('${record.id}')">
             <div class="card-preview">
-                ${record.photos?.bumbu 
-                    ? `<img src="${record.photos.bumbu.directLink || record.photos.bumbu.base64}" alt="${record.flavor}">`
+                ${previewSrc 
+                    ? `<img src="${previewSrc}" alt="${record.flavor}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                       <div class="no-image" style="display:none;">
+                           <i class="fas fa-image"></i>
+                           <p>No Preview</p>
+                       </div>`
                     : `<div class="no-image">
                         <i class="fas fa-image"></i>
                         <p>No Preview</p>
@@ -222,7 +242,8 @@ function renderRecords() {
                 ` : ''}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function initSearchFilters() {
@@ -409,20 +430,18 @@ function showPreviewTab(tabId) {
     console.log('📷 Preview tab:', tabId);
     console.log('📷 Photo data:', photo);
     
-    if (photo) {
-        const imgSrc = photo.directLink || photo.base64;
-        console.log('📷 Image source:', imgSrc ? imgSrc.substring(0, 100) + '...' : 'NONE');
+    if (photo && photo.id) {
+        // Use Google Drive thumbnail URL format (more reliable for display)
+        const imgSrc = `https://lh3.googleusercontent.com/d/${photo.id}`;
+        console.log('📷 Image source:', imgSrc);
         
-        if (imgSrc) {
-            previewContent.innerHTML = `<img src="${imgSrc}" alt="${tabId}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-exclamation-triangle\\'></i><p>Gagal memuat gambar</p></div>';">`;
-        } else {
-            previewContent.innerHTML = `
-                <div class="no-image">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Link foto tidak tersedia</p>
-                </div>
-            `;
-        }
+        previewContent.innerHTML = `
+            <img src="${imgSrc}" alt="${tabId}" 
+                 onerror="this.onerror=null; this.src='${photo.directLink || ''}'; if(!this.src) this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-exclamation-triangle\\'></i><p>Gagal memuat gambar</p></div>';">
+        `;
+    } else if (photo && photo.base64) {
+        // Fallback to base64 if available
+        previewContent.innerHTML = `<img src="${photo.base64}" alt="${tabId}">`;
     } else {
         previewContent.innerHTML = `
             <div class="no-image">
