@@ -39,43 +39,94 @@ function fixRecordsStructure() {
     return { success: true, message: 'Sheet Records dibuat baru dengan struktur yang benar' };
   }
   
-  // Cek apakah ada data
-  var lastRow = sheet.getLastRow();
-  if (lastRow === 0) {
-    // Sheet kosong, tambahkan header
-    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
-    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
-    return { success: true, message: 'Header ditambahkan ke sheet kosong' };
-  }
-  
-  // Cek baris pertama - apakah ini header atau data?
-  var firstRow = sheet.getRange(1, 1, 1, Math.min(sheet.getLastColumn(), 14)).getValues()[0];
-  var firstCell = String(firstRow[0]);
-  
-  // Jika baris pertama adalah data (dimulai dengan 'rec_'), insert header di atas
-  if (firstCell.startsWith('rec_')) {
-    // Insert baris baru di atas
-    sheet.insertRowBefore(1);
-    // Tambahkan header
-    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
-    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
-    return { success: true, message: 'Header ditambahkan di atas data yang sudah ada' };
-  }
-  
-  // Cek apakah header sudah benar
-  var currentHeaders = sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).getValues()[0];
-  if (JSON.stringify(currentHeaders) === JSON.stringify(CORRECT_HEADERS)) {
-    return { success: true, message: 'Struktur sudah benar' };
-  }
-  
-  // Perbaiki header
+  // Perbaiki header dulu
   sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
   sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
   sheet.setFrozenRows(1);
   
-  return { success: true, message: 'Header diperbaiki ke struktur yang benar' };
+  return { success: true, message: 'Header diperbaiki. Jalankan migrateOldData() untuk migrasi data lama.' };
+}
+
+// FUNGSI MIGRASI DATA - Jalankan ini untuk memperbaiki data lama dari 14 kolom ke 16 kolom
+function migrateOldData() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
+  
+  if (!sheet) {
+    return { success: false, error: 'Sheet Records tidak ditemukan' };
+  }
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return { success: true, message: 'Tidak ada data untuk dimigrasi' };
+  }
+  
+  var migratedCount = 0;
+  
+  // Loop setiap baris data (mulai dari baris 2)
+  for (var i = 2; i <= lastRow; i++) {
+    var row = sheet.getRange(i, 1, 1, 16).getValues()[0];
+    var cellG = String(row[6]); // Kolom G (index 6)
+    
+    // Cek apakah kolom G berisi data foto (struktur lama) atau createdBy (struktur baru)
+    // Data foto biasanya dimulai dengan '{' atau kosong, createdBy berisi nama atau kosong
+    if (cellG.startsWith('{') || cellG.startsWith('[')) {
+      // Ini data struktur lama - perlu migrasi
+      // Struktur lama: id, tanggal, flavor, negara, createdAt, updatedAt, photo_bumbu, photo_mbumbu, photo_si, photo_karton, photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi
+      // Struktur baru: id, tanggal, flavor, negara, createdAt, updatedAt, createdBy, updatedBy, photo_bumbu, photo_mbumbu, photo_si, photo_karton, photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi
+      
+      var oldData = sheet.getRange(i, 1, 1, 14).getValues()[0];
+      
+      var newRow = [
+        oldData[0],  // id
+        oldData[1],  // tanggal
+        oldData[2],  // flavor
+        oldData[3],  // negara
+        oldData[4],  // createdAt
+        oldData[5],  // updatedAt
+        '',          // createdBy (baru - kosong)
+        '',          // updatedBy (baru - kosong)
+        oldData[6],  // photo_bumbu (dari kolom G lama)
+        oldData[7],  // photo_mbumbu (dari kolom H lama)
+        oldData[8],  // photo_si (dari kolom I lama)
+        oldData[9],  // photo_karton (dari kolom J lama)
+        oldData[10], // photo_etiket (dari kolom K lama)
+        oldData[11], // photo_etiketbanded (dari kolom L lama)
+        oldData[12], // photo_plakban (dari kolom M lama)
+        oldData[13]  // kodeProduksi (dari kolom N lama)
+      ];
+      
+      // Update baris dengan data yang sudah dimigrasi
+      sheet.getRange(i, 1, 1, 16).setValues([newRow]);
+      migratedCount++;
+      
+      Logger.log('Migrated row ' + i + ': ' + oldData[0]);
+    }
+  }
+  
+  return { 
+    success: true, 
+    message: 'Migrasi selesai. ' + migratedCount + ' baris data berhasil dimigrasi ke struktur baru.' 
+  };
+}
+
+// Fungsi untuk menghapus semua data dan memulai dari awal (HATI-HATI!)
+function resetRecordsSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
+  
+  if (sheet) {
+    // Hapus sheet lama
+    ss.deleteSheet(sheet);
+  }
+  
+  // Buat sheet baru
+  sheet = ss.insertSheet('Records');
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  
+  return { success: true, message: 'Sheet Records berhasil direset dengan struktur baru' };
 }
 
 function getRecordsSheet() {
