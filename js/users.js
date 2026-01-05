@@ -34,8 +34,8 @@ function jsonpRequest(url) {
         const timeoutId = setTimeout(() => {
             delete window[callbackName];
             if (script.parentNode) script.parentNode.removeChild(script);
-            reject(new Error('Request timeout'));
-        }, 30000);
+            reject(new Error('Request timeout - pastikan Apps Script sudah di-deploy'));
+        }, 10000); // 10 detik timeout
 
         window[callbackName] = (data) => {
             clearTimeout(timeoutId);
@@ -50,7 +50,7 @@ function jsonpRequest(url) {
             clearTimeout(timeoutId);
             delete window[callbackName];
             if (script.parentNode) script.parentNode.removeChild(script);
-            reject(new Error('Script load error'));
+            reject(new Error('Gagal memuat data dari server'));
         };
         document.head.appendChild(script);
     });
@@ -110,20 +110,33 @@ function postRequest(data) {
 
 // Load all users
 async function loadUsers() {
+    showLoading('Memuat data user...');
+    
     try {
         const result = await jsonpRequest(`${webAppUrl}?action=getUsers`);
+        
+        hideLoading();
         
         if (result.success) {
             allUsers = result.users || [];
             renderUsersTable();
         } else {
-            showToast('Gagal memuat data user', 'error');
+            showToast('Gagal memuat data user: ' + (result.error || ''), 'error');
             renderEmptyState();
         }
     } catch (error) {
+        hideLoading();
         console.error('Error loading users:', error);
         showToast('Error: ' + error.message, 'error');
-        renderEmptyState();
+        // Fallback: tampilkan user dari config lokal
+        allUsers = CONFIG.USERS.map(u => ({
+            nik: u.nik,
+            password: u.password,
+            name: u.name,
+            role: u.role
+        }));
+        renderUsersTable();
+        showToast('Menampilkan data lokal (Google Sheets tidak tersedia)', 'warning');
     }
 }
 
