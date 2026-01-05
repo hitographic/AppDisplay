@@ -28,7 +28,23 @@ function getSpreadsheet() {
 }
 
 function getRecordsSheet() {
-  return getSpreadsheet().getSheetByName('Records');
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
+  
+  // Jika sheet "Records" belum ada, buat otomatis
+  if (!sheet) {
+    sheet = ss.insertSheet('Records');
+    // Tambahkan header
+    var headers = ['id', 'tanggal', 'flavor', 'negara', 'createdAt', 'updatedAt', 
+                   'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_karton',
+                   'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi'];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    // Format header
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  
+  return sheet;
 }
 
 // Handle GET requests - dengan JSONP support
