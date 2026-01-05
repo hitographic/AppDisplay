@@ -23,7 +23,7 @@ function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
-// Fungsi untuk memperbaiki struktur sheet Records
+// Fungsi untuk memperbaiki struktur sheet Records - JALANKAN INI DULU!
 function fixRecordsStructure() {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('Records');
@@ -37,10 +37,33 @@ function fixRecordsStructure() {
     return { success: true, message: 'Sheet Records dibuat baru dengan struktur yang benar' };
   }
   
-  // Cek header yang ada
-  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  // Cek apakah ada data
+  var lastRow = sheet.getLastRow();
+  if (lastRow === 0) {
+    // Sheet kosong, tambahkan header
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { success: true, message: 'Header ditambahkan ke sheet kosong' };
+  }
   
-  // Jika header sudah benar, tidak perlu fix
+  // Cek baris pertama - apakah ini header atau data?
+  var firstRow = sheet.getRange(1, 1, 1, Math.min(sheet.getLastColumn(), 14)).getValues()[0];
+  var firstCell = String(firstRow[0]);
+  
+  // Jika baris pertama adalah data (dimulai dengan 'rec_'), insert header di atas
+  if (firstCell.startsWith('rec_')) {
+    // Insert baris baru di atas
+    sheet.insertRowBefore(1);
+    // Tambahkan header
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { success: true, message: 'Header ditambahkan di atas data yang sudah ada' };
+  }
+  
+  // Cek apakah header sudah benar
+  var currentHeaders = sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).getValues()[0];
   if (JSON.stringify(currentHeaders) === JSON.stringify(CORRECT_HEADERS)) {
     return { success: true, message: 'Struktur sudah benar' };
   }
@@ -48,14 +71,9 @@ function fixRecordsStructure() {
   // Perbaiki header
   sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
   sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
   
-  // Hapus kolom berlebih jika ada
-  var lastCol = sheet.getLastColumn();
-  if (lastCol > CORRECT_HEADERS.length) {
-    sheet.deleteColumns(CORRECT_HEADERS.length + 1, lastCol - CORRECT_HEADERS.length);
-  }
-  
-  return { success: true, message: 'Struktur diperbaiki. Header diupdate ke: ' + CORRECT_HEADERS.join(', ') };
+  return { success: true, message: 'Header diperbaiki ke struktur yang benar' };
 }
 
 function getRecordsSheet() {
