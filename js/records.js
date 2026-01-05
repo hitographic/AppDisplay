@@ -503,9 +503,11 @@ function renderKodeProduksi() {
         return;
     }
 
-    container.innerHTML = currentPreviewRecord.kodeProduksi.map((kode, index) => `
-        <span>Kode ${index + 1}: ${escapeHtml(kode.join(' | '))}</span>
-    `).join('');
+    container.innerHTML = currentPreviewRecord.kodeProduksi.map((kode, index) => {
+        // Support both old format (array) and new format (string)
+        const kodeText = Array.isArray(kode) ? kode.filter(k => k).join(' | ') : kode;
+        return `<span>Kode ${index + 1}: ${escapeHtml(kodeText)}</span>`;
+    }).join('');
 }
 
 // ==================== RECORD ACTIONS ====================

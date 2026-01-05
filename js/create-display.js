@@ -75,10 +75,16 @@ function loadExistingKodeProduksi() {
     if (!currentData.kodeProduksi || currentData.kodeProduksi.length === 0) return;
 
     currentData.kodeProduksi.forEach((kode, index) => {
-        if (kode && kode.length === 3) {
-            document.getElementById(`kode${index + 1}-1`).value = kode[0] || '';
-            document.getElementById(`kode${index + 1}-2`).value = kode[1] || '';
-            document.getElementById(`kode${index + 1}-3`).value = kode[2] || '';
+        const inputEl = document.getElementById(`kode${index + 1}`);
+        if (inputEl) {
+            // Support both old format (array) and new format (string)
+            if (Array.isArray(kode)) {
+                // Old format: combine array into single string
+                inputEl.value = kode.filter(k => k).join(' ');
+            } else {
+                // New format: direct string
+                inputEl.value = kode || '';
+            }
         }
     });
 }
@@ -560,14 +566,10 @@ function collectKodeProduksi() {
     const kodeProduksi = [];
 
     for (let i = 1; i <= 3; i++) {
-        const kode = [
-            document.getElementById(`kode${i}-1`)?.value?.trim() || '',
-            document.getElementById(`kode${i}-2`)?.value?.trim() || '',
-            document.getElementById(`kode${i}-3`)?.value?.trim() || ''
-        ];
+        const kode = document.getElementById(`kode${i}`)?.value?.trim() || '';
 
-        // Only add if at least one field is filled
-        if (kode.some(k => k !== '')) {
+        // Only add if field is filled
+        if (kode !== '') {
             kodeProduksi.push(kode);
         }
     }
