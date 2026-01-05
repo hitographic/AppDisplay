@@ -7,7 +7,7 @@ const CONFIG = {
     // GANTI NILAI DI BAWAH INI DENGAN MILIK ANDA
     GOOGLE_CLIENT_ID: '748984910734-81e3ft1gd1nvje4td97c49catdtf99sl.apps.googleusercontent.com',
     GOOGLE_API_KEY: 'AIzaSyC9xQbY7HoiY3Z9-D4W3AElIfHqRwkZsmI',
-    GOOGLE_FOLDER_ID: 'https://drive.google.com/drive/folders/1oVQJZfkorSrsSd49CPzRsmAybUHX7J23?usp=sharing',
+    GOOGLE_FOLDER_ID: '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23',
     
     // Google Drive API Scopes
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
