@@ -337,13 +337,56 @@ function initForms() {
     });
 }
 
-function proceedToCreateDisplay() {
+// Check for duplicate Flavor + Negara combination
+async function checkDuplicateFlavorNegara(flavor, negara) {
+    try {
+        // Get all existing records
+        const existingRecords = await storage.getAllRecords();
+        
+        if (!existingRecords || existingRecords.length === 0) {
+            return { isDuplicate: false };
+        }
+        
+        // Find duplicate (same flavor and negara)
+        const duplicate = existingRecords.find(record => {
+            return record.flavor && record.negara &&
+                record.flavor.toLowerCase().trim() === flavor.toLowerCase().trim() &&
+                record.negara.toLowerCase().trim() === negara.toLowerCase().trim();
+        });
+        
+        if (duplicate) {
+            return {
+                isDuplicate: true,
+                existingRecord: duplicate,
+                message: `Kombinasi Flavor "${flavor}" dan Negara "${negara}" sudah ada!\n\nData dibuat oleh: ${duplicate.createdBy || 'Unknown'}\nTanggal: ${duplicate.tanggal || duplicate.createdAt}\n\nSilakan pilih kombinasi Flavor dan Negara yang berbeda.`
+            };
+        }
+        
+        return { isDuplicate: false };
+    } catch (error) {
+        console.error('Error checking duplicate:', error);
+        return { isDuplicate: false };
+    }
+}
+
+async function proceedToCreateDisplay() {
     const tanggal = document.getElementById('inputTanggal').value;
     const flavor = document.getElementById('inputFlavor').value.trim();
     const negara = document.getElementById('inputNegara').value;
 
     if (!tanggal || !flavor || !negara) {
         showToast('Mohon lengkapi semua field', 'error');
+        return;
+    }
+
+    // Check for duplicate Flavor + Negara
+    showLoading('Memeriksa data duplikat...');
+    const duplicateCheck = await checkDuplicateFlavorNegara(flavor, negara);
+    hideLoading();
+    
+    if (duplicateCheck.isDuplicate) {
+        alert('⚠️ DATA DUPLIKAT!\n\n' + duplicateCheck.message);
+        showToast('Kombinasi Flavor dan Negara sudah ada', 'error');
         return;
     }
 

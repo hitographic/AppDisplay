@@ -361,6 +361,46 @@ async function simpanSementara() {
     }
 }
 
+// Check for duplicate Flavor + Negara combination
+async function checkDuplicateFlavorNegara(flavor, negara, excludeId = null) {
+    try {
+        // Get all existing records
+        const existingRecords = await storage.getAllRecords();
+        
+        if (!existingRecords || existingRecords.length === 0) {
+            return { isDuplicate: false };
+        }
+        
+        // Find duplicate (same flavor and negara, but different ID)
+        const duplicate = existingRecords.find(record => {
+            const sameFlavorNegara = record.flavor && record.negara &&
+                record.flavor.toLowerCase().trim() === flavor.toLowerCase().trim() &&
+                record.negara.toLowerCase().trim() === negara.toLowerCase().trim();
+            
+            // If editing, exclude current record from check
+            if (excludeId && record.id === excludeId) {
+                return false;
+            }
+            
+            return sameFlavorNegara;
+        });
+        
+        if (duplicate) {
+            return {
+                isDuplicate: true,
+                existingRecord: duplicate,
+                message: `Kombinasi Flavor "${flavor}" dan Negara "${negara}" sudah ada!\n\nData dibuat oleh: ${duplicate.createdBy || 'Unknown'}\nTanggal: ${duplicate.tanggal || duplicate.createdAt}\n\nSilakan pilih kombinasi Flavor dan Negara yang berbeda.`
+            };
+        }
+        
+        return { isDuplicate: false };
+    } catch (error) {
+        console.error('Error checking duplicate:', error);
+        // If error, allow to proceed (don't block user)
+        return { isDuplicate: false };
+    }
+}
+
 async function simpanSemua() {
     // Validate at least one photo
     const hasPhotos = Object.keys(uploadedPhotos).some(key => uploadedPhotos[key]);
@@ -368,6 +408,22 @@ async function simpanSemua() {
     if (!hasPhotos) {
         showToast('Mohon upload minimal 1 foto', 'warning');
         return;
+    }
+
+    // Check for duplicate Flavor + Negara (only for new records, not edit)
+    if (!currentData.isEdit) {
+        showLoading('Memeriksa data duplikat...');
+        const duplicateCheck = await checkDuplicateFlavorNegara(
+            currentData.flavor, 
+            currentData.negara
+        );
+        
+        if (duplicateCheck.isDuplicate) {
+            hideLoading();
+            alert('⚠️ DATA DUPLIKAT!\n\n' + duplicateCheck.message);
+            showToast('Kombinasi Flavor dan Negara sudah ada', 'error');
+            return;
+        }
     }
 
     // Check if any photo needs upload (has base64 but no id)
