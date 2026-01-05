@@ -5,9 +5,9 @@
 const CONFIG = {
     // Google Drive API Configuration
     // GANTI NILAI DI BAWAH INI DENGAN MILIK ANDA
-    GOOGLE_CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
-    GOOGLE_API_KEY: 'YOUR_GOOGLE_API_KEY',
-    GOOGLE_FOLDER_ID: 'YOUR_GOOGLE_DRIVE_FOLDER_ID',
+    GOOGLE_CLIENT_ID: '748984910734-81e3ft1gd1nvje4td97c49catdtf99sl.apps.googleusercontent.com',
+    GOOGLE_API_KEY: 'AIzaSyC9xQbY7HoiY3Z9-D4W3AElIfHqRwkZsmI',
+    GOOGLE_FOLDER_ID: 'https://drive.google.com/drive/folders/1oVQJZfkorSrsSd49CPzRsmAybUHX7J23?usp=sharing',
     
     // Google Drive API Scopes
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
