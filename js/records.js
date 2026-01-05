@@ -22,10 +22,8 @@ async function initRecordsPage() {
     // Show/hide admin controls based on role
     setupRoleBasedUI();
 
-    // Initialize Google API only for admin
-    if (isAdmin()) {
-        await initGoogleDriveConnection();
-    }
+    // Initialize Google API for all users (to show status)
+    await initGoogleDriveConnection();
 
     // Load records
     await loadRecords();
@@ -65,13 +63,82 @@ async function initGoogleDriveConnection() {
         await auth.initGoogleAPI();
         await auth.initGoogleIdentity();
 
+        // Listen for token received event
+        window.addEventListener('googleTokenReceived', () => {
+            showToast('Google Drive terkoneksi!', 'success');
+            updateDriveStatus(true);
+        });
+
+        // Update initial status
+        updateDriveStatus(auth.hasGoogleToken() && checkConfig());
+
         // Check for existing token
         if (!auth.hasGoogleToken() && checkConfig()) {
             console.log('Google Drive belum terkoneksi');
         }
     } catch (error) {
         console.error('Error initializing Google:', error);
+        updateDriveStatus(false);
     }
+}
+
+// Update Google Drive status display
+function updateDriveStatus(connected) {
+    const statusDiv = document.getElementById('driveStatus');
+    const statusText = document.getElementById('driveStatusText');
+    const btnConnect = document.getElementById('btnConnectDrive');
+    
+    if (!statusDiv || !statusText || !btnConnect) return;
+    
+    if (connected) {
+        statusDiv.classList.remove('disconnected');
+        statusDiv.classList.add('connected');
+        statusText.textContent = 'Google Drive: Terkoneksi ✓';
+        btnConnect.innerHTML = '<i class="fas fa-check"></i> Terhubung';
+        btnConnect.classList.add('connected');
+        btnConnect.disabled = true;
+    } else {
+        statusDiv.classList.remove('connected');
+        statusDiv.classList.add('disconnected');
+        statusText.textContent = 'Google Drive: Tidak Terkoneksi';
+        btnConnect.innerHTML = '<i class="fas fa-link"></i> Koneksikan';
+        btnConnect.classList.remove('connected');
+        btnConnect.disabled = false;
+    }
+}
+
+// Connect to Google Drive
+async function connectGoogleDrive() {
+    if (!checkConfig()) {
+        showToast('Konfigurasi Google API belum lengkap', 'error');
+        return;
+    }
+    
+    showLoading('Menghubungkan ke Google Drive...');
+    
+    try {
+        // Initialize if not already
+        if (!auth.tokenClient) {
+            await auth.initGoogleAPI();
+            await auth.initGoogleIdentity();
+        }
+        
+        // Request Google token
+        await auth.requestGoogleToken();
+        
+        // Check if successful
+        if (auth.hasGoogleToken()) {
+            updateDriveStatus(true);
+            showToast('Google Drive berhasil terkoneksi!', 'success');
+        } else {
+            showToast('Gagal mendapatkan akses Google Drive', 'error');
+        }
+    } catch (error) {
+        console.error('Error connecting Google Drive:', error);
+        showToast('Gagal koneksi: ' + error.message, 'error');
+    }
+    
+    hideLoading();
 }
 
 async function loadRecords() {
