@@ -572,18 +572,31 @@ function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
+  Logger.log('=== UPDATE RECORD START ===');
   Logger.log('Looking for recordId: ' + recordId);
+  Logger.log('recordId type: ' + typeof recordId);
   Logger.log('Total rows: ' + data.length);
+  Logger.log('Full updatedRecord: ' + JSON.stringify(updatedRecord));
   
   for (let i = 1; i < data.length; i++) {
+    Logger.log('Checking row ' + i + ', ID: ' + data[i][0] + ' (type: ' + typeof data[i][0] + ')');
+    
     // Compare as strings to handle type mismatch
     if (String(data[i][0]) === String(recordId)) {
       const rowIndex = i + 1; // 1-indexed
       
       // Log untuk debugging
-      Logger.log('Found record at row: ' + rowIndex);
-      Logger.log('Updating record: ' + recordId);
-      Logger.log('Updated photos: ' + JSON.stringify(updatedRecord.photos));
+      Logger.log('✅ Found record at row: ' + rowIndex);
+      Logger.log('Updated photos object: ' + JSON.stringify(updatedRecord.photos));
+      
+      // Check each photo field
+      Logger.log('photos.bumbu: ' + JSON.stringify(updatedRecord.photos?.bumbu));
+      Logger.log('photos.m-bumbu: ' + JSON.stringify(updatedRecord.photos?.['m-bumbu']));
+      Logger.log('photos.si: ' + JSON.stringify(updatedRecord.photos?.si));
+      Logger.log('photos.karton: ' + JSON.stringify(updatedRecord.photos?.karton));
+      Logger.log('photos.etiket: ' + JSON.stringify(updatedRecord.photos?.etiket));
+      Logger.log('photos.etiket-banded: ' + JSON.stringify(updatedRecord.photos?.['etiket-banded']));
+      Logger.log('photos.plakban: ' + JSON.stringify(updatedRecord.photos?.plakban));
       
       const row = [
         recordId,
@@ -604,16 +617,19 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : (data[i][15] || '[]')
       ];
       
-      Logger.log('Row to save: ' + JSON.stringify(row));
+      Logger.log('Row to save (16 columns): ' + JSON.stringify(row));
+      Logger.log('Row length: ' + row.length);
       
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
       
-      Logger.log('Record updated successfully');
-      return { success: true, message: 'Record updated' };
+      Logger.log('✅ Record updated successfully at row ' + rowIndex);
+      Logger.log('=== UPDATE RECORD END ===');
+      return { success: true, message: 'Record updated', rowIndex: rowIndex };
     }
   }
   
-  Logger.log('Record not found: ' + recordId);
+  Logger.log('❌ Record not found: ' + recordId);
+  Logger.log('=== UPDATE RECORD END (NOT FOUND) ===');
   return { success: false, error: 'Record not found: ' + recordId };
 }
 
