@@ -91,16 +91,73 @@ async function initGoogleAPI() {
         // Listen for token received event
         window.addEventListener('googleTokenReceived', () => {
             showToast('Google Drive terkoneksi!', 'success');
+            updateDriveStatus(true);
         });
+
+        // Update initial status
+        updateDriveStatus(auth.hasGoogleToken() && checkConfig());
 
         // Request token if not available
         if (!auth.hasGoogleToken() && checkConfig()) {
-            // Auto request or show button
-            console.log('Google token not available');
+            console.log('Google token not available - user needs to connect');
         }
     } catch (error) {
         console.error('Error initializing Google API:', error);
+        updateDriveStatus(false);
     }
+}
+
+// Update Google Drive status display
+function updateDriveStatus(connected) {
+    const statusDiv = document.getElementById('driveStatus');
+    const statusText = document.getElementById('driveStatusText');
+    const btnConnect = document.getElementById('btnConnectDrive');
+    
+    if (!statusDiv || !statusText || !btnConnect) return;
+    
+    if (connected) {
+        statusDiv.classList.remove('disconnected');
+        statusDiv.classList.add('connected');
+        statusText.textContent = 'Google Drive: Terkoneksi ✓';
+        btnConnect.innerHTML = '<i class="fas fa-check"></i> Terhubung';
+        btnConnect.classList.add('connected');
+        btnConnect.disabled = true;
+    } else {
+        statusDiv.classList.remove('connected');
+        statusDiv.classList.add('disconnected');
+        statusText.textContent = 'Google Drive: Tidak Terkoneksi';
+        btnConnect.innerHTML = '<i class="fas fa-link"></i> Koneksikan';
+        btnConnect.classList.remove('connected');
+        btnConnect.disabled = false;
+    }
+}
+
+// Connect to Google Drive
+async function connectGoogleDrive() {
+    if (!checkConfig()) {
+        showToast('Konfigurasi Google API belum lengkap', 'error');
+        return;
+    }
+    
+    showLoading('Menghubungkan ke Google Drive...');
+    
+    try {
+        // Request Google token
+        await auth.requestGoogleToken();
+        
+        // Check if successful
+        if (auth.hasGoogleToken()) {
+            updateDriveStatus(true);
+            showToast('Google Drive berhasil terkoneksi!', 'success');
+        } else {
+            showToast('Gagal mendapatkan akses Google Drive', 'error');
+        }
+    } catch (error) {
+        console.error('Error connecting Google Drive:', error);
+        showToast('Gagal koneksi: ' + error.message, 'error');
+    }
+    
+    hideLoading();
 }
 
 function initFileInputs() {

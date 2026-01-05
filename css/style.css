@@ -690,6 +690,76 @@ body {
 }
 
 /* =====================================================
+   GOOGLE DRIVE STATUS
+   ===================================================== */
+.drive-status-container {
+    margin-bottom: 20px;
+}
+
+.drive-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.drive-status.disconnected {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 1px solid #fc8181;
+    color: #c53030;
+}
+
+.drive-status.connected {
+    background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+    border: 1px solid #68d391;
+    color: #276749;
+}
+
+.drive-status i.fab {
+    font-size: 1.5rem;
+}
+
+.drive-status.disconnected i.fab {
+    color: #e53e3e;
+}
+
+.drive-status.connected i.fab {
+    color: #38a169;
+}
+
+.btn-connect-drive {
+    margin-left: auto;
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.btn-connect-drive:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-connect-drive.connected {
+    background: var(--success-color);
+    cursor: default;
+}
+
+.btn-connect-drive.connected:hover {
+    transform: none;
+}
+
+/* =====================================================
    UPLOAD SECTION
    ===================================================== */
 .upload-section,

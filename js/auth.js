@@ -178,6 +178,39 @@ class Auth {
         }
     }
 
+    // Request Google Token (alias for requestAccessToken with Promise)
+    async requestGoogleToken() {
+        return new Promise((resolve, reject) => {
+            if (!this.tokenClient) {
+                reject(new Error('Token client not initialized. Please wait for Google API to load.'));
+                return;
+            }
+            
+            // Set up one-time listener for token
+            const tokenHandler = (event) => {
+                window.removeEventListener('googleTokenReceived', tokenHandler);
+                resolve(event.detail);
+            };
+            window.addEventListener('googleTokenReceived', tokenHandler);
+            
+            // Request token
+            try {
+                this.tokenClient.requestAccessToken({ prompt: 'consent' });
+            } catch (error) {
+                window.removeEventListener('googleTokenReceived', tokenHandler);
+                reject(error);
+            }
+            
+            // Timeout after 60 seconds
+            setTimeout(() => {
+                window.removeEventListener('googleTokenReceived', tokenHandler);
+                if (!this.hasGoogleToken()) {
+                    reject(new Error('Token request timeout'));
+                }
+            }, 60000);
+        });
+    }
+
     // Get stored Google Token
     getGoogleToken() {
         return localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
