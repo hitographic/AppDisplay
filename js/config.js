@@ -19,10 +19,13 @@ const CONFIG = {
     APP_NAME: 'Valid Display',
     VERSION: '1.0.0',
     
-    // User credentials (untuk demo - dalam produksi gunakan backend)
+    // User credentials dengan role
+    // role: 'admin' = bisa tambah/edit/hapus data + upload Google Drive
+    // role: 'viewer' = hanya bisa lihat data (tidak perlu login Google)
     USERS: [
-        { nik: '50086913', password: 'Ind0f00d25', name: 'Admin User' },
-        { nik: '12345678', password: 'password123', name: 'Test User' }
+        { nik: '50086913', password: 'Ind0f00d25', name: 'Admin User', role: 'admin' },
+        { nik: '12345678', password: 'viewer123', name: 'Viewer User', role: 'viewer' },
+        { nik: '11111111', password: 'lihat123', name: 'Staff View', role: 'viewer' }
     ],
     
     // Photo Types

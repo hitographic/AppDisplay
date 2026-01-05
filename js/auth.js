@@ -26,6 +26,7 @@ class Auth {
             this.currentUser = {
                 nik: user.nik,
                 name: user.name,
+                role: user.role || 'viewer',
                 loginTime: new Date().toISOString()
             };
             localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
@@ -142,6 +143,18 @@ function protectPage() {
         return false;
     }
     return true;
+}
+
+// Check if user is admin
+function isAdmin() {
+    const user = auth.getUser();
+    return user && user.role === 'admin';
+}
+
+// Check if user is viewer only
+function isViewer() {
+    const user = auth.getUser();
+    return user && user.role === 'viewer';
 }
 
 // Global logout function

@@ -11,6 +11,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Protect page
     if (!protectPage()) return;
 
+    // Only admin can access this page
+    if (!isAdmin()) {
+        showToast('Anda tidak memiliki akses ke halaman ini', 'error');
+        setTimeout(() => {
+            window.location.href = 'records.html';
+        }, 1500);
+        return;
+    }
+
     // Initialize page
     initCreateDisplayPage();
 });

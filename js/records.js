@@ -15,12 +15,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function initRecordsPage() {
-    // Show user name
+    // Show user name and role
     const user = auth.getUser();
     document.getElementById('userName').textContent = user?.name || 'User';
 
-    // Initialize Google API
-    await initGoogleDriveConnection();
+    // Show/hide admin controls based on role
+    setupRoleBasedUI();
+
+    // Initialize Google API only for admin
+    if (isAdmin()) {
+        await initGoogleDriveConnection();
+    }
 
     // Load records
     await loadRecords();
@@ -33,6 +38,17 @@ async function initRecordsPage() {
 
     // Initialize preview tabs
     initPreviewTabs();
+}
+
+function setupRoleBasedUI() {
+    const addDataBtn = document.querySelector('.btn-primary[onclick="openAddDataPopup()"]');
+    
+    if (isViewer()) {
+        // Hide add button for viewers
+        if (addDataBtn) {
+            addDataBtn.style.display = 'none';
+        }
+    }
 }
 
 async function initGoogleDriveConnection() {
@@ -96,6 +112,8 @@ function renderRecords() {
 
     emptyState.classList.add('hidden');
 
+    const userIsAdmin = isAdmin();
+
     grid.innerHTML = filteredRecords.map(record => `
         <div class="record-card" onclick="openPreview('${record.id}')">
             <div class="card-preview">
@@ -120,12 +138,14 @@ function renderRecords() {
                 <button class="btn-view" onclick="openPreview('${record.id}')">
                     <i class="fas fa-eye"></i> Lihat
                 </button>
+                ${userIsAdmin ? `
                 <button class="btn-edit" onclick="editRecord('${record.id}')">
                     <i class="fas fa-edit"></i> Edit
                 </button>
                 <button class="btn-delete" onclick="deleteRecord('${record.id}')">
                     <i class="fas fa-trash"></i>
                 </button>
+                ` : ''}
             </div>
         </div>
     `).join('');
@@ -194,6 +214,12 @@ function resetSearch() {
 // ==================== ADD DATA POPUP ====================
 
 function openAddDataPopup() {
+    // Only admin can add data
+    if (!isAdmin()) {
+        showToast('Anda tidak memiliki akses untuk menambah data', 'error');
+        return;
+    }
+    
     const popup = document.getElementById('addDataPopup');
     popup.classList.remove('hidden');
 
@@ -332,6 +358,12 @@ function renderKodeProduksi() {
 // ==================== RECORD ACTIONS ====================
 
 function editRecord(recordId) {
+    // Only admin can edit
+    if (!isAdmin()) {
+        showToast('Anda tidak memiliki akses untuk mengedit data', 'error');
+        return;
+    }
+
     const record = storage.getRecordById(recordId);
     
     if (!record) {
@@ -347,6 +379,12 @@ function editRecord(recordId) {
 }
 
 async function deleteRecord(recordId) {
+    // Only admin can delete
+    if (!isAdmin()) {
+        showToast('Anda tidak memiliki akses untuk menghapus data', 'error');
+        return;
+    }
+
     if (!confirm('Apakah Anda yakin ingin menghapus record ini?')) {
         return;
     }
