@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Display - Valid Display</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-box-open"></i>
+            <span>VALID DISPLAY</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-back" onclick="goBack()">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header Section -->
+        <div class="page-header">
+            <h1><i class="fas fa-camera"></i> Create Display</h1>
+            <div id="displayInfo" class="display-info">
+                <span class="info-item"><i class="fas fa-tag"></i> <span id="infoFlavor">-</span></span>
+                <span class="info-item"><i class="fas fa-globe"></i> <span id="infoNegara">-</span></span>
+                <span class="info-item"><i class="fas fa-calendar"></i> <span id="infoTanggal">-</span></span>
+            </div>
+        </div>
+
+        <!-- Photo Upload Section -->
+        <section class="upload-section">
+            <h2><i class="fas fa-images"></i> Upload / Ambil Foto</h2>
+            
+            <div class="upload-grid">
+                <!-- Bumbu -->
+                <div class="upload-card" data-type="bumbu">
+                    <div class="upload-header">
+                        <h3>Bumbu</h3>
+                        <span class="upload-status" id="status-bumbu">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-bumbu">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-bumbu" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('bumbu')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('bumbu')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- M. Bumbu -->
+                <div class="upload-card" data-type="m-bumbu">
+                    <div class="upload-header">
+                        <h3>M. Bumbu</h3>
+                        <span class="upload-status" id="status-m-bumbu">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-m-bumbu">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-m-bumbu" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('m-bumbu')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('m-bumbu')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SI -->
+                <div class="upload-card" data-type="si">
+                    <div class="upload-header">
+                        <h3>SI</h3>
+                        <span class="upload-status" id="status-si">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-si">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-si" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('si')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('si')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Karton -->
+                <div class="upload-card" data-type="karton">
+                    <div class="upload-header">
+                        <h3>Karton</h3>
+                        <span class="upload-status" id="status-karton">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-karton">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-karton" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('karton')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('karton')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Etiket -->
+                <div class="upload-card" data-type="etiket">
+                    <div class="upload-header">
+                        <h3>Etiket</h3>
+                        <span class="upload-status" id="status-etiket">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-etiket">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-etiket" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('etiket')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('etiket')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Etiket Banded -->
+                <div class="upload-card" data-type="etiket-banded">
+                    <div class="upload-header">
+                        <h3>Etiket Banded</h3>
+                        <span class="upload-status" id="status-etiket-banded">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-etiket-banded">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-etiket-banded" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('etiket-banded')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('etiket-banded')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Plakban -->
+                <div class="upload-card" data-type="plakban">
+                    <div class="upload-header">
+                        <h3>Plakban</h3>
+                        <span class="upload-status" id="status-plakban">
+                            <i class="fas fa-clock"></i> Belum upload
+                        </span>
+                    </div>
+                    <div class="upload-preview" id="preview-plakban">
+                        <i class="fas fa-image"></i>
+                        <p>Belum ada foto</p>
+                    </div>
+                    <div class="upload-actions">
+                        <input type="file" id="file-plakban" accept="image/*" capture="environment" hidden>
+                        <button class="btn-upload" onclick="triggerUpload('plakban')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera('plakban')">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kode Produksi Section -->
+        <section class="kode-section">
+            <h2><i class="fas fa-barcode"></i> Kode Produksi</h2>
+            <div class="kode-grid">
+                <div class="kode-row">
+                    <div class="kode-input">
+                        <label>Kode 1</label>
+                        <input type="text" id="kode1-1" placeholder="Kolom 1">
+                        <input type="text" id="kode1-2" placeholder="Kolom 2">
+                        <input type="text" id="kode1-3" placeholder="Kolom 3">
+                    </div>
+                </div>
+                <div class="kode-row">
+                    <div class="kode-input">
+                        <label>Kode 2</label>
+                        <input type="text" id="kode2-1" placeholder="Kolom 1">
+                        <input type="text" id="kode2-2" placeholder="Kolom 2">
+                        <input type="text" id="kode2-3" placeholder="Kolom 3">
+                    </div>
+                </div>
+                <div class="kode-row">
+                    <div class="kode-input">
+                        <label>Kode 3</label>
+                        <input type="text" id="kode3-1" placeholder="Kolom 1">
+                        <input type="text" id="kode3-2" placeholder="Kolom 2">
+                        <input type="text" id="kode3-3" placeholder="Kolom 3">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="form-actions">
+            <button class="btn-secondary btn-large" onclick="simpanSementara()">
+                <i class="fas fa-save"></i> Simpan Sementara
+            </button>
+            <button class="btn-primary btn-large" onclick="simpanSemua()">
+                <i class="fas fa-check-circle"></i> Simpan Semua
+            </button>
+        </div>
+    </main>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="popup-overlay hidden">
+        <div class="popup-content camera-popup">
+            <div class="popup-header">
+                <h2><i class="fas fa-camera"></i> Ambil Foto</h2>
+                <button class="btn-close" onclick="closeCamera()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="camera-container">
+                <video id="cameraVideo" autoplay playsinline></video>
+                <canvas id="cameraCanvas" hidden></canvas>
+            </div>
+            <div class="camera-actions">
+                <button class="btn-capture" onclick="capturePhoto()">
+                    <i class="fas fa-circle"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">Memproses...</p>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/create-display.js"></script>
+</body>
+</html>

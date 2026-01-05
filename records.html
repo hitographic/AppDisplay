@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Records - Valid Display</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-box-open"></i>
+            <span>VALID DISPLAY</span>
+        </div>
+        <div class="nav-user">
+            <span id="userName">User</span>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header Section -->
+        <div class="page-header">
+            <h1><i class="fas fa-database"></i> Display Records</h1>
+            <p>Kelola data display produk Anda</p>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <button class="btn-primary" onclick="openAddDataPopup()">
+                <i class="fas fa-plus"></i> Tambah Data
+            </button>
+            
+            <div class="search-section">
+                <button class="btn-secondary" onclick="toggleAdvancedSearch()">
+                    <i class="fas fa-search-plus"></i> Advanced Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Advanced Search Panel -->
+        <div id="advancedSearchPanel" class="search-panel hidden">
+            <div class="search-grid">
+                <div class="search-field">
+                    <label><i class="fas fa-globe"></i> Negara</label>
+                    <select id="searchNegara">
+                        <option value="">Semua Negara</option>
+                    </select>
+                </div>
+                <div class="search-field">
+                    <label><i class="fas fa-tag"></i> Flavor</label>
+                    <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)">
+                </div>
+                <div class="search-field">
+                    <label><i class="fas fa-calendar"></i> Tanggal</label>
+                    <input type="date" id="searchDate">
+                </div>
+                <div class="search-actions">
+                    <button class="btn-primary" onclick="applySearch()">
+                        <i class="fas fa-search"></i> Cari
+                    </button>
+                    <button class="btn-secondary" onclick="resetSearch()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Records Grid -->
+        <div class="records-container">
+            <div id="recordsGrid" class="records-grid">
+                <!-- Cards akan dimuat di sini -->
+            </div>
+            
+            <div id="emptyState" class="empty-state hidden">
+                <i class="fas fa-inbox"></i>
+                <h3>Belum ada data</h3>
+                <p>Klik "Tambah Data" untuk menambahkan record baru</p>
+            </div>
+
+            <div id="loadingRecords" class="loading-records hidden">
+                <div class="spinner"></div>
+                <p>Memuat data...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Data Popup -->
+    <div id="addDataPopup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2><i class="fas fa-plus-circle"></i> Tambah Data Baru</h2>
+                <button class="btn-close" onclick="closeAddDataPopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addDataForm" class="popup-form">
+                <div class="form-group">
+                    <label for="inputTanggal">
+                        <i class="fas fa-calendar-alt"></i> Tanggal
+                    </label>
+                    <input type="date" id="inputTanggal" required>
+                </div>
+                <div class="form-group">
+                    <label for="inputFlavor">
+                        <i class="fas fa-tag"></i> Nama Flavor
+                    </label>
+                    <input type="text" id="inputFlavor" placeholder="Masukkan nama flavor" required>
+                </div>
+                <div class="form-group">
+                    <label for="inputNegara">
+                        <i class="fas fa-globe"></i> Negara
+                    </label>
+                    <select id="inputNegara" required>
+                        <option value="">Pilih Negara</option>
+                        <option value="Indonesia">Indonesia</option>
+                        <option value="Malaysia">Malaysia</option>
+                        <option value="Singapore">Singapore</option>
+                        <option value="Thailand">Thailand</option>
+                        <option value="Vietnam">Vietnam</option>
+                        <option value="Philippines">Philippines</option>
+                        <option value="Japan">Japan</option>
+                        <option value="Korea">Korea</option>
+                        <option value="China">China</option>
+                        <option value="Middle East">Middle East</option>
+                        <option value="Europe">Europe</option>
+                        <option value="USA">USA</option>
+                        <option value="Australia">Australia</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="popup-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddDataPopup()">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-arrow-right"></i> Lanjut ke Create Display
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview Popup -->
+    <div id="previewPopup" class="popup-overlay hidden">
+        <div class="popup-content popup-preview">
+            <div class="popup-header">
+                <h2 id="previewTitle"><i class="fas fa-images"></i> Preview Display</h2>
+                <button class="btn-close" onclick="closePreviewPopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="preview-tabs">
+                <button class="tab-btn active" data-tab="bumbu">Bumbu</button>
+                <button class="tab-btn" data-tab="m-bumbu">M. Bumbu</button>
+                <button class="tab-btn" data-tab="si">SI</button>
+                <button class="tab-btn" data-tab="karton">Karton</button>
+                <button class="tab-btn" data-tab="etiket">Etiket</button>
+                <button class="tab-btn" data-tab="etiket-banded">Etiket Banded</button>
+                <button class="tab-btn" data-tab="plakban">Plakban</button>
+            </div>
+            <div id="previewContent" class="preview-content">
+                <!-- Preview images akan dimuat di sini -->
+            </div>
+            <div class="preview-info">
+                <p><strong>Kode Produksi:</strong></p>
+                <div id="previewKodeProduksi" class="kode-produksi-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">Memproses...</p>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/records.js"></script>
+</body>
+</html>

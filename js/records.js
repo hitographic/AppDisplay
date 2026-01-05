@@ -1,0 +1,470 @@
+// =====================================================
+// VALID DISPLAY - Records Page Script
+// =====================================================
+
+let allRecords = [];
+let filteredRecords = [];
+let currentPreviewRecord = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Protect page
+    if (!protectPage()) return;
+
+    // Initialize page
+    initRecordsPage();
+});
+
+async function initRecordsPage() {
+    // Show user name
+    const user = auth.getUser();
+    document.getElementById('userName').textContent = user?.name || 'User';
+
+    // Initialize Google API
+    await initGoogleDriveConnection();
+
+    // Load records
+    await loadRecords();
+
+    // Initialize search filters
+    initSearchFilters();
+
+    // Initialize popup forms
+    initForms();
+
+    // Initialize preview tabs
+    initPreviewTabs();
+}
+
+async function initGoogleDriveConnection() {
+    try {
+        // Initialize Google API
+        await auth.initGoogleAPI();
+        await auth.initGoogleIdentity();
+
+        // Check for existing token
+        if (!auth.hasGoogleToken() && checkConfig()) {
+            // Show connect button or auto-request
+            console.log('Google Drive belum terkoneksi');
+        }
+    } catch (error) {
+        console.error('Error initializing Google:', error);
+    }
+}
+
+async function loadRecords() {
+    showLoadingRecords();
+
+    try {
+        // Try to load from Google Drive first
+        if (auth.hasGoogleToken()) {
+            allRecords = await storage.loadRecordsFromGoogleDrive();
+        } else {
+            allRecords = storage.getRecordsLocal();
+        }
+
+        filteredRecords = [...allRecords];
+        renderRecords();
+    } catch (error) {
+        console.error('Error loading records:', error);
+        allRecords = storage.getRecordsLocal();
+        filteredRecords = [...allRecords];
+        renderRecords();
+    }
+}
+
+function showLoadingRecords() {
+    document.getElementById('loadingRecords').classList.remove('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('recordsGrid').innerHTML = '';
+}
+
+function hideLoadingRecords() {
+    document.getElementById('loadingRecords').classList.add('hidden');
+}
+
+function renderRecords() {
+    hideLoadingRecords();
+
+    const grid = document.getElementById('recordsGrid');
+    const emptyState = document.getElementById('emptyState');
+
+    if (filteredRecords.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+
+    grid.innerHTML = filteredRecords.map(record => `
+        <div class="record-card" onclick="openPreview('${record.id}')">
+            <div class="card-preview">
+                ${record.photos?.bumbu 
+                    ? `<img src="${record.photos.bumbu.directLink || record.photos.bumbu.base64}" alt="${record.flavor}">`
+                    : `<div class="no-image">
+                        <i class="fas fa-image"></i>
+                        <p>No Preview</p>
+                    </div>`
+                }
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">${escapeHtml(record.flavor)}</h3>
+                <div class="card-meta">
+                    <span><i class="fas fa-globe"></i> ${escapeHtml(record.negara)}</span>
+                    <span><i class="fas fa-calendar-plus"></i> ${formatDate(record.tanggal)}</span>
+                    <span><i class="fas fa-clock"></i> ${formatDate(record.updatedAt || record.createdAt)}</span>
+                </div>
+                <span class="card-badge">${escapeHtml(record.negara)}</span>
+            </div>
+            <div class="card-actions" onclick="event.stopPropagation()">
+                <button class="btn-view" onclick="openPreview('${record.id}')">
+                    <i class="fas fa-eye"></i> Lihat
+                </button>
+                <button class="btn-edit" onclick="editRecord('${record.id}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn-delete" onclick="deleteRecord('${record.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function initSearchFilters() {
+    // Populate country filter
+    const negaraSelect = document.getElementById('searchNegara');
+    
+    // Get unique countries from records
+    const uniqueCountries = [...new Set(allRecords.map(r => r.negara))].sort();
+    
+    // Add all countries from config
+    CONFIG.COUNTRIES.forEach(country => {
+        const option = document.createElement('option');
+        option.value = country;
+        option.textContent = country;
+        negaraSelect.appendChild(option);
+    });
+}
+
+function toggleAdvancedSearch() {
+    const panel = document.getElementById('advancedSearchPanel');
+    panel.classList.toggle('hidden');
+}
+
+function applySearch() {
+    const negara = document.getElementById('searchNegara').value.toLowerCase();
+    const flavor = document.getElementById('searchFlavor').value.toLowerCase();
+    const date = document.getElementById('searchDate').value;
+
+    filteredRecords = allRecords.filter(record => {
+        let match = true;
+
+        if (negara && record.negara.toLowerCase() !== negara) {
+            match = false;
+        }
+
+        if (flavor && !record.flavor.toLowerCase().includes(flavor)) {
+            match = false;
+        }
+
+        if (date && record.tanggal !== date) {
+            match = false;
+        }
+
+        return match;
+    });
+
+    renderRecords();
+    
+    showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
+}
+
+function resetSearch() {
+    document.getElementById('searchNegara').value = '';
+    document.getElementById('searchFlavor').value = '';
+    document.getElementById('searchDate').value = '';
+
+    filteredRecords = [...allRecords];
+    renderRecords();
+    
+    showToast('Filter direset', 'info');
+}
+
+// ==================== ADD DATA POPUP ====================
+
+function openAddDataPopup() {
+    const popup = document.getElementById('addDataPopup');
+    popup.classList.remove('hidden');
+
+    // Set default date to today
+    document.getElementById('inputTanggal').value = new Date().toISOString().split('T')[0];
+}
+
+function closeAddDataPopup() {
+    const popup = document.getElementById('addDataPopup');
+    popup.classList.add('hidden');
+    document.getElementById('addDataForm').reset();
+}
+
+function initForms() {
+    const addDataForm = document.getElementById('addDataForm');
+    
+    addDataForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        proceedToCreateDisplay();
+    });
+}
+
+function proceedToCreateDisplay() {
+    const tanggal = document.getElementById('inputTanggal').value;
+    const flavor = document.getElementById('inputFlavor').value.trim();
+    const negara = document.getElementById('inputNegara').value;
+
+    if (!tanggal || !flavor || !negara) {
+        showToast('Mohon lengkapi semua field', 'error');
+        return;
+    }
+
+    // Save to temp data
+    const tempData = {
+        id: storage.generateId(),
+        tanggal: tanggal,
+        flavor: flavor,
+        negara: negara,
+        createdAt: new Date().toISOString(),
+        photos: {},
+        kodeProduksi: []
+    };
+
+    storage.saveTempData(tempData);
+
+    // Navigate to create display page
+    window.location.href = 'create-display.html';
+}
+
+// ==================== PREVIEW POPUP ====================
+
+function openPreview(recordId) {
+    currentPreviewRecord = storage.getRecordById(recordId);
+    
+    if (!currentPreviewRecord) {
+        showToast('Record tidak ditemukan', 'error');
+        return;
+    }
+
+    const popup = document.getElementById('previewPopup');
+    const title = document.getElementById('previewTitle');
+    
+    title.innerHTML = `<i class="fas fa-images"></i> ${escapeHtml(currentPreviewRecord.flavor)}`;
+    
+    // Show first tab content
+    showPreviewTab('bumbu');
+    
+    // Show kode produksi
+    renderKodeProduksi();
+    
+    popup.classList.remove('hidden');
+}
+
+function closePreviewPopup() {
+    const popup = document.getElementById('previewPopup');
+    popup.classList.add('hidden');
+    currentPreviewRecord = null;
+}
+
+function initPreviewTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.getAttribute('data-tab');
+            
+            // Update active state
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Show tab content
+            showPreviewTab(tab);
+        });
+    });
+}
+
+function showPreviewTab(tabId) {
+    const previewContent = document.getElementById('previewContent');
+    
+    if (!currentPreviewRecord || !currentPreviewRecord.photos) {
+        previewContent.innerHTML = `
+            <div class="no-image">
+                <i class="fas fa-image"></i>
+                <p>Tidak ada foto</p>
+            </div>
+        `;
+        return;
+    }
+
+    const photo = currentPreviewRecord.photos[tabId];
+    
+    if (photo) {
+        const imgSrc = photo.directLink || photo.base64;
+        previewContent.innerHTML = `<img src="${imgSrc}" alt="${tabId}">`;
+    } else {
+        previewContent.innerHTML = `
+            <div class="no-image">
+                <i class="fas fa-image"></i>
+                <p>Foto ${tabId} tidak tersedia</p>
+            </div>
+        `;
+    }
+}
+
+function renderKodeProduksi() {
+    const container = document.getElementById('previewKodeProduksi');
+    
+    if (!currentPreviewRecord || !currentPreviewRecord.kodeProduksi || currentPreviewRecord.kodeProduksi.length === 0) {
+        container.innerHTML = '<span style="color: #999;">Tidak ada kode produksi</span>';
+        return;
+    }
+
+    container.innerHTML = currentPreviewRecord.kodeProduksi.map((kode, index) => `
+        <span>Kode ${index + 1}: ${escapeHtml(kode.join(' | '))}</span>
+    `).join('');
+}
+
+// ==================== RECORD ACTIONS ====================
+
+function editRecord(recordId) {
+    const record = storage.getRecordById(recordId);
+    
+    if (!record) {
+        showToast('Record tidak ditemukan', 'error');
+        return;
+    }
+
+    // Save to temp data for editing
+    storage.saveTempData({ ...record, isEdit: true });
+    
+    // Navigate to create display page
+    window.location.href = 'create-display.html';
+}
+
+async function deleteRecord(recordId) {
+    if (!confirm('Apakah Anda yakin ingin menghapus record ini?')) {
+        return;
+    }
+
+    showLoading('Menghapus record...');
+
+    try {
+        const record = storage.getRecordById(recordId);
+        
+        // Delete photos from Google Drive
+        if (record && record.photos && auth.hasGoogleToken()) {
+            for (const key in record.photos) {
+                if (record.photos[key]?.id) {
+                    try {
+                        await storage.deleteFromGoogleDrive(record.photos[key].id);
+                    } catch (e) {
+                        console.error('Error deleting photo:', e);
+                    }
+                }
+            }
+        }
+
+        // Delete from local storage
+        storage.deleteRecordLocal(recordId);
+
+        // Update local array
+        allRecords = allRecords.filter(r => r.id !== recordId);
+        filteredRecords = filteredRecords.filter(r => r.id !== recordId);
+
+        // Sync with Google Drive
+        await storage.syncRecordsToGoogleDrive();
+
+        renderRecords();
+        
+        hideLoading();
+        showToast('Record berhasil dihapus', 'success');
+    } catch (error) {
+        hideLoading();
+        console.error('Error deleting record:', error);
+        showToast('Gagal menghapus record', 'error');
+    }
+}
+
+// ==================== UTILITIES ====================
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+function showLoading(message = 'Memproses...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const text = document.getElementById('loadingText');
+    if (text) text.textContent = message;
+    overlay.classList.remove('hidden');
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('hidden');
+}
+
+function showToast(message, type = 'info') {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${icons[type]}"></i>
+        <span class="toast-message">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// Close popup when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('popup-overlay')) {
+        e.target.classList.add('hidden');
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAddDataPopup();
+        closePreviewPopup();
+    }
+});
