@@ -132,8 +132,14 @@ function renderRecords() {
                 <div class="card-meta">
                     <span><i class="fas fa-globe"></i> ${escapeHtml(record.negara)}</span>
                     <span><i class="fas fa-calendar-plus"></i> ${formatDate(record.tanggal)}</span>
-                    <span><i class="fas fa-clock"></i> ${formatDate(record.updatedAt || record.createdAt)}</span>
                 </div>
+                <div class="card-meta">
+                    <span title="Dibuat"><i class="fas fa-plus-circle"></i> ${formatDateTime(record.createdAt)}</span>
+                </div>
+                <div class="card-meta">
+                    <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}</span>
+                </div>
+                ${record.createdBy ? `<div class="card-meta"><span title="Pembuat"><i class="fas fa-user"></i> ${escapeHtml(record.createdBy)}</span></div>` : ''}
                 <span class="card-badge">${escapeHtml(record.negara)}</span>
             </div>
             <div class="card-actions" onclick="event.stopPropagation()">
@@ -443,6 +449,19 @@ function formatDate(dateString) {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
+    });
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    }) + ' ' + date.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
     });
 }
 

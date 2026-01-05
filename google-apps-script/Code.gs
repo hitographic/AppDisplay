@@ -20,8 +20,9 @@ function getRecordsSheet() {
   // Jika sheet "Records" belum ada, buat otomatis
   if (!sheet) {
     sheet = ss.insertSheet('Records');
-    // Tambahkan header
+    // Tambahkan header - sekarang dengan createdBy dan updatedBy
     var headers = ['id', 'tanggal', 'flavor', 'negara', 'createdAt', 'updatedAt', 
+                   'createdBy', 'updatedBy',
                    'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_karton',
                    'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi'];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -325,6 +326,86 @@ function deleteUserData(nik) {
   return { success: true, message: 'User berhasil dihapus' };
 }
 
+// =====================================================
+// RECORDS MANAGEMENT FUNCTIONS
+// =====================================================
+
+// Get all records
+function getAllRecordsData() {
+  const sheet = getRecordsSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) {
+    return { success: true, records: [] };
+  }
+  
+  const records = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0]) { // Jika ada ID
+      records.push({
+        id: row[0],
+        tanggal: row[1],
+        flavor: row[2],
+        negara: row[3],
+        createdAt: row[4],
+        updatedAt: row[5],
+        createdBy: row[6] || '',
+        updatedBy: row[7] || '',
+        photos: {
+          bumbu: row[8] ? JSON.parse(row[8]) : null,
+          'm-bumbu': row[9] ? JSON.parse(row[9]) : null,
+          si: row[10] ? JSON.parse(row[10]) : null,
+          karton: row[11] ? JSON.parse(row[11]) : null,
+          etiket: row[12] ? JSON.parse(row[12]) : null,
+          'etiket-banded': row[13] ? JSON.parse(row[13]) : null,
+          plakban: row[14] ? JSON.parse(row[14]) : null
+        },
+        kodeProduksi: row[15] ? JSON.parse(row[15]) : []
+      });
+    }
+  }
+  
+  return { success: true, records: records };
+}
+
+// Get record by ID
+function getRecordByIdData(id) {
+  const sheet = getRecordsSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      const row = data[i];
+      return { 
+        success: true, 
+        record: {
+          id: row[0],
+          tanggal: row[1],
+          flavor: row[2],
+          negara: row[3],
+          createdAt: row[4],
+          updatedAt: row[5],
+          createdBy: row[6] || '',
+          updatedBy: row[7] || '',
+          photos: {
+            bumbu: row[8] ? JSON.parse(row[8]) : null,
+            'm-bumbu': row[9] ? JSON.parse(row[9]) : null,
+            si: row[10] ? JSON.parse(row[10]) : null,
+            karton: row[11] ? JSON.parse(row[11]) : null,
+            etiket: row[12] ? JSON.parse(row[12]) : null,
+            'etiket-banded': row[13] ? JSON.parse(row[13]) : null,
+            plakban: row[14] ? JSON.parse(row[14]) : null
+          },
+          kodeProduksi: row[15] ? JSON.parse(row[15]) : []
+        }
+      };
+    }
+  }
+  
+  return { success: false, error: 'Record not found' };
+}
+
 // Add new record - returns data object
 function addRecordData(record) {
   const sheet = getRecordsSheet();
@@ -336,6 +417,8 @@ function addRecordData(record) {
     record.negara,
     record.createdAt || new Date().toISOString(),
     record.updatedAt || new Date().toISOString(),
+    record.createdBy || '',
+    record.updatedBy || '',
     record.photos?.bumbu ? JSON.stringify(record.photos.bumbu) : '',
     record.photos?.['m-bumbu'] ? JSON.stringify(record.photos['m-bumbu']) : '',
     record.photos?.si ? JSON.stringify(record.photos.si) : '',
@@ -367,14 +450,16 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.negara || data[i][3],
         data[i][4], // keep original createdAt
         new Date().toISOString(), // update updatedAt
-        updatedRecord.photos?.bumbu ? JSON.stringify(updatedRecord.photos.bumbu) : data[i][6],
-        updatedRecord.photos?.['m-bumbu'] ? JSON.stringify(updatedRecord.photos['m-bumbu']) : data[i][7],
-        updatedRecord.photos?.si ? JSON.stringify(updatedRecord.photos.si) : data[i][8],
-        updatedRecord.photos?.karton ? JSON.stringify(updatedRecord.photos.karton) : data[i][9],
-        updatedRecord.photos?.etiket ? JSON.stringify(updatedRecord.photos.etiket) : data[i][10],
-        updatedRecord.photos?.['etiket-banded'] ? JSON.stringify(updatedRecord.photos['etiket-banded']) : data[i][11],
-        updatedRecord.photos?.plakban ? JSON.stringify(updatedRecord.photos.plakban) : data[i][12],
-        updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : data[i][13]
+        data[i][6] || '', // keep original createdBy
+        updatedRecord.updatedBy || data[i][7] || '', // update updatedBy
+        updatedRecord.photos?.bumbu ? JSON.stringify(updatedRecord.photos.bumbu) : data[i][8],
+        updatedRecord.photos?.['m-bumbu'] ? JSON.stringify(updatedRecord.photos['m-bumbu']) : data[i][9],
+        updatedRecord.photos?.si ? JSON.stringify(updatedRecord.photos.si) : data[i][10],
+        updatedRecord.photos?.karton ? JSON.stringify(updatedRecord.photos.karton) : data[i][11],
+        updatedRecord.photos?.etiket ? JSON.stringify(updatedRecord.photos.etiket) : data[i][12],
+        updatedRecord.photos?.['etiket-banded'] ? JSON.stringify(updatedRecord.photos['etiket-banded']) : data[i][13],
+        updatedRecord.photos?.plakban ? JSON.stringify(updatedRecord.photos.plakban) : data[i][14],
+        updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : data[i][15]
       ];
       
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);

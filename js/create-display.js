@@ -324,6 +324,10 @@ async function simpanSemua() {
         // Collect kode produksi
         const kodeProduksi = collectKodeProduksi();
 
+        // Get current user name
+        const currentUser = auth.getUser();
+        const userName = currentUser ? currentUser.name : 'Unknown';
+
         // Prepare final record
         const record = {
             id: currentData.id,
@@ -333,26 +337,33 @@ async function simpanSemua() {
             photos: {},
             kodeProduksi: kodeProduksi,
             createdAt: currentData.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            createdBy: currentData.createdBy || userName,
+            updatedAt: new Date().toISOString(),
+            updatedBy: userName
         };
 
         // Copy photo data without file objects
         for (const key in uploadedPhotos) {
             if (uploadedPhotos[key]) {
                 record.photos[key] = {
-                    id: uploadedPhotos[key].id,
-                    name: uploadedPhotos[key].name,
-                    directLink: uploadedPhotos[key].directLink,
-                    base64: uploadedPhotos[key].id ? null : uploadedPhotos[key].base64 // Keep base64 only if not uploaded to Drive
+                    id: uploadedPhotos[key].id || null,
+                    name: uploadedPhotos[key].name || null,
+                    directLink: uploadedPhotos[key].directLink || null,
+                    base64: uploadedPhotos[key].id ? null : (uploadedPhotos[key].base64 || null)
                 };
             }
         }
 
+        console.log('Saving record:', record);
+        console.log('Is edit mode:', currentData.isEdit);
+
         // Save to storage (Google Sheets + local)
         if (currentData.isEdit) {
             await storage.updateRecord(currentData.id, record);
+            console.log('Record updated');
         } else {
             await storage.addRecord(record);
+            console.log('Record added');
         }
 
         // Clear temp data
