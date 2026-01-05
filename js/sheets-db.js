@@ -165,9 +165,31 @@ class GoogleSheetsDB {
         }
 
         try {
+            // Clean record - REMOVE base64 data to avoid Google Sheets 50k char limit
+            const cleanRecord = {
+                ...record,
+                photos: {}
+            };
+            
+            // Remove base64 from photos (too large for Sheets - max 50k chars per cell)
+            if (record.photos) {
+                for (const key in record.photos) {
+                    if (record.photos[key]) {
+                        cleanRecord.photos[key] = {
+                            id: record.photos[key].id || null,
+                            name: record.photos[key].name || null,
+                            directLink: record.photos[key].directLink || null
+                            // base64 intentionally omitted
+                        };
+                    }
+                }
+            }
+            
+            console.log('📤 Adding record to Sheets (no base64)');
+            
             const result = await this.postRequest({
                 action: 'add',
-                record: record
+                record: cleanRecord
             });
             console.log('✅ Record added to Google Sheets:', result);
             return result;
@@ -186,16 +208,14 @@ class GoogleSheetsDB {
 
         try {
             console.log('📤 Updating record:', recordId);
-            console.log('📤 Updated record full:', JSON.stringify(updatedRecord, null, 2));
-            console.log('📤 Photos object:', JSON.stringify(updatedRecord.photos, null, 2));
             
-            // Ensure photos object has correct keys
+            // Clean record - REMOVE base64 data to avoid Google Sheets 50k char limit
             const cleanRecord = {
                 ...updatedRecord,
                 photos: {}
             };
             
-            // Normalize photo keys to match Apps Script expectations
+            // Normalize photo keys and REMOVE base64 (too large for Sheets)
             if (updatedRecord.photos) {
                 const photoKeyMap = {
                     'bumbu': 'bumbu',
@@ -210,12 +230,18 @@ class GoogleSheetsDB {
                 for (const key in updatedRecord.photos) {
                     const normalizedKey = photoKeyMap[key] || key;
                     if (updatedRecord.photos[key]) {
-                        cleanRecord.photos[normalizedKey] = updatedRecord.photos[key];
+                        // Only save id, name, directLink - NOT base64
+                        cleanRecord.photos[normalizedKey] = {
+                            id: updatedRecord.photos[key].id || null,
+                            name: updatedRecord.photos[key].name || null,
+                            directLink: updatedRecord.photos[key].directLink || null
+                            // base64 intentionally omitted - too large for Sheets
+                        };
                     }
                 }
             }
             
-            console.log('📤 Clean record photos:', JSON.stringify(cleanRecord.photos, null, 2));
+            console.log('📤 Clean record (no base64):', JSON.stringify(cleanRecord, null, 2).substring(0, 500) + '...');
             
             const result = await this.postRequest({
                 action: 'update',
