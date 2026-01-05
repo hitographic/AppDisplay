@@ -6,6 +6,8 @@ let allUsers = [];
 const webAppUrl = CONFIG.GOOGLE_SHEETS_WEBAPP_URL || '';
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Users page loaded');
+    
     // Check authentication
     if (!auth.isLoggedIn()) {
         window.location.href = 'index.html';
@@ -23,30 +25,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const user = auth.getUser();
     document.getElementById('userName').textContent = user.name;
 
+    // Hide any existing loading overlay first
+    hideLoading();
+    
     // Load users
     loadUsers();
 });
 
-// JSONP request
+// JSONP request dengan cache buster
 function jsonpRequest(url) {
     return new Promise((resolve, reject) => {
-        const callbackName = 'usersCallback_' + Date.now();
+        const callbackName = 'usersCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const timeoutId = setTimeout(() => {
+            console.log('JSONP timeout for:', url);
             delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            reject(new Error('Request timeout - pastikan Apps Script sudah di-deploy'));
-        }, 10000); // 10 detik timeout
+            if (script && script.parentNode) script.parentNode.removeChild(script);
+            reject(new Error('Request timeout'));
+        }, 15000); // 15 detik timeout
 
         window[callbackName] = (data) => {
+            console.log('JSONP callback received:', data);
             clearTimeout(timeoutId);
             delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
+            if (script && script.parentNode) script.parentNode.removeChild(script);
             resolve(data);
         };
 
         const script = document.createElement('script');
-        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
-        script.onerror = () => {
+        // Add cache buster
+        const cacheBuster = '_cb=' + Date.now();
+        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName + '&' + cacheBuster;
+        
+        script.onerror = (e) => {
+            console.error('JSONP script error:', e);
             clearTimeout(timeoutId);
             delete window[callbackName];
             if (script.parentNode) script.parentNode.removeChild(script);
@@ -110,34 +121,41 @@ function postRequest(data) {
 
 // Load all users
 async function loadUsers() {
+    console.log('Loading users from:', webAppUrl);
     showLoading('Memuat data user...');
     
     try {
         const result = await jsonpRequest(`${webAppUrl}?action=getUsers`);
         
+        console.log('Users loaded:', result);
         hideLoading();
         
-        if (result.success) {
+        if (result && result.success) {
             allUsers = result.users || [];
             renderUsersTable();
+            showToast('Data user berhasil dimuat', 'success');
         } else {
-            showToast('Gagal memuat data user: ' + (result.error || ''), 'error');
-            renderEmptyState();
+            showToast('Gagal memuat data user: ' + (result?.error || 'Unknown error'), 'error');
+            // Fallback to local
+            loadLocalUsers();
         }
     } catch (error) {
-        hideLoading();
         console.error('Error loading users:', error);
-        showToast('Error: ' + error.message, 'error');
-        // Fallback: tampilkan user dari config lokal
-        allUsers = CONFIG.USERS.map(u => ({
-            nik: u.nik,
-            password: u.password,
-            name: u.name,
-            role: u.role
-        }));
-        renderUsersTable();
-        showToast('Menampilkan data lokal (Google Sheets tidak tersedia)', 'warning');
+        hideLoading();
+        showToast('Timeout - Menampilkan data lokal', 'warning');
+        loadLocalUsers();
     }
+}
+
+// Fallback: Load users from local config
+function loadLocalUsers() {
+    allUsers = CONFIG.USERS.map(u => ({
+        nik: u.nik,
+        password: u.password,
+        name: u.name,
+        role: u.role
+    }));
+    renderUsersTable();
 }
 
 // Render users table
