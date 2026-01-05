@@ -139,7 +139,6 @@ function renderRecords() {
                 <div class="card-meta">
                     <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}</span>
                 </div>
-                ${record.createdBy ? `<div class="card-meta"><span title="Pembuat"><i class="fas fa-user"></i> ${escapeHtml(record.createdBy)}</span></div>` : ''}
                 <span class="card-badge">${escapeHtml(record.negara)}</span>
             </div>
             <div class="card-actions" onclick="event.stopPropagation()">
