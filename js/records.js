@@ -82,6 +82,7 @@ function setupPermissionBasedUI() {
     const userMgmtLink = document.getElementById('userManagementLink');
     const googleDriveAlert = document.getElementById('googleDriveAlert');
     const googleDriveConnected = document.getElementById('googleDriveConnected');
+    const driveConnectionPopup = document.getElementById('driveConnectionPopup');
     
     // Show user management link for user_admin permission
     if (hasPermission('user_admin')) {
@@ -104,6 +105,12 @@ function setupPermissionBasedUI() {
         // Hide alerts for non-editors
         if (googleDriveAlert) googleDriveAlert.style.display = 'none';
         if (googleDriveConnected) googleDriveConnected.style.display = 'none';
+    }
+    
+    // Pastikan popup Google Drive tersembunyi dari awal
+    // Popup akan ditampilkan oleh initGoogleDriveConnection hanya jika diperlukan
+    if (driveConnectionPopup && !driveConnectionPopup.classList.contains('hidden')) {
+        driveConnectionPopup.classList.add('hidden');
     }
 }
 
@@ -928,6 +935,13 @@ function updateGoogleDriveAlerts() {
 }
 
 function showDriveConnectionPopup() {
+    // Double check - jangan tampilkan popup jika sudah terkoneksi
+    const isConnected = auth.hasGoogleToken() && checkConfig();
+    if (isConnected) {
+        console.log('showDriveConnectionPopup: Sudah terkoneksi, popup tidak ditampilkan');
+        return;
+    }
+    
     const popup = document.getElementById('driveConnectionPopup');
     if (popup) {
         popup.classList.remove('hidden');
@@ -939,14 +953,14 @@ function openDriveConnectionPopup() {
     showDriveConnectionPopup();
 }
 
-function closeDriveConnectionPopup() {
+function closeDriveConnectionPopup(force = false) {
     const popup = document.getElementById('driveConnectionPopup');
     const isConnected = auth.hasGoogleToken() && checkConfig();
     
-    // Only allow closing if connected
-    if (isConnected && popup) {
+    // Force close atau sudah terkoneksi
+    if ((force || isConnected) && popup) {
         popup.classList.add('hidden');
-    } else if (!isConnected) {
+    } else if (!isConnected && !force) {
         showToast('Harap hubungkan Google Drive terlebih dahulu', 'warning');
     }
 }
