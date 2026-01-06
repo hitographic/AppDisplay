@@ -485,6 +485,12 @@ function addRecord(record) {
   record.createdAt = record.createdAt || now;
   record.updatedAt = now;
   
+  // Set default validation status
+  record.validationStatus = record.validationStatus || 'pending';
+  record.validatedBy = record.validatedBy || '';
+  record.validatedAt = record.validatedAt || '';
+  record.validationReason = record.validationReason || '';
+  
   // Build row based on headers
   const row = headers.map(header => {
     // Check various formats of the key
@@ -942,4 +948,72 @@ function testCheckHeaders() {
   });
   
   return headers;
+}
+
+// =====================================================
+// FIX RECORDS SHEET - Add validation columns
+// =====================================================
+function fixRecordsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_RECORDS);
+  
+  if (!sheet) {
+    Logger.log('Sheet Records tidak ditemukan!');
+    return;
+  }
+  
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  Logger.log('Current headers: ' + headers.join(', '));
+  
+  // Validation columns to add
+  const validationColumns = [
+    'validationStatus',
+    'validatedBy', 
+    'validatedAt',
+    'validationReason'
+  ];
+  
+  let lastCol = headers.length;
+  let addedCount = 0;
+  
+  validationColumns.forEach(colName => {
+    if (!headers.includes(colName)) {
+      lastCol++;
+      sheet.getRange(1, lastCol).setValue(colName);
+      sheet.getRange(1, lastCol).setFontWeight('bold').setBackground('#4a90d9').setFontColor('white');
+      Logger.log('✅ Kolom "' + colName + '" ditambahkan di kolom ' + lastCol);
+      addedCount++;
+      
+      // Set default value 'pending' for validationStatus
+      if (colName === 'validationStatus') {
+        const dataRange = sheet.getDataRange();
+        const numRows = dataRange.getNumRows();
+        if (numRows > 1) {
+          for (let i = 2; i <= numRows; i++) {
+            sheet.getRange(i, lastCol).setValue('pending');
+          }
+          Logger.log('   Set default "pending" untuk ' + (numRows - 1) + ' rows');
+        }
+      }
+    } else {
+      Logger.log('ℹ️ Kolom "' + colName + '" sudah ada');
+    }
+  });
+  
+  if (addedCount > 0) {
+    sheet.autoResizeColumns(1, sheet.getLastColumn());
+    Logger.log('');
+    Logger.log('✅ ' + addedCount + ' kolom validasi berhasil ditambahkan!');
+  } else {
+    Logger.log('');
+    Logger.log('ℹ️ Semua kolom validasi sudah ada');
+  }
+  
+  // Show final headers
+  const finalHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  Logger.log('');
+  Logger.log('Final headers (' + finalHeaders.length + ' kolom):');
+  finalHeaders.forEach((h, i) => {
+    Logger.log((i + 1) + '. ' + h);
+  });
 }
