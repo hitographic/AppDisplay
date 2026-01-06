@@ -1671,3 +1671,222 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* =====================================================
+   GOOGLE DRIVE CONNECTION ALERT & POPUP (Records Page)
+   ===================================================== */
+
+/* Google Drive Alert - Not Connected */
+.google-drive-alert {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border: 2px solid #ffc107;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+}
+
+.google-drive-alert .alert-icon {
+    font-size: 32px;
+    color: #ff9800;
+    flex-shrink: 0;
+}
+
+.google-drive-alert .alert-content {
+    flex: 1;
+}
+
+.google-drive-alert .alert-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.google-drive-alert .alert-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+}
+
+.btn-connect-drive {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-connect-drive:hover {
+    background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+}
+
+/* Google Drive Alert - Connected */
+.google-drive-connected {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: 2px solid #28a745;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.google-drive-connected .alert-icon {
+    font-size: 32px;
+    color: #28a745;
+    flex-shrink: 0;
+}
+
+.google-drive-connected .alert-content {
+    flex: 1;
+}
+
+.google-drive-connected .alert-content h3 {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.google-drive-connected .alert-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.btn-connected {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-connected:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+/* Google Drive Connection Popup */
+.drive-connection-popup-content {
+    max-width: 520px;
+    width: 90%;
+}
+
+.drive-connection-popup-content .popup-body {
+    padding: 32px;
+}
+
+.drive-info-section {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.drive-icon-large {
+    font-size: 80px;
+    color: #4285f4;
+    margin-bottom: 20px;
+}
+
+.drive-info-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.drive-description {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.drive-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.drive-actions button {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.drive-actions button:hover {
+    transform: translateY(-2px);
+}
+
+.btn-connect-full {
+    background: linear-gradient(135deg, #4285f4 0%, #3367d6 100%);
+}
+
+.btn-connect-full:hover {
+    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
+}
+
+.btn-disconnect-full {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.btn-disconnect-full:hover {
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.drive-actions .btn-secondary:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+    .google-drive-alert,
+    .google-drive-connected {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+    }
+    
+    .btn-connect-drive,
+    .btn-connected {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

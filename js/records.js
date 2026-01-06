@@ -80,6 +80,8 @@ async function initRecordsPage() {
 function setupPermissionBasedUI() {
     const addDataBtn = document.querySelector('.btn-primary[onclick="openAddDataPopup()"]');
     const userMgmtLink = document.getElementById('userManagementLink');
+    const googleDriveAlert = document.getElementById('googleDriveAlert');
+    const googleDriveConnected = document.getElementById('googleDriveConnected');
     
     // Show user management link for user_admin permission
     if (hasPermission('user_admin')) {
@@ -94,30 +96,47 @@ function setupPermissionBasedUI() {
             addDataBtn.style.display = 'none';
         }
     }
+
+    // Show/hide Google Drive alerts only for editors
+    if (canEdit()) {
+        updateGoogleDriveAlerts();
+    } else {
+        // Hide alerts for non-editors
+        if (googleDriveAlert) googleDriveAlert.style.display = 'none';
+        if (googleDriveConnected) googleDriveConnected.style.display = 'none';
+    }
 }
 
 async function initGoogleDriveConnection() {
     try {
-        // Initialize Google API only for admin who needs to upload
-        await auth.initGoogleAPI();
-        await auth.initGoogleIdentity();
+        // Initialize Google API only for editors who need to upload
+        if (canEdit()) {
+            await auth.initGoogleAPI();
+            await auth.initGoogleIdentity();
 
-        // Listen for token received event
-        window.addEventListener('googleTokenReceived', () => {
-            showToast('Google Drive terkoneksi!', 'success');
-            updateDriveStatus(true);
-        });
+            // Listen for token received event
+            window.addEventListener('googleTokenReceived', () => {
+                showToast('Google Drive terkoneksi!', 'success');
+                updateDriveStatus(true);
+                updateGoogleDriveAlerts();
+            });
 
-        // Update initial status
-        updateDriveStatus(auth.hasGoogleToken() && checkConfig());
+            // Update initial status
+            const connected = auth.hasGoogleToken() && checkConfig();
+            updateDriveStatus(connected);
+            updateGoogleDriveAlerts();
 
-        // Check for existing token
-        if (!auth.hasGoogleToken() && checkConfig()) {
-            console.log('Google Drive belum terkoneksi');
+            // Check for existing token
+            if (!connected) {
+                console.log('Google Drive belum terkoneksi');
+            }
         }
     } catch (error) {
         console.error('Error initializing Google:', error);
         updateDriveStatus(false);
+        if (canEdit()) {
+            updateGoogleDriveAlerts();
+        }
     }
 }
 
@@ -850,5 +869,107 @@ document.addEventListener('keydown', function(e) {
         closeAddDataPopup();
         closePreviewPopup();
         closeValidationPopup();
+        closeDriveConnectionPopup();
     }
 });
+
+// ==================== GOOGLE DRIVE CONNECTION POPUP ====================
+
+function updateGoogleDriveAlerts() {
+    const googleDriveAlert = document.getElementById('googleDriveAlert');
+    const googleDriveConnected = document.getElementById('googleDriveConnected');
+    
+    const isConnected = auth.hasGoogleToken() && checkConfig();
+    
+    if (isConnected) {
+        if (googleDriveAlert) googleDriveAlert.style.display = 'none';
+        if (googleDriveConnected) googleDriveConnected.style.display = 'flex';
+    } else {
+        if (googleDriveAlert) googleDriveAlert.style.display = 'flex';
+        if (googleDriveConnected) googleDriveConnected.style.display = 'none';
+    }
+}
+
+function openDriveConnectionPopup() {
+    const popup = document.getElementById('driveConnectionPopup');
+    if (popup) {
+        popup.classList.remove('hidden');
+        updateDrivePopupButtons();
+    }
+}
+
+function closeDriveConnectionPopup() {
+    const popup = document.getElementById('driveConnectionPopup');
+    if (popup) {
+        popup.classList.add('hidden');
+    }
+}
+
+function updateDrivePopupButtons() {
+    const connectBtn = document.querySelector('.btn-connect-full');
+    const disconnectBtn = document.querySelector('.btn-disconnect-full');
+    
+    const isConnected = auth.hasGoogleToken() && checkConfig();
+    
+    if (connectBtn && disconnectBtn) {
+        if (isConnected) {
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'flex';
+            disconnectBtn.innerHTML = '<i class="fas fa-unlink"></i> Putuskan Koneksi';
+        } else {
+            connectBtn.style.display = 'flex';
+            disconnectBtn.style.display = 'none';
+            connectBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Menunggu koneksi...';
+        }
+    }
+}
+
+async function connectGoogleDrive() {
+    try {
+        const connectBtn = document.querySelector('.btn-connect-full');
+        if (connectBtn) {
+            connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan...';
+            connectBtn.disabled = true;
+        }
+
+        // Request Google Drive access
+        await auth.requestGoogleToken();
+        
+        // Update UI
+        showToast('Google Drive berhasil terkoneksi!', 'success');
+        updateGoogleDriveAlerts();
+        updateDrivePopupButtons();
+        
+        setTimeout(() => {
+            closeDriveConnectionPopup();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error connecting Google Drive:', error);
+        showToast('Gagal menghubungkan Google Drive: ' + error.message, 'error');
+        
+        const connectBtn = document.querySelector('.btn-connect-full');
+        if (connectBtn) {
+            connectBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Menunggu koneksi...';
+            connectBtn.disabled = false;
+        }
+    }
+}
+
+function disconnectGoogleDrive() {
+    if (confirm('Apakah Anda yakin ingin memutuskan koneksi Google Drive?\n\nFoto yang sudah diupload tetap tersimpan, tapi foto baru akan disimpan lokal saja.')) {
+        // Clear Google token
+        auth.clearGoogleToken();
+        
+        // Update UI
+        showToast('Google Drive terputus', 'info');
+        updateGoogleDriveAlerts();
+        closeDriveConnectionPopup();
+    }
+}
+
+function saveLocalOnly() {
+    closeDriveConnectionPopup();
+    showToast('Foto akan disimpan lokal saja (tidak permanen)', 'info');
+}
+
