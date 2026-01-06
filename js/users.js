@@ -149,10 +149,6 @@ function postRequest(data) {
         document.head.appendChild(script);
     });
 }
-            resolve({ success: true, message: 'Request sent' });
-        }, 5000);
-    });
-}
 
 // Load all users
 async function loadUsers() {
