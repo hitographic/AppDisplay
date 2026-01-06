@@ -179,7 +179,7 @@
 
     <!-- Validation Popup -->
     <div id="validationPopup" class="popup-overlay hidden">
-        <div class="popup-content" style="max-width: 400px;">
+        <div class="popup-content validation-popup-content">
             <div class="popup-header">
                 <h2><i class="fas fa-check-double"></i> Validasi Record</h2>
                 <button class="btn-close" onclick="closeValidationPopup()">
@@ -187,7 +187,7 @@
                 </button>
             </div>
             <div class="popup-body">
-                <p id="validationRecordInfo" style="margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 8px;"></p>
+                <div id="validationRecordInfo" class="validation-info"></div>
                 
                 <div class="validation-options">
                     <label class="validation-option valid-option" onclick="selectValidation('valid')">
@@ -209,14 +209,16 @@
                     </label>
                 </div>
                 
-                <div id="invalidReasonContainer" style="display: none; margin-top: 15px;">
-                    <label for="invalidReason"><strong>Keterangan Invalid:</strong></label>
-                    <textarea id="invalidReason" rows="3" placeholder="Jelaskan alasan data tidak valid..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px;"></textarea>
+                <div id="invalidReasonContainer" class="invalid-reason-container">
+                    <label for="invalidReason" class="form-label">
+                        <i class="fas fa-comment-dots"></i> Keterangan Invalid
+                    </label>
+                    <textarea id="invalidReason" rows="3" placeholder="Jelaskan alasan data tidak valid..." class="form-textarea"></textarea>
                 </div>
                 
                 <input type="hidden" id="validationRecordId">
                 
-                <button type="button" class="btn-primary" onclick="submitValidation()" style="width: 100%; margin-top: 20px; padding: 12px;">
+                <button type="button" class="btn-primary btn-submit-validation" onclick="submitValidation()">
                     <i class="fas fa-save"></i> Simpan Validasi
                 </button>
             </div>

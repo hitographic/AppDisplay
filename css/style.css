@@ -1312,43 +1312,72 @@ body {
     background: #1976d2;
 }
 
+/* =====================================================
+   VALIDATION POPUP - Styling yang lebih rapi
+   ===================================================== */
+.validation-popup-content {
+    max-width: 480px;
+    width: 90%;
+}
+
+.validation-info {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border-left: 4px solid #4a90d9;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+}
+
 .validation-options {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
 .validation-option {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 15px;
+    gap: 15px;
+    padding: 16px 18px;
     border: 2px solid #e0e0e0;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
+    background: #ffffff;
 }
 
 .validation-option:hover {
     border-color: #bdbdbd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .validation-option input {
     display: none;
 }
 
+.validation-option.selected {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
 .validation-option.selected.valid-option {
     border-color: #4caf50;
-    background: #e8f5e9;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
 }
 
 .validation-option.selected.invalid-option {
     border-color: #f44336;
-    background: #ffebee;
+    background: linear-gradient(135deg, #ffebee 0%, #fff5f5 100%);
 }
 
 .validation-icon {
-    font-size: 24px;
+    font-size: 28px;
+    flex-shrink: 0;
 }
 
 .valid-option .validation-icon {
@@ -1362,14 +1391,89 @@ body {
 .validation-text {
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
 .validation-text strong {
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
 }
 
 .validation-text small {
     color: #666;
-    font-size: 12px;
+    font-size: 13px;
+}
+
+.invalid-reason-container {
+    display: none;
+    margin-top: 20px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.invalid-reason-container .form-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+}
+
+.invalid-reason-container .form-label i {
+    margin-right: 6px;
+    color: #f44336;
+}
+
+.invalid-reason-container .form-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.invalid-reason-container .form-textarea:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+}
+
+.invalid-reason-container .form-textarea::placeholder {
+    color: #999;
+}
+
+.btn-submit-validation {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-submit-validation:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 144, 217, 0.3);
+}
+
+.btn-submit-validation:active {
+    transform: translateY(0);
 }
 
