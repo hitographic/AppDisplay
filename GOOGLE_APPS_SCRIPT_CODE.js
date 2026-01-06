@@ -4,7 +4,7 @@
 // =====================================================
 
 // Spreadsheet ID - Ganti dengan ID spreadsheet Anda
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID';
+const SPREADSHEET_ID = '1cCQY-y__0g956Zy7dNTZhYTz5zDL5FSkUw7V8tObtVg';
 
 // Sheet names
 const SHEET_USERS = 'Users';
@@ -541,6 +541,9 @@ function setupDatabase() {
   if (!ss.getSheetByName(SHEET_USERS)) {
     createUsersSheet(ss);
     Logger.log('Users sheet created');
+  } else {
+    // Fix existing Users sheet
+    fixUsersSheet();
   }
   
   // Create Records sheet if not exists
@@ -550,6 +553,130 @@ function setupDatabase() {
   }
   
   Logger.log('Database setup complete!');
+}
+
+// =====================================================
+// FIX EXISTING USERS SHEET - Run this to add permissions column
+// =====================================================
+function fixUsersSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_USERS);
+  
+  if (!sheet) {
+    Logger.log('Sheet Users tidak ditemukan!');
+    return;
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  Logger.log('Current headers: ' + headers.join(', '));
+  
+  // Check if permissions column exists
+  let permCol = headers.indexOf('permissions');
+  
+  if (permCol === -1) {
+    // Add permissions column
+    const lastCol = headers.length + 1;
+    sheet.getRange(1, lastCol).setValue('permissions');
+    sheet.getRange(1, lastCol).setFontWeight('bold').setBackground('#4a90d9').setFontColor('white');
+    permCol = lastCol - 1;
+    Logger.log('Kolom permissions ditambahkan di kolom ' + lastCol);
+    
+    // Set default permissions based on role
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const roleCol = headers.indexOf('role');
+      const role = roleCol >= 0 ? row[roleCol] : 'field';
+      
+      let defaultPerms = 'records_viewer';
+      if (role === 'admin') {
+        defaultPerms = 'user_admin|records_viewer|records_editor|records_validator';
+      } else if (role === 'manager') {
+        defaultPerms = 'records_viewer|records_editor|records_validator';
+      } else if (role === 'supervisor') {
+        defaultPerms = 'records_viewer|records_validator';
+      } else if (role === 'field') {
+        defaultPerms = 'records_viewer|records_editor';
+      } else if (role === 'viewer') {
+        defaultPerms = 'records_viewer';
+      }
+      
+      sheet.getRange(i + 1, lastCol).setValue(defaultPerms);
+      Logger.log('User ' + row[0] + ' (' + role + '): ' + defaultPerms);
+    }
+  } else {
+    Logger.log('Kolom permissions sudah ada di posisi ' + (permCol + 1));
+  }
+  
+  // Ensure role column exists and has correct values
+  let roleCol = headers.indexOf('role');
+  if (roleCol === -1) {
+    Logger.log('PERINGATAN: Kolom role tidak ditemukan!');
+  } else {
+    // Check and fix role values
+    for (let i = 1; i < data.length; i++) {
+      const currentRole = data[i][roleCol];
+      // Convert 'viewer' to 'field' or keep valid roles
+      const validRoles = ['admin', 'manager', 'supervisor', 'field'];
+      if (!validRoles.includes(currentRole)) {
+        const newRole = currentRole === 'viewer' ? 'field' : 'field';
+        sheet.getRange(i + 1, roleCol + 1).setValue(newRole);
+        Logger.log('Role user ' + data[i][0] + ' diubah dari "' + currentRole + '" ke "' + newRole + '"');
+      }
+    }
+  }
+  
+  sheet.autoResizeColumns(1, sheet.getLastColumn());
+  Logger.log('Fix Users sheet selesai!');
+}
+
+// =====================================================
+// MIGRATE DATA - Convert old structure to new
+// =====================================================
+function migrateUsersData() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_USERS);
+  
+  if (!sheet) {
+    Logger.log('Sheet Users tidak ditemukan!');
+    return;
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  Logger.log('=== MIGRASI DATA USERS ===');
+  Logger.log('Headers saat ini: ' + headers.join(' | '));
+  
+  // Expected headers
+  const expectedHeaders = ['nik', 'password', 'name', 'role', 'permissions'];
+  
+  // Check current structure
+  Logger.log('');
+  Logger.log('Struktur yang diharapkan: ' + expectedHeaders.join(' | '));
+  Logger.log('');
+  
+  // Map current columns
+  const colMap = {};
+  headers.forEach((h, i) => {
+    colMap[h.toLowerCase()] = i;
+  });
+  
+  Logger.log('Mapping kolom:');
+  Logger.log(JSON.stringify(colMap));
+  
+  // Check for permissions column
+  if (!('permissions' in colMap)) {
+    Logger.log('');
+    Logger.log('>>> JALANKAN fixUsersSheet() untuk menambahkan kolom permissions');
+  }
+  
+  Logger.log('');
+  Logger.log('=== DATA USERS ===');
+  for (let i = 1; i < data.length; i++) {
+    Logger.log('Row ' + i + ': ' + data[i].join(' | '));
+  }
 }
 
 // =====================================================
