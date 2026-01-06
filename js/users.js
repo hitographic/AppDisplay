@@ -111,53 +111,44 @@ function jsonpRequest(url) {
     });
 }
 
-// POST request via form
+// POST request via JSONP (GET with data parameter) - bypasses CORS
 function postRequest(data) {
+    console.log('📤 User operation via JSONP:', data.action);
+    
     return new Promise((resolve, reject) => {
         const callbackName = 'usersPostCallback_' + Date.now();
         
-        const iframe = document.createElement('iframe');
-        iframe.name = 'postFrame_' + Date.now();
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
+        const timeoutId = setTimeout(() => {
+            delete window[callbackName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+            reject(new Error('Request timeout'));
+        }, 30000);
 
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = webAppUrl;
-        form.target = iframe.name;
-        form.style.display = 'none';
-
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'data';
-        input.value = JSON.stringify({
-            ...data,
-            callback: callbackName
-        });
-        form.appendChild(input);
-
-        document.body.appendChild(form);
-        
-        const messageHandler = (event) => {
-            try {
-                const response = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (response.callbackName === callbackName) {
-                    window.removeEventListener('message', messageHandler);
-                    document.body.removeChild(iframe);
-                    document.body.removeChild(form);
-                    resolve(response);
-                }
-            } catch (e) {}
+        window[callbackName] = (response) => {
+            clearTimeout(timeoutId);
+            delete window[callbackName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+            console.log('✅ User operation response:', response);
+            resolve(response);
         };
-        window.addEventListener('message', messageHandler);
 
-        form.submit();
+        // Encode data as URL parameter for JSONP
+        const encodedData = encodeURIComponent(JSON.stringify(data));
+        const url = `${webAppUrl}?action=${data.action}&data=${encodedData}&callback=${callbackName}`;
+        
+        console.log('📤 JSONP URL length:', url.length);
 
-        // Timeout fallback
-        setTimeout(() => {
-            window.removeEventListener('message', messageHandler);
-            if (iframe.parentNode) document.body.removeChild(iframe);
-            if (form.parentNode) document.body.removeChild(form);
+        const script = document.createElement('script');
+        script.src = url;
+        script.onerror = () => {
+            clearTimeout(timeoutId);
+            delete window[callbackName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+            reject(new Error('Script load error'));
+        };
+        document.head.appendChild(script);
+    });
+}
             resolve({ success: true, message: 'Request sent' });
         }, 5000);
     });

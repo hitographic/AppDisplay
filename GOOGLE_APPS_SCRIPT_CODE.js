@@ -73,10 +73,15 @@ function doGet(e) {
         result = addUser(data.user || data);
         break;
       case 'updateUser':
-        result = updateUser(data.nik || e.parameter.nik, data.user || data);
+        const updateUserNik = data.nik || e.parameter.nik;
+        result = updateUser(updateUserNik, data.user || data);
         break;
       case 'deleteUser':
-        result = deleteUser(data.nik || e.parameter.nik);
+        const deleteUserNik = data.nik || e.parameter.nik;
+        result = deleteUser(deleteUserNik);
+        break;
+      case 'bulkAddUsers':
+        result = bulkAddUsers(data.users || data);
         break;
       default:
         result = { success: false, error: 'Unknown action: ' + action };
