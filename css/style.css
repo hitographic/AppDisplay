@@ -1316,13 +1316,17 @@ body {
    VALIDATION POPUP - Styling yang lebih rapi
    ===================================================== */
 .validation-popup-content {
-    max-width: 480px;
+    max-width: 500px;
     width: 90%;
+}
+
+.validation-popup-content .popup-body {
+    padding: 28px 32px;
 }
 
 .validation-info {
     margin-bottom: 24px;
-    padding: 16px;
+    padding: 16px 18px;
     background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
     border-radius: 12px;
     border-left: 4px solid #4a90d9;
@@ -1334,15 +1338,15 @@ body {
 .validation-options {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 14px;
+    margin-bottom: 24px;
 }
 
 .validation-option {
     display: flex;
     align-items: center;
-    gap: 15px;
-    padding: 16px 18px;
+    gap: 16px;
+    padding: 18px 20px;
     border: 2px solid #e0e0e0;
     border-radius: 12px;
     cursor: pointer;
@@ -1407,7 +1411,7 @@ body {
 
 .invalid-reason-container {
     display: none;
-    margin-top: 20px;
+    margin-top: 24px;
     animation: slideDown 0.3s ease;
 }
 
@@ -1424,20 +1428,20 @@ body {
 
 .invalid-reason-container .form-label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     font-weight: 600;
     font-size: 14px;
     color: #333;
 }
 
 .invalid-reason-container .form-label i {
-    margin-right: 6px;
+    margin-right: 8px;
     color: #f44336;
 }
 
 .invalid-reason-container .form-textarea {
     width: 100%;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -1460,8 +1464,8 @@ body {
 
 .btn-submit-validation {
     width: 100%;
-    margin-top: 24px;
-    padding: 14px 20px;
+    margin-top: 28px;
+    padding: 15px 24px;
     font-size: 15px;
     font-weight: 600;
     border-radius: 10px;
