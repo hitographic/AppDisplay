@@ -275,20 +275,48 @@ function addUser(user) {
   
   // Check if NIK already exists
   const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const nikCol = headers.indexOf('nik');
+  
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(user.nik)) {
+    if (String(data[i][nikCol]) === String(user.nik)) {
       return { success: false, error: 'NIK sudah terdaftar' };
     }
   }
   
-  // Add new row
-  sheet.appendRow([
-    user.nik,
-    user.password,
-    user.name,
-    user.role || 'field',
-    user.permissions || ''
-  ]);
+  // Build row based on headers
+  const now = new Date().toISOString();
+  const row = [];
+  
+  headers.forEach(header => {
+    switch(header) {
+      case 'nik':
+        row.push(user.nik);
+        break;
+      case 'password':
+        row.push(user.password);
+        break;
+      case 'name':
+        row.push(user.name);
+        break;
+      case 'role':
+        row.push(user.role || 'field');
+        break;
+      case 'permissions':
+        row.push(user.permissions || 'records_viewer');
+        break;
+      case 'createdAt':
+        row.push(now);
+        break;
+      case 'updatedAt':
+        row.push(now);
+        break;
+      default:
+        row.push('');
+    }
+  });
+  
+  sheet.appendRow(row);
   
   return { success: true, message: 'User berhasil ditambahkan' };
 }
@@ -315,27 +343,44 @@ function updateUser(nik, userData) {
   
   Logger.log('Headers: ' + headers.join(', '));
   
+  // Find column indexes dynamically
+  const nikCol = headers.indexOf('nik');
+  const passwordCol = headers.indexOf('password');
+  const nameCol = headers.indexOf('name');
+  const roleCol = headers.indexOf('role');
+  const permissionsCol = headers.indexOf('permissions');
+  const updatedAtCol = headers.indexOf('updatedAt');
+  
+  Logger.log('Column indexes: nik=' + nikCol + ', password=' + passwordCol + ', name=' + nameCol + ', role=' + roleCol + ', permissions=' + permissionsCol + ', updatedAt=' + updatedAtCol);
+  
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(nik)) {
+    if (String(data[i][nikCol]) === String(nik)) {
       Logger.log('Found user at row ' + (i + 1));
       Logger.log('Current data: ' + data[i].join(' | '));
       
-      // Update row (nik stays same at index 0)
-      const newPassword = userData.password || data[i][1];
-      const newName = userData.name || data[i][2];
-      const newRole = userData.role || data[i][3];
-      const newPermissions = userData.permissions || data[i][4];
+      // Update using column indexes
+      if (userData.password && passwordCol >= 0) {
+        sheet.getRange(i + 1, passwordCol + 1).setValue(userData.password);
+        Logger.log('Updated password');
+      }
+      if (userData.name && nameCol >= 0) {
+        sheet.getRange(i + 1, nameCol + 1).setValue(userData.name);
+        Logger.log('Updated name to: ' + userData.name);
+      }
+      if (userData.role && roleCol >= 0) {
+        sheet.getRange(i + 1, roleCol + 1).setValue(userData.role);
+        Logger.log('Updated role to: ' + userData.role);
+      }
+      if (userData.permissions && permissionsCol >= 0) {
+        sheet.getRange(i + 1, permissionsCol + 1).setValue(userData.permissions);
+        Logger.log('Updated permissions to: ' + userData.permissions);
+      }
       
-      Logger.log('Updating to:');
-      Logger.log('  password: ' + newPassword);
-      Logger.log('  name: ' + newName);
-      Logger.log('  role: ' + newRole);
-      Logger.log('  permissions: ' + newPermissions);
-      
-      sheet.getRange(i + 1, 2).setValue(newPassword); // password
-      sheet.getRange(i + 1, 3).setValue(newName); // name
-      sheet.getRange(i + 1, 4).setValue(newRole); // role
-      sheet.getRange(i + 1, 5).setValue(newPermissions); // permissions
+      // Update timestamp
+      if (updatedAtCol >= 0) {
+        sheet.getRange(i + 1, updatedAtCol + 1).setValue(new Date().toISOString());
+        Logger.log('Updated updatedAt');
+      }
       
       SpreadsheetApp.flush(); // Force save
       
