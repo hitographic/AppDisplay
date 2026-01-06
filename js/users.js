@@ -171,16 +171,19 @@ async function loadUsers() {
     try {
         const result = await jsonpRequest(`${webAppUrl}?action=getUsers`);
         
-        console.log('Users loaded:', result);
+        console.log('Users loaded raw:', result);
         hideLoading();
         
         if (result && result.success) {
-            allUsers = result.users || [];
-            // Ensure permissions is array for each user
-            allUsers = allUsers.map(u => ({
-                ...u,
-                permissions: parsePermissions(u.permissions)
-            }));
+            allUsers = (result.users || []).map(u => {
+                const perms = parsePermissions(u.permissions);
+                console.log(`User ${u.nik} permissions:`, perms);
+                return {
+                    ...u,
+                    permissions: perms
+                };
+            });
+            console.log('All users processed:', allUsers);
             renderUsersTable();
             showToast('Data user berhasil dimuat', 'success');
         } else {
@@ -207,13 +210,25 @@ function parsePermissions(perms) {
 
 // Fallback: Load users from local config
 function loadLocalUsers() {
-    allUsers = CONFIG.USERS.map(u => ({
-        nik: u.nik,
-        password: u.password,
-        name: u.name,
-        role: u.role || 'field',
-        permissions: u.permissions || DEFAULT_PERMISSIONS[u.role] || ['records_viewer']
-    }));
+    console.log('Loading local users from CONFIG');
+    allUsers = CONFIG.USERS.map(u => {
+        // Handle both array and string permissions
+        let perms = u.permissions;
+        if (typeof perms === 'string') {
+            perms = perms.split('|').map(p => p.trim()).filter(p => p);
+        } else if (!Array.isArray(perms)) {
+            perms = DEFAULT_PERMISSIONS[u.role] || ['records_viewer'];
+        }
+        
+        return {
+            nik: u.nik,
+            password: u.password,
+            name: u.name,
+            role: u.role || 'field',
+            permissions: perms
+        };
+    });
+    console.log('Local users loaded:', allUsers);
     renderUsersTable();
 }
 
@@ -226,9 +241,22 @@ function renderUsersTable() {
         return;
     }
     
+    console.log('Rendering users table:', allUsers);
+    
     tbody.innerHTML = allUsers.map(user => {
         const role = ROLES[user.role] || ROLES.field;
-        const permissions = user.permissions || [];
+        const permissions = parsePermissions(user.permissions);
+        
+        console.log(`Rendering user ${user.nik} with permissions:`, permissions);
+        
+        // Generate permission badges
+        const permBadges = permissions.map(p => {
+            const perm = PERMISSIONS[p];
+            if (perm) {
+                return `<span class="perm-badge perm-${p}" title="${perm.desc}"><i class="${perm.icon}"></i> ${perm.name}</span>`;
+            }
+            return '';
+        }).filter(b => b).join('');
         
         return `
         <tr>
@@ -241,10 +269,7 @@ function renderUsersTable() {
             </td>
             <td>
                 <div class="permission-badges">
-                    ${permissions.map(p => {
-                        const perm = PERMISSIONS[p];
-                        return perm ? `<span class="perm-badge perm-${p}"><i class="${perm.icon}"></i> ${perm.name}</span>` : '';
-                    }).join('')}
+                    ${permBadges || '<span style="color:#999;font-size:12px;">-</span>'}
                 </div>
             </td>
             <td>
@@ -287,8 +312,14 @@ function showAddModal() {
 
 // Edit user
 function editUser(nik) {
-    const user = allUsers.find(u => u.nik == nik);
-    if (!user) return;
+    const user = allUsers.find(u => String(u.nik) === String(nik));
+    if (!user) {
+        console.error('User not found:', nik);
+        return;
+    }
+    
+    console.log('Editing user:', user);
+    console.log('User permissions:', user.permissions);
     
     document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-edit"></i> Edit User';
     document.getElementById('editMode').value = 'edit';
@@ -296,11 +327,13 @@ function editUser(nik) {
     document.getElementById('userNik').value = user.nik;
     document.getElementById('userNik').disabled = true;
     document.getElementById('userName2').value = user.name;
-    document.getElementById('userPassword').value = user.password;
+    document.getElementById('userPassword').value = user.password || '';
     document.getElementById('userRole').value = user.role || 'field';
     
-    // Set permissions
-    setPermissionCheckboxes(user.permissions || []);
+    // Parse and set permissions
+    let perms = parsePermissions(user.permissions);
+    console.log('Parsed permissions:', perms);
+    setPermissionCheckboxes(perms);
     
     document.getElementById('userModal').classList.add('active');
 }
@@ -308,9 +341,21 @@ function editUser(nik) {
 // Set permission checkboxes
 function setPermissionCheckboxes(permissions) {
     clearPermissionCheckboxes();
+    console.log('Setting checkboxes for:', permissions);
+    
+    if (!permissions || !Array.isArray(permissions)) {
+        console.log('No permissions to set');
+        return;
+    }
+    
     permissions.forEach(p => {
-        const checkbox = document.querySelector(`input[value="${p}"]`);
-        if (checkbox) checkbox.checked = true;
+        const checkbox = document.querySelector(`input[name="permissions"][value="${p}"]`);
+        if (checkbox) {
+            checkbox.checked = true;
+            console.log('Checked:', p);
+        } else {
+            console.log('Checkbox not found for:', p);
+        }
     });
 }
 
