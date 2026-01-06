@@ -891,3 +891,55 @@ PERMISSION OPTIONS:
 
 Format permissions: dipisahkan dengan | (pipe)
 */
+
+// =====================================================
+// TEST FUNCTIONS - Run these to verify setup
+// =====================================================
+
+function testAddRecord() {
+  const testRecord = {
+    id: 'TEST_' + Date.now(),
+    tanggal: new Date().toISOString().split('T')[0],
+    flavor: 'Test Flavor',
+    negara: 'Indonesia',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: 'Test User',
+    updatedBy: 'Test User',
+    photos: {
+      'bumbu': { id: 'test123', name: 'test.jpg' }
+    },
+    kodeProduksi: ['KODE001', 'KODE002']
+  };
+  
+  Logger.log('Testing addRecord...');
+  const result = addRecord(testRecord);
+  Logger.log('Result: ' + JSON.stringify(result));
+  return result;
+}
+
+function testGetAllRecords() {
+  Logger.log('Testing getAllRecords...');
+  const result = getAllRecords();
+  Logger.log('Found ' + (result.records ? result.records.length : 0) + ' records');
+  Logger.log('Result: ' + JSON.stringify(result).substring(0, 1000));
+  return result;
+}
+
+function testCheckHeaders() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_RECORDS);
+  
+  if (!sheet) {
+    Logger.log('Sheet Records tidak ditemukan!');
+    return;
+  }
+  
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  Logger.log('Current headers in Records sheet:');
+  headers.forEach((h, i) => {
+    Logger.log((i + 1) + '. ' + h);
+  });
+  
+  return headers;
+}
