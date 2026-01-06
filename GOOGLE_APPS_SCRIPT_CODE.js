@@ -70,10 +70,14 @@ function doGet(e) {
         result = validateRecord(validateId, data.validation || data);
         break;
       case 'addUser':
+        Logger.log('addUser data: ' + JSON.stringify(data).substring(0, 500));
         result = addUser(data.user || data);
         break;
       case 'updateUser':
         const updateUserNik = data.nik || e.parameter.nik;
+        Logger.log('updateUser NIK: ' + updateUserNik);
+        Logger.log('updateUser data: ' + JSON.stringify(data).substring(0, 500));
+        Logger.log('updateUser data.user: ' + JSON.stringify(data.user));
         result = updateUser(updateUserNik, data.user || data);
         break;
       case 'deleteUser':
@@ -291,6 +295,10 @@ function addUser(user) {
 
 // Update user
 function updateUser(nik, userData) {
+  Logger.log('=== updateUser called ===');
+  Logger.log('NIK: ' + nik);
+  Logger.log('userData: ' + JSON.stringify(userData));
+  
   if (!nik || !userData) {
     return { success: false, error: 'Data tidak lengkap' };
   }
@@ -303,15 +311,35 @@ function updateUser(nik, userData) {
   }
   
   const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  Logger.log('Headers: ' + headers.join(', '));
   
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(nik)) {
-      // Update row (nik stays same at index 0)
-      sheet.getRange(i + 1, 2).setValue(userData.password || data[i][1]); // password
-      sheet.getRange(i + 1, 3).setValue(userData.name || data[i][2]); // name
-      sheet.getRange(i + 1, 4).setValue(userData.role || data[i][3]); // role
-      sheet.getRange(i + 1, 5).setValue(userData.permissions || data[i][4]); // permissions
+      Logger.log('Found user at row ' + (i + 1));
+      Logger.log('Current data: ' + data[i].join(' | '));
       
+      // Update row (nik stays same at index 0)
+      const newPassword = userData.password || data[i][1];
+      const newName = userData.name || data[i][2];
+      const newRole = userData.role || data[i][3];
+      const newPermissions = userData.permissions || data[i][4];
+      
+      Logger.log('Updating to:');
+      Logger.log('  password: ' + newPassword);
+      Logger.log('  name: ' + newName);
+      Logger.log('  role: ' + newRole);
+      Logger.log('  permissions: ' + newPermissions);
+      
+      sheet.getRange(i + 1, 2).setValue(newPassword); // password
+      sheet.getRange(i + 1, 3).setValue(newName); // name
+      sheet.getRange(i + 1, 4).setValue(newRole); // role
+      sheet.getRange(i + 1, 5).setValue(newPermissions); // permissions
+      
+      SpreadsheetApp.flush(); // Force save
+      
+      Logger.log('Update complete!');
       return { success: true, message: 'User berhasil diupdate' };
     }
   }
