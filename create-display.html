@@ -27,8 +27,15 @@
         <div class="page-header">
             <h1><i class="fas fa-camera"></i> Create Display</h1>
             <div id="displayInfo" class="display-info">
-                <span class="info-item"><i class="fas fa-tag"></i> <span id="infoFlavor">-</span></span>
-                <span class="info-item"><i class="fas fa-globe"></i> <span id="infoNegara">-</span></span>
+                <span class="info-item" id="flavorItem">
+                    <i class="fas fa-tag"></i> <span id="infoFlavor">-</span>
+                    <button class="btn-edit-inline" id="btnEditFlavor" onclick="editFlavorNegara()" style="display:none;">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                </span>
+                <span class="info-item" id="negaraItem">
+                    <i class="fas fa-globe"></i> <span id="infoNegara">-</span>
+                </span>
                 <span class="info-item"><i class="fas fa-calendar"></i> <span id="infoTanggal">-</span></span>
             </div>
         </div>
@@ -265,6 +272,84 @@
                 <button class="btn-capture" onclick="capturePhoto()">
                     <i class="fas fa-circle"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Drive Connection Popup (Modal) -->
+    <div id="driveConnectPopup" class="popup-overlay hidden">
+        <div class="popup-content" style="max-width: 400px;">
+            <div class="popup-header">
+                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>
+            </div>
+            <div class="popup-body" style="text-align: center; padding: 20px;">
+                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">
+                    <i class="fab fa-google-drive"></i>
+                </div>
+                <p style="margin-bottom: 15px; color: #333;">
+                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.
+                </p>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.
+                </p>
+                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">
+                </div>
+                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px;">
+                    <i class="fas fa-link"></i> Hubungkan Google Drive
+                </button>
+                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px; margin-top: 10px;">
+                    <i class="fas fa-forward"></i> Lewati (Simpan Lokal)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Flavor & Negara Popup -->
+    <div id="editFlavorNegaraPopup" class="popup-overlay hidden">
+        <div class="popup-content" style="max-width: 400px;">
+            <div class="popup-header">
+                <h2><i class="fas fa-edit"></i> Edit Flavor & Negara</h2>
+                <button class="btn-close" onclick="closeEditFlavorNegaraPopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-body">
+                <form id="editFlavorNegaraForm" onsubmit="saveFlavorNegara(event)">
+                    <div class="form-group">
+                        <label for="editFlavor"><i class="fas fa-tag"></i> Flavor</label>
+                        <input type="text" id="editFlavor" placeholder="Masukkan flavor" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNegara"><i class="fas fa-globe"></i> Negara</label>
+                        <select id="editNegara" required>
+                            <option value="">Pilih Negara</option>
+                            <option value="Indonesia">Indonesia</option>
+                            <option value="Malaysia">Malaysia</option>
+                            <option value="China">China</option>
+                            <option value="Filipina">Filipina</option>
+                            <option value="Timor Leste">Timor Leste</option>
+                            <option value="Thailand">Thailand</option>
+                            <option value="Japan">Japan</option>
+                            <option value="Korea">Korea</option>
+                            <option value="Vietnam">Vietnam</option>
+                            <option value="Saudi Arabia">Saudi Arabia</option>
+                            <option value="Turkey">Turkey</option>
+                            <option value="Egypt">Egypt</option>
+                            <option value="Nigeria">Nigeria</option>
+                            <option value="USA">USA</option>
+                            <option value="Australia">Australia</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-actions" style="margin-top: 20px;">
+                        <button type="button" class="btn-secondary" onclick="closeEditFlavorNegaraPopup()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

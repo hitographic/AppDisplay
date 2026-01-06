@@ -61,6 +61,12 @@ function displayInfo() {
     document.getElementById('infoFlavor').textContent = currentData.flavor;
     document.getElementById('infoNegara').textContent = currentData.negara;
     document.getElementById('infoTanggal').textContent = formatDate(currentData.tanggal);
+    
+    // Show edit button if in edit mode
+    const btnEditFlavor = document.getElementById('btnEditFlavor');
+    if (btnEditFlavor && currentData.isEdit) {
+        btnEditFlavor.style.display = 'inline-block';
+    }
 }
 
 function loadExistingPhotos() {
@@ -98,19 +104,158 @@ async function initGoogleAPI() {
         window.addEventListener('googleTokenReceived', () => {
             showToast('Google Drive terkoneksi!', 'success');
             updateDriveStatus(true);
+            closeDriveConnectPopup();
         });
 
         // Update initial status
-        updateDriveStatus(auth.hasGoogleToken() && checkConfig());
+        const isConnected = auth.hasGoogleToken() && checkConfig();
+        updateDriveStatus(isConnected);
 
-        // Request token if not available
-        if (!auth.hasGoogleToken() && checkConfig()) {
-            console.log('Google token not available - user needs to connect');
+        // Show popup if not connected (only if config is valid)
+        if (!isConnected && checkConfig()) {
+            showDriveConnectPopup();
         }
     } catch (error) {
         console.error('Error initializing Google API:', error);
         updateDriveStatus(false);
     }
+}
+
+// ==================== GOOGLE DRIVE POPUP ====================
+
+function showDriveConnectPopup() {
+    const popup = document.getElementById('driveConnectPopup');
+    if (popup) {
+        popup.classList.remove('hidden');
+    }
+}
+
+function closeDriveConnectPopup() {
+    const popup = document.getElementById('driveConnectPopup');
+    if (popup) {
+        popup.classList.add('hidden');
+    }
+}
+
+async function connectGoogleDriveFromPopup() {
+    const statusDiv = document.getElementById('driveConnectStatus');
+    const btnConnect = document.getElementById('btnConnectDrivePopup');
+    
+    btnConnect.disabled = true;
+    btnConnect.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan...';
+    
+    if (statusDiv) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.backgroundColor = '#fff3cd';
+        statusDiv.style.color = '#856404';
+        statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menunggu koneksi...';
+    }
+    
+    try {
+        await auth.requestGoogleToken();
+        
+        if (auth.hasGoogleToken()) {
+            if (statusDiv) {
+                statusDiv.style.backgroundColor = '#d4edda';
+                statusDiv.style.color = '#155724';
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Berhasil terhubung!';
+            }
+            updateDriveStatus(true);
+            showToast('Google Drive berhasil terkoneksi!', 'success');
+            
+            // Close popup after 1 second
+            setTimeout(() => {
+                closeDriveConnectPopup();
+            }, 1000);
+        } else {
+            throw new Error('Token tidak tersedia');
+        }
+    } catch (error) {
+        console.error('Error connecting:', error);
+        if (statusDiv) {
+            statusDiv.style.backgroundColor = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Gagal terhubung. Silakan coba lagi.';
+        }
+        btnConnect.disabled = false;
+        btnConnect.innerHTML = '<i class="fas fa-link"></i> Hubungkan Google Drive';
+    }
+}
+
+function skipGoogleDriveConnection() {
+    const confirm = window.confirm(
+        '⚠️ Peringatan!\n\n' +
+        'Tanpa Google Drive, foto hanya akan disimpan di browser.\n' +
+        'Jika Anda menghapus data browser, foto akan hilang.\n\n' +
+        'Yakin ingin melanjutkan tanpa Google Drive?'
+    );
+    
+    if (confirm) {
+        closeDriveConnectPopup();
+        showToast('Foto akan disimpan di local storage', 'warning');
+    }
+}
+
+// ==================== EDIT FLAVOR & NEGARA ====================
+
+function editFlavorNegara() {
+    const popup = document.getElementById('editFlavorNegaraPopup');
+    if (popup) {
+        // Pre-fill with current values
+        document.getElementById('editFlavor').value = currentData.flavor || '';
+        document.getElementById('editNegara').value = currentData.negara || '';
+        popup.classList.remove('hidden');
+    }
+}
+
+function closeEditFlavorNegaraPopup() {
+    const popup = document.getElementById('editFlavorNegaraPopup');
+    if (popup) {
+        popup.classList.add('hidden');
+    }
+}
+
+async function saveFlavorNegara(event) {
+    event.preventDefault();
+    
+    const newFlavor = document.getElementById('editFlavor').value.trim();
+    const newNegara = document.getElementById('editNegara').value;
+    
+    if (!newFlavor || !newNegara) {
+        showToast('Mohon lengkapi semua field', 'error');
+        return;
+    }
+    
+    // Check if changed
+    if (newFlavor === currentData.flavor && newNegara === currentData.negara) {
+        closeEditFlavorNegaraPopup();
+        return;
+    }
+    
+    // Check for duplicate (only if changed)
+    showLoading('Memeriksa data duplikat...');
+    const duplicateCheck = await checkDuplicateFlavorNegara(newFlavor, newNegara, currentData.id);
+    hideLoading();
+    
+    if (duplicateCheck.isDuplicate) {
+        alert('⚠️ DATA DUPLIKAT!\n\n' + duplicateCheck.message);
+        showToast('Kombinasi Flavor dan Negara sudah ada', 'error');
+        return;
+    }
+    
+    // Update current data
+    currentData.flavor = newFlavor;
+    currentData.negara = newNegara;
+    
+    // Update display
+    document.getElementById('infoFlavor').textContent = newFlavor;
+    document.getElementById('infoNegara').textContent = newNegara;
+    
+    // Save to temp data
+    storage.saveTempData(currentData);
+    
+    closeEditFlavorNegaraPopup();
+    showToast('Flavor dan Negara berhasil diubah', 'success');
 }
 
 // Update Google Drive status display
@@ -233,8 +378,20 @@ function updatePhotoPreview(typeId, photoData) {
     const statusElement = document.getElementById(`status-${typeId}`);
 
     if (previewContainer && photoData) {
-        const imgSrc = photoData.directLink || photoData.base64;
-        previewContainer.innerHTML = `<img src="${imgSrc}" alt="${typeId}">`;
+        // Priority: 1. base64 (local), 2. Google Drive ID, 3. directLink
+        let imgSrc = '';
+        if (photoData.base64) {
+            imgSrc = photoData.base64;
+        } else if (photoData.id) {
+            // Use Google thumbnail URL format
+            imgSrc = `https://lh3.googleusercontent.com/d/${photoData.id}`;
+        } else if (photoData.directLink) {
+            imgSrc = photoData.directLink;
+        }
+        
+        if (imgSrc) {
+            previewContainer.innerHTML = `<img src="${imgSrc}" alt="${typeId}" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📷</text></svg>';">`;
+        }
     }
 
     if (statusElement) {
