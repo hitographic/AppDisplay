@@ -119,20 +119,27 @@ async function initGoogleDriveConnection() {
                 showToast('Google Drive terkoneksi!', 'success');
                 updateDriveStatus(true);
                 updateGoogleDriveAlerts();
-                closeDriveConnectionPopup();
+                closeDriveConnectionPopup(true); // Force close after connect
             });
 
-            // Update initial status
-            const connected = auth.hasGoogleToken() && checkConfig();
+            // Check connection status
+            const hasToken = auth.hasGoogleToken();
+            const hasConfig = checkConfig();
+            const connected = hasToken && hasConfig;
+            
+            console.log('Drive connection check:', { hasToken, hasConfig, connected });
+            
             updateDriveStatus(connected);
             updateGoogleDriveAlerts();
 
-            // Auto show popup if not connected (for editors only)
+            // Auto show popup HANYA jika belum terkoneksi
             if (!connected) {
                 console.log('Google Drive belum terkoneksi - menampilkan popup');
                 setTimeout(() => {
                     showDriveConnectionPopup();
                 }, 500);
+            } else {
+                console.log('Google Drive sudah terkoneksi - popup tidak ditampilkan');
             }
         }
     } catch (error) {
@@ -140,10 +147,13 @@ async function initGoogleDriveConnection() {
         updateDriveStatus(false);
         if (canEdit()) {
             updateGoogleDriveAlerts();
-            // Show popup even on error for editors
-            setTimeout(() => {
-                showDriveConnectionPopup();
-            }, 500);
+            // Show popup even on error for editors (only if not connected)
+            const connected = auth.hasGoogleToken() && checkConfig();
+            if (!connected) {
+                setTimeout(() => {
+                    showDriveConnectionPopup();
+                }, 500);
+            }
         }
     }
 }
