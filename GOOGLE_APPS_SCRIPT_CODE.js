@@ -1019,6 +1019,49 @@ Format permissions: dipisahkan dengan | (pipe)
 */
 
 // =====================================================
+// DEBUG: Check Users sheet structure
+// =====================================================
+function debugUsersSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_USERS);
+  
+  if (!sheet) {
+    Logger.log('❌ Sheet Users tidak ditemukan!');
+    return;
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  Logger.log('');
+  Logger.log('=== STRUKTUR SHEET USERS ===');
+  Logger.log('Total columns: ' + headers.length);
+  Logger.log('');
+  Logger.log('Headers:');
+  headers.forEach((header, index) => {
+    Logger.log('  Column ' + (index + 1) + ': ' + header);
+  });
+  
+  Logger.log('');
+  Logger.log('=== DATA USERS ===');
+  for (let i = 1; i < data.length; i++) {
+    Logger.log('');
+    Logger.log('User ' + (i) + ':');
+    headers.forEach((header, index) => {
+      Logger.log('  ' + header + ': ' + data[i][index]);
+    });
+  }
+  
+  Logger.log('');
+  Logger.log('=== Expected Structure ===');
+  Logger.log('Column 1: nik');
+  Logger.log('Column 2: password');
+  Logger.log('Column 3: name');
+  Logger.log('Column 4: role');
+  Logger.log('Column 5: permissions');
+}
+
+// =====================================================
 // TEST FUNCTIONS - Run these to verify setup
 // =====================================================
 
