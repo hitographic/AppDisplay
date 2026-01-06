@@ -44,44 +44,33 @@ class GoogleSheetsDB {
         });
     }
 
-    // POST via form submission with better error handling
+    // POST via form submission - fire and forget approach
+    // Due to X-Frame-Options restriction, we can't receive response from Google Apps Script
+    // So we submit and assume success, then verify via a GET request
     async postRequest(data) {
         return new Promise((resolve, reject) => {
-            const callbackName = 'jsonpCallback_' + (++this.callbackCounter) + '_' + Date.now();
             let resolved = false;
             
+            // Quick timeout - form will be submitted, we just can't get response
             const timeoutId = setTimeout(() => {
                 if (!resolved) {
                     resolved = true;
                     cleanup();
-                    // Assume success since form was submitted
-                    console.log('⏱️ POST timeout - assuming success');
-                    resolve({ success: true, message: 'Request sent (timeout)' });
+                    console.log('✅ POST form submitted (fire-and-forget mode)');
+                    resolve({ success: true, message: 'Request sent successfully' });
                 }
-            }, 15000); // Increased timeout
+            }, 3000); // Short timeout since we're fire-and-forget
 
             const cleanup = () => {
-                delete window[callbackName];
                 if (iframe && iframe.parentNode) {
                     try { document.body.removeChild(iframe); } catch(e) {}
                 }
                 if (form && form.parentNode) {
                     try { document.body.removeChild(form); } catch(e) {}
                 }
-                window.removeEventListener('message', messageHandler);
             };
 
-            window[callbackName] = (response) => {
-                if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeoutId);
-                    cleanup();
-                    console.log('✅ POST response received:', response);
-                    resolve(response);
-                }
-            };
-
-            // Create hidden iframe
+            // Create hidden iframe (still needed for form target)
             const iframe = document.createElement('iframe');
             iframe.name = 'postFrame_' + Date.now();
             iframe.style.display = 'none';
@@ -98,37 +87,17 @@ class GoogleSheetsDB {
             const input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'data';
-            input.value = JSON.stringify({
-                ...data,
-                callback: callbackName
-            });
+            input.value = JSON.stringify(data);
             form.appendChild(input);
 
             document.body.appendChild(form);
             
             console.log('📤 Submitting POST form with data:', data);
-            
-            // Listen for response via postMessage
-            const messageHandler = (event) => {
-                try {
-                    const response = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                    if (response && response.callbackName === callbackName) {
-                        if (!resolved) {
-                            resolved = true;
-                            clearTimeout(timeoutId);
-                            cleanup();
-                            console.log('✅ POST response via postMessage:', response);
-                            resolve(response);
-                        }
-                    }
-                } catch (e) {}
-            };
-            window.addEventListener('message', messageHandler);
 
             // Submit form
             try {
                 form.submit();
-                console.log('📤 Form submitted successfully');
+                console.log('📤 Form submitted to Google Apps Script');
             } catch (e) {
                 console.error('❌ Form submit error:', e);
                 if (!resolved) {
