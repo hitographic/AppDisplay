@@ -8,6 +8,11 @@ let filteredRecords = [];
 let currentPreviewRecord = null;
 let currentValidationRecordId = null;
 
+// Pagination variables
+let currentPage = 1;
+let recordsPerPage = 12; // Default 12 records per page (3x4 grid)
+const recordsPerPageOptions = [8, 12, 16, 24, 48];
+
 // Permission check functions
 function hasPermission(permission) {
     const user = auth.getUser();
@@ -259,15 +264,33 @@ function renderRecords() {
     if (filteredRecords.length === 0) {
         grid.innerHTML = '';
         emptyState.classList.remove('hidden');
+        hidePagination();
         return;
     }
 
     emptyState.classList.add('hidden');
 
+    // Calculate pagination
+    const totalRecords = filteredRecords.length;
+    const totalPages = Math.ceil(totalRecords / recordsPerPage);
+    
+    // Ensure current page is valid
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
+    if (currentPage < 1) {
+        currentPage = 1;
+    }
+    
+    // Get records for current page
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
+
     const userCanEdit = canEdit();
     const userCanValidate = canValidate();
 
-    grid.innerHTML = filteredRecords.map(record => {
+    grid.innerHTML = paginatedRecords.map(record => {
         // Get first available photo for card preview
         const previewPhoto = record.photos?.bumbu || record.photos?.karton || record.photos?.si || 
                             record.photos?.etiket || record.photos?.['m-bumbu'] || 
@@ -344,6 +367,121 @@ function renderRecords() {
         </div>
     `;
     }).join('');
+    
+    // Render pagination
+    renderPagination(totalPages, totalRecords);
+}
+
+// ==================== PAGINATION FUNCTIONS ====================
+
+function renderPagination(totalPages, totalRecords) {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = `
+            <div class="pagination-info">
+                <span>Menampilkan ${totalRecords} data</span>
+            </div>
+        `;
+        return;
+    }
+    
+    const startRecord = (currentPage - 1) * recordsPerPage + 1;
+    const endRecord = Math.min(currentPage * recordsPerPage, totalRecords);
+    
+    let paginationHTML = `
+        <div class="pagination-wrapper">
+            <div class="pagination-info">
+                <span>Menampilkan ${startRecord}-${endRecord} dari ${totalRecords} data</span>
+                <div class="per-page-selector">
+                    <label>Per halaman:</label>
+                    <select id="recordsPerPageSelect" onchange="changeRecordsPerPage(this.value)">
+                        ${recordsPerPageOptions.map(opt => 
+                            `<option value="${opt}" ${opt === recordsPerPage ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''} title="Halaman Pertama">
+                    <i class="fas fa-angle-double-left"></i>
+                </button>
+                <button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} title="Sebelumnya">
+                    <i class="fas fa-angle-left"></i>
+                </button>
+                
+                ${generatePageNumbers(totalPages)}
+                
+                <button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} title="Selanjutnya">
+                    <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="pagination-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} title="Halaman Terakhir">
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+function generatePageNumbers(totalPages) {
+    let pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+        // Show all pages
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+    } else {
+        // Show limited pages with ellipsis
+        if (currentPage <= 3) {
+            pages = [1, 2, 3, 4, '...', totalPages];
+        } else if (currentPage >= totalPages - 2) {
+            pages = [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+        }
+    }
+    
+    return pages.map(page => {
+        if (page === '...') {
+            return `<span class="pagination-ellipsis">...</span>`;
+        }
+        return `
+            <button class="pagination-btn ${page === currentPage ? 'active' : ''}" 
+                    onclick="goToPage(${page})">${page}</button>
+        `;
+    }).join('');
+}
+
+function goToPage(page) {
+    const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+    if (page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    renderRecords();
+    
+    // Scroll to top of records grid
+    const grid = document.getElementById('recordsGrid');
+    if (grid) {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function changeRecordsPerPage(value) {
+    recordsPerPage = parseInt(value);
+    currentPage = 1; // Reset to first page
+    renderRecords();
+}
+
+function hidePagination() {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (paginationContainer) {
+        paginationContainer.innerHTML = '';
+    }
 }
 
 function initSearchFilters() {
@@ -390,6 +528,7 @@ function applySearch() {
         return match;
     });
 
+    currentPage = 1; // Reset to first page when searching
     renderRecords();
     
     showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
@@ -401,6 +540,7 @@ function resetSearch() {
     document.getElementById('searchDate').value = '';
 
     filteredRecords = [...allRecords];
+    currentPage = 1; // Reset to first page
     renderRecords();
     
     showToast('Filter direset', 'info');
