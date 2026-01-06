@@ -119,6 +119,7 @@ async function initGoogleDriveConnection() {
                 showToast('Google Drive terkoneksi!', 'success');
                 updateDriveStatus(true);
                 updateGoogleDriveAlerts();
+                closeDriveConnectionPopup();
             });
 
             // Update initial status
@@ -126,9 +127,12 @@ async function initGoogleDriveConnection() {
             updateDriveStatus(connected);
             updateGoogleDriveAlerts();
 
-            // Check for existing token
+            // Auto show popup if not connected (for editors only)
             if (!connected) {
-                console.log('Google Drive belum terkoneksi');
+                console.log('Google Drive belum terkoneksi - menampilkan popup');
+                setTimeout(() => {
+                    showDriveConnectionPopup();
+                }, 500);
             }
         }
     } catch (error) {
@@ -136,6 +140,10 @@ async function initGoogleDriveConnection() {
         updateDriveStatus(false);
         if (canEdit()) {
             updateGoogleDriveAlerts();
+            // Show popup even on error for editors
+            setTimeout(() => {
+                showDriveConnectionPopup();
+            }, 500);
         }
     }
 }
@@ -859,6 +867,17 @@ async function submitValidation() {
 // Close popup when clicking outside
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('popup-overlay')) {
+        // Prevent closing Drive Connection popup if user is editor and not connected
+        const isDrivePopup = e.target.id === 'driveConnectionPopup';
+        const isConnected = auth.hasGoogleToken() && checkConfig();
+        const canEdit = currentPermissions.some(p => p === 'records_editor');
+        
+        if (isDrivePopup && canEdit && !isConnected) {
+            // Don't close popup for non-connected editors
+            showToast('Harap hubungkan Google Drive terlebih dahulu', 'warning');
+            return;
+        }
+        
         e.target.classList.add('hidden');
     }
 });
@@ -869,7 +888,15 @@ document.addEventListener('keydown', function(e) {
         closeAddDataPopup();
         closePreviewPopup();
         closeValidationPopup();
-        closeDriveConnectionPopup();
+        
+        // Only allow closing Drive popup if connected
+        const isConnected = auth.hasGoogleToken() && checkConfig();
+        const canEdit = currentPermissions.some(p => p === 'records_editor');
+        
+        // If user is editor and not connected, prevent closing popup with ESC
+        if (!canEdit || isConnected) {
+            closeDriveConnectionPopup();
+        }
     }
 });
 
@@ -890,7 +917,7 @@ function updateGoogleDriveAlerts() {
     }
 }
 
-function openDriveConnectionPopup() {
+function showDriveConnectionPopup() {
     const popup = document.getElementById('driveConnectionPopup');
     if (popup) {
         popup.classList.remove('hidden');
@@ -898,38 +925,69 @@ function openDriveConnectionPopup() {
     }
 }
 
+function openDriveConnectionPopup() {
+    showDriveConnectionPopup();
+}
+
 function closeDriveConnectionPopup() {
     const popup = document.getElementById('driveConnectionPopup');
-    if (popup) {
+    const isConnected = auth.hasGoogleToken() && checkConfig();
+    
+    // Only allow closing if connected
+    if (isConnected && popup) {
         popup.classList.add('hidden');
+    } else if (!isConnected) {
+        showToast('Harap hubungkan Google Drive terlebih dahulu', 'warning');
     }
 }
 
 function updateDrivePopupButtons() {
-    const connectBtn = document.querySelector('.btn-connect-full');
-    const disconnectBtn = document.querySelector('.btn-disconnect-full');
+    const connectBtn = document.getElementById('btnConnectDrivePopup');
+    const disconnectBtn = document.getElementById('btnDisconnectDrivePopup');
+    const skipBtn = document.getElementById('btnSkipDrive');
+    const statusDiv = document.getElementById('driveConnectStatus');
     
     const isConnected = auth.hasGoogleToken() && checkConfig();
     
     if (connectBtn && disconnectBtn) {
         if (isConnected) {
             connectBtn.style.display = 'none';
-            disconnectBtn.style.display = 'flex';
-            disconnectBtn.innerHTML = '<i class="fas fa-unlink"></i> Putuskan Koneksi';
+            disconnectBtn.style.display = 'block';
+            if (skipBtn) skipBtn.style.display = 'none';
+            
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#d4edda';
+                statusDiv.style.color = '#155724';
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Terhubung dengan Google Drive';
+            }
         } else {
-            connectBtn.style.display = 'flex';
+            connectBtn.style.display = 'block';
             disconnectBtn.style.display = 'none';
-            connectBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Menunggu koneksi...';
+            if (skipBtn) skipBtn.style.display = 'block';
+            
+            if (statusDiv) {
+                statusDiv.style.display = 'none';
+            }
         }
     }
 }
 
-async function connectGoogleDrive() {
+async function connectGoogleDriveFromPopup() {
     try {
-        const connectBtn = document.querySelector('.btn-connect-full');
+        const connectBtn = document.getElementById('btnConnectDrivePopup');
+        const statusDiv = document.getElementById('driveConnectStatus');
+        
         if (connectBtn) {
             connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan...';
             connectBtn.disabled = true;
+        }
+
+        if (statusDiv) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#fff3cd';
+            statusDiv.style.color = '#856404';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan ke Google Drive...';
         }
 
         // Request Google Drive access
@@ -940,23 +998,33 @@ async function connectGoogleDrive() {
         updateGoogleDriveAlerts();
         updateDrivePopupButtons();
         
+        // Close popup after successful connection
         setTimeout(() => {
             closeDriveConnectionPopup();
-        }, 1000);
+        }, 1500);
         
     } catch (error) {
         console.error('Error connecting Google Drive:', error);
         showToast('Gagal menghubungkan Google Drive: ' + error.message, 'error');
         
-        const connectBtn = document.querySelector('.btn-connect-full');
+        const connectBtn = document.getElementById('btnConnectDrivePopup');
+        const statusDiv = document.getElementById('driveConnectStatus');
+        
         if (connectBtn) {
-            connectBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Menunggu koneksi...';
+            connectBtn.innerHTML = '<i class="fas fa-link"></i> Menunggu koneksi...';
             connectBtn.disabled = false;
+        }
+        
+        if (statusDiv) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Gagal terhubung. Silakan coba lagi.';
         }
     }
 }
 
-function disconnectGoogleDrive() {
+function disconnectGoogleDriveFromPopup() {
     if (confirm('Apakah Anda yakin ingin memutuskan koneksi Google Drive?\n\nFoto yang sudah diupload tetap tersimpan, tapi foto baru akan disimpan lokal saja.')) {
         // Clear Google token
         auth.clearGoogleToken();
@@ -964,12 +1032,17 @@ function disconnectGoogleDrive() {
         // Update UI
         showToast('Google Drive terputus', 'info');
         updateGoogleDriveAlerts();
-        closeDriveConnectionPopup();
+        updateDrivePopupButtons();
+        
+        // Show popup again since disconnected
+        showDriveConnectionPopup();
     }
 }
 
-function saveLocalOnly() {
-    closeDriveConnectionPopup();
-    showToast('Foto akan disimpan lokal saja (tidak permanen)', 'info');
+function skipGoogleDriveConnection() {
+    if (confirm('Jika melewati koneksi Google Drive, foto hanya akan tersimpan di browser (temporary).\n\nAnda masih bisa menghubungkan Google Drive nanti. Lanjutkan?')) {
+        closeDriveConnectionPopup();
+        showToast('Foto akan disimpan lokal saja (tidak permanen)', 'info');
+    }
 }
 
