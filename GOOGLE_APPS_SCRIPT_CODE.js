@@ -657,6 +657,9 @@ function validateRecord(id, validation) {
     return { success: false, error: 'Data validasi tidak lengkap' };
   }
   
+  Logger.log('Validating record: ' + id);
+  Logger.log('Validation data: ' + JSON.stringify(validation));
+  
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_RECORDS);
   
@@ -667,17 +670,40 @@ function validateRecord(id, validation) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const idCol = headers.indexOf('id');
-  const statusCol = headers.indexOf('validation_status');
-  const validatedByCol = headers.indexOf('validated_by');
-  const validatedAtCol = headers.indexOf('validated_at');
-  const reasonCol = headers.indexOf('validation_reason');
+  
+  // Try both camelCase and snake_case column names
+  let statusCol = headers.indexOf('validationStatus');
+  if (statusCol === -1) statusCol = headers.indexOf('validation_status');
+  
+  let validatedByCol = headers.indexOf('validatedBy');
+  if (validatedByCol === -1) validatedByCol = headers.indexOf('validated_by');
+  
+  let validatedAtCol = headers.indexOf('validatedAt');
+  if (validatedAtCol === -1) validatedAtCol = headers.indexOf('validated_at');
+  
+  let reasonCol = headers.indexOf('validationReason');
+  if (reasonCol === -1) reasonCol = headers.indexOf('validation_reason');
+  
+  Logger.log('Column indexes - status:' + statusCol + ', validatedBy:' + validatedByCol + ', validatedAt:' + validatedAtCol + ', reason:' + reasonCol);
   
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idCol]) === String(id)) {
-      if (statusCol >= 0) sheet.getRange(i + 1, statusCol + 1).setValue(validation.status);
-      if (validatedByCol >= 0) sheet.getRange(i + 1, validatedByCol + 1).setValue(validation.validatedBy);
-      if (validatedAtCol >= 0) sheet.getRange(i + 1, validatedAtCol + 1).setValue(new Date().toISOString());
-      if (reasonCol >= 0) sheet.getRange(i + 1, reasonCol + 1).setValue(validation.reason || '');
+      Logger.log('Found record at row ' + (i + 1));
+      
+      if (statusCol >= 0) {
+        sheet.getRange(i + 1, statusCol + 1).setValue(validation.status || 'valid');
+        Logger.log('Set status: ' + (validation.status || 'valid'));
+      }
+      if (validatedByCol >= 0) {
+        sheet.getRange(i + 1, validatedByCol + 1).setValue(validation.validatedBy || '');
+        Logger.log('Set validatedBy: ' + (validation.validatedBy || ''));
+      }
+      if (validatedAtCol >= 0) {
+        sheet.getRange(i + 1, validatedAtCol + 1).setValue(new Date().toISOString());
+      }
+      if (reasonCol >= 0) {
+        sheet.getRange(i + 1, reasonCol + 1).setValue(validation.reason || '');
+      }
       
       return { success: true, message: 'Record berhasil divalidasi' };
     }
