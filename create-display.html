@@ -76,6 +76,9 @@
                         <button class="btn-camera" onclick="openCamera('bumbu')">
                             <i class="fas fa-camera"></i> Kamera
                         </button>
+                        <button class="btn-preview" onclick="previewPhoto('bumbu')" id="btn-preview-bumbu" disabled>
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
                     </div>
                 </div>
 
@@ -98,6 +101,9 @@
                         </button>
                         <button class="btn-camera" onclick="openCamera('m-bumbu')">
                             <i class="fas fa-camera"></i> Kamera
+                        </button>
+                        <button class="btn-preview" onclick="previewPhoto('m-bumbu')" id="btn-preview-m-bumbu" disabled>
+                            <i class="fas fa-eye"></i> Preview
                         </button>
                     </div>
                 </div>
@@ -122,6 +128,9 @@
                         <button class="btn-camera" onclick="openCamera('si')">
                             <i class="fas fa-camera"></i> Kamera
                         </button>
+                        <button class="btn-preview" onclick="previewPhoto('si')" id="btn-preview-si" disabled>
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
                     </div>
                 </div>
 
@@ -144,6 +153,9 @@
                         </button>
                         <button class="btn-camera" onclick="openCamera('karton')">
                             <i class="fas fa-camera"></i> Kamera
+                        </button>
+                        <button class="btn-preview" onclick="previewPhoto('karton')" id="btn-preview-karton" disabled>
+                            <i class="fas fa-eye"></i> Preview
                         </button>
                     </div>
                 </div>
@@ -168,6 +180,9 @@
                         <button class="btn-camera" onclick="openCamera('etiket')">
                             <i class="fas fa-camera"></i> Kamera
                         </button>
+                        <button class="btn-preview" onclick="previewPhoto('etiket')" id="btn-preview-etiket" disabled>
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
                     </div>
                 </div>
 
@@ -191,6 +206,9 @@
                         <button class="btn-camera" onclick="openCamera('etiket-banded')">
                             <i class="fas fa-camera"></i> Kamera
                         </button>
+                        <button class="btn-preview" onclick="previewPhoto('etiket-banded')" id="btn-preview-etiket-banded" disabled>
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
                     </div>
                 </div>
 
@@ -213,6 +231,9 @@
                         </button>
                         <button class="btn-camera" onclick="openCamera('plakban')">
                             <i class="fas fa-camera"></i> Kamera
+                        </button>
+                        <button class="btn-preview" onclick="previewPhoto('plakban')" id="btn-preview-plakban" disabled>
+                            <i class="fas fa-eye"></i> Preview
                         </button>
                     </div>
                 </div>
@@ -350,6 +371,31 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Preview Popup -->
+    <div id="photoPreviewPopup" class="popup-overlay hidden">
+        <div class="popup-content photo-preview-popup-content">
+            <div class="popup-header">
+                <h2><i class="fas fa-image"></i> Preview Foto <span id="previewPhotoType"></span></h2>
+                <button class="btn-close" onclick="closePhotoPreview()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-body">
+                <div class="photo-preview-container">
+                    <img id="photoPreviewImage" src="" alt="Preview">
+                </div>
+                <div class="photo-preview-actions">
+                    <button type="button" class="btn-danger" onclick="deletePhotoFromPreview()">
+                        <i class="fas fa-trash"></i> Hapus Foto
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="closePhotoPreview()">
+                        <i class="fas fa-times"></i> Tutup
+                    </button>
+                </div>
             </div>
         </div>
     </div>

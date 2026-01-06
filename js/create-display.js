@@ -376,6 +376,7 @@ async function handleFileSelect(event, typeId) {
 function updatePhotoPreview(typeId, photoData) {
     const previewContainer = document.getElementById(`preview-${typeId}`);
     const statusElement = document.getElementById(`status-${typeId}`);
+    const previewButton = document.getElementById(`btn-preview-${typeId}`);
 
     if (previewContainer && photoData) {
         // Priority: 1. base64 (local), 2. Google Drive ID, 3. directLink
@@ -391,6 +392,11 @@ function updatePhotoPreview(typeId, photoData) {
         
         if (imgSrc) {
             previewContainer.innerHTML = `<img src="${imgSrc}" alt="${typeId}" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📷</text></svg>';">`;
+        }
+        
+        // Enable preview button
+        if (previewButton) {
+            previewButton.disabled = false;
         }
     }
 
@@ -870,5 +876,94 @@ document.addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeCamera();
+        closePhotoPreview();
     }
 });
+
+// ==================== PHOTO PREVIEW ====================
+
+let currentPreviewType = null;
+
+function previewPhoto(typeId) {
+    const photoData = uploadedPhotos[typeId];
+    
+    if (!photoData) {
+        alert('Belum ada foto yang diupload');
+        return;
+    }
+    
+    currentPreviewType = typeId;
+    
+    // Get photo source
+    let imgSrc = '';
+    if (photoData.base64) {
+        imgSrc = photoData.base64;
+    } else if (photoData.id) {
+        imgSrc = `https://lh3.googleusercontent.com/d/${photoData.id}`;
+    } else if (photoData.directLink) {
+        imgSrc = photoData.directLink;
+    }
+    
+    if (!imgSrc) {
+        alert('Foto tidak dapat ditampilkan');
+        return;
+    }
+    
+    // Update popup content
+    const typeNames = {
+        'bumbu': 'Bumbu',
+        'm-bumbu': 'M. Bumbu',
+        'si': 'SI',
+        'karton': 'Karton',
+        'etiket': 'Etiket',
+        'etiket-banded': 'Etiket Banded',
+        'plakban': 'Plakban'
+    };
+    
+    document.getElementById('previewPhotoType').textContent = typeNames[typeId] || typeId;
+    document.getElementById('photoPreviewImage').src = imgSrc;
+    
+    // Show popup
+    document.getElementById('photoPreviewPopup').classList.remove('hidden');
+}
+
+function closePhotoPreview() {
+    document.getElementById('photoPreviewPopup').classList.add('hidden');
+    currentPreviewType = null;
+}
+
+function deletePhotoFromPreview() {
+    if (!currentPreviewType) return;
+    
+    if (confirm(`Apakah Anda yakin ingin menghapus foto ${currentPreviewType}?`)) {
+        // Remove photo data
+        delete uploadedPhotos[currentPreviewType];
+        
+        // Reset preview
+        const previewContainer = document.getElementById(`preview-${currentPreviewType}`);
+        const statusElement = document.getElementById(`status-${currentPreviewType}`);
+        const previewButton = document.getElementById(`btn-preview-${currentPreviewType}`);
+        
+        if (previewContainer) {
+            previewContainer.innerHTML = `
+                <i class="fas fa-image"></i>
+                <p>Belum ada foto</p>
+            `;
+        }
+        
+        if (statusElement) {
+            statusElement.innerHTML = '<i class="fas fa-clock"></i> Belum upload';
+            statusElement.classList.remove('uploaded');
+        }
+        
+        if (previewButton) {
+            previewButton.disabled = true;
+        }
+        
+        // Close preview popup
+        closePhotoPreview();
+        
+        showNotification('Foto berhasil dihapus', 'success');
+    }
+}
+
