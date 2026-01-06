@@ -1,14 +1,53 @@
 // =====================================================
 // VALID DISPLAY - Records Page Script
+// With Permissions and Validation Feature
 // =====================================================
 
 let allRecords = [];
 let filteredRecords = [];
 let currentPreviewRecord = null;
+let currentValidationRecordId = null;
+
+// Permission check functions
+function hasPermission(permission) {
+    const user = auth.getUser();
+    if (!user) return false;
+    
+    // Legacy support: admin role has all permissions
+    if (user.role === 'admin') return true;
+    
+    // Check permissions array
+    if (user.permissions && Array.isArray(user.permissions)) {
+        return user.permissions.includes(permission);
+    }
+    
+    return false;
+}
+
+function canEdit() {
+    return hasPermission('records_editor');
+}
+
+function canValidate() {
+    return hasPermission('records_validator');
+}
+
+function canView() {
+    return hasPermission('records_viewer') || hasPermission('records_editor') || hasPermission('records_validator');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Protect page
     if (!protectPage()) return;
+
+    // Check if user can view
+    if (!canView()) {
+        showToast('Anda tidak memiliki akses untuk melihat records', 'error');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1500);
+        return;
+    }
 
     // Initialize page
     initRecordsPage();
@@ -19,8 +58,8 @@ async function initRecordsPage() {
     const user = auth.getUser();
     document.getElementById('userName').textContent = user?.name || 'User';
 
-    // Show/hide admin controls based on role
-    setupRoleBasedUI();
+    // Show/hide admin controls based on permissions
+    setupPermissionBasedUI();
 
     // Initialize Google API for all users (to show status)
     await initGoogleDriveConnection();
@@ -38,19 +77,19 @@ async function initRecordsPage() {
     initPreviewTabs();
 }
 
-function setupRoleBasedUI() {
+function setupPermissionBasedUI() {
     const addDataBtn = document.querySelector('.btn-primary[onclick="openAddDataPopup()"]');
     const userMgmtLink = document.getElementById('userManagementLink');
     
-    if (isAdmin()) {
-        // Show user management link for admin
+    // Show user management link for user_admin permission
+    if (hasPermission('user_admin')) {
         if (userMgmtLink) {
             userMgmtLink.style.display = 'inline-flex';
         }
     }
     
-    if (isViewer()) {
-        // Hide add button for viewers
+    // Hide add button if user can't edit
+    if (!canEdit()) {
         if (addDataBtn) {
             addDataBtn.style.display = 'none';
         }
@@ -181,7 +220,8 @@ function renderRecords() {
 
     emptyState.classList.add('hidden');
 
-    const userIsAdmin = isAdmin();
+    const userCanEdit = canEdit();
+    const userCanValidate = canValidate();
 
     grid.innerHTML = filteredRecords.map(record => {
         // Get first available photo for card preview
@@ -199,8 +239,19 @@ function renderRecords() {
             previewSrc = previewPhoto.base64;
         }
         
+        // Validation badge
+        let validationBadge = '';
+        if (record.validationStatus === 'valid') {
+            validationBadge = `<div class="validation-badge valid"><i class="fas fa-check-circle"></i> Valid</div>`;
+        } else if (record.validationStatus === 'invalid') {
+            validationBadge = `<div class="validation-badge invalid" title="${escapeHtml(record.validationReason || '')}"><i class="fas fa-times-circle"></i> Invalid</div>`;
+        } else if (userCanValidate) {
+            validationBadge = `<div class="validation-badge pending"><i class="fas fa-clock"></i> Belum Validasi</div>`;
+        }
+        
         return `
-        <div class="record-card" onclick="openPreview('${record.id}')">
+        <div class="record-card" onclick="openPreview('${record.id}')" style="position: relative;">
+            ${validationBadge}
             <div class="card-preview">
                 ${previewSrc 
                     ? `<img src="${previewSrc}" alt="${record.flavor}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -232,12 +283,17 @@ function renderRecords() {
                 <button class="btn-view" onclick="openPreview('${record.id}')">
                     <i class="fas fa-eye"></i> Lihat
                 </button>
-                ${userIsAdmin ? `
+                ${userCanEdit ? `
                 <button class="btn-edit" onclick="editRecord('${record.id}')">
                     <i class="fas fa-edit"></i> Edit
                 </button>
                 <button class="btn-delete" onclick="deleteRecord('${record.id}')">
                     <i class="fas fa-trash"></i>
+                </button>
+                ` : ''}
+                ${userCanValidate ? `
+                <button class="btn-validate" onclick="openValidationPopup('${record.id}')">
+                    <i class="fas fa-check-double"></i>
                 </button>
                 ` : ''}
             </div>
@@ -513,8 +569,8 @@ function renderKodeProduksi() {
 // ==================== RECORD ACTIONS ====================
 
 function editRecord(recordId) {
-    // Only admin can edit
-    if (!isAdmin()) {
+    // Check editor permission
+    if (!canEdit()) {
         showToast('Anda tidak memiliki akses untuk mengedit data', 'error');
         return;
     }
@@ -534,8 +590,8 @@ function editRecord(recordId) {
 }
 
 async function deleteRecord(recordId) {
-    // Only admin can delete
-    if (!isAdmin()) {
+    // Check editor permission
+    if (!canEdit()) {
         showToast('Anda tidak memiliki akses untuk menghapus data', 'error');
         return;
     }
@@ -657,6 +713,130 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
+// ==================== VALIDATION FUNCTIONS ====================
+
+function openValidationPopup(recordId) {
+    if (!canValidate()) {
+        showToast('Anda tidak memiliki akses untuk validasi', 'error');
+        return;
+    }
+    
+    const record = allRecords.find(r => r.id === recordId);
+    if (!record) {
+        showToast('Record tidak ditemukan', 'error');
+        return;
+    }
+    
+    currentValidationRecordId = recordId;
+    
+    // Set record info
+    document.getElementById('validationRecordInfo').innerHTML = `
+        <strong>${escapeHtml(record.flavor)}</strong> - ${escapeHtml(record.negara)}<br>
+        <small>Tanggal: ${formatDate(record.tanggal)}</small>
+    `;
+    
+    document.getElementById('validationRecordId').value = recordId;
+    
+    // Reset selection
+    document.querySelectorAll('.validation-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    document.querySelectorAll('input[name="validationStatus"]').forEach(radio => {
+        radio.checked = false;
+    });
+    document.getElementById('invalidReasonContainer').style.display = 'none';
+    document.getElementById('invalidReason').value = '';
+    
+    // Pre-select if already validated
+    if (record.validationStatus) {
+        selectValidation(record.validationStatus);
+        if (record.validationStatus === 'invalid' && record.validationReason) {
+            document.getElementById('invalidReason').value = record.validationReason;
+        }
+    }
+    
+    document.getElementById('validationPopup').classList.remove('hidden');
+}
+
+function closeValidationPopup() {
+    document.getElementById('validationPopup').classList.add('hidden');
+    currentValidationRecordId = null;
+}
+
+function selectValidation(status) {
+    // Update radio buttons
+    document.querySelectorAll('input[name="validationStatus"]').forEach(radio => {
+        radio.checked = radio.value === status;
+    });
+    
+    // Update visual selection
+    document.querySelectorAll('.validation-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    
+    const selectedOption = document.querySelector(`.${status}-option`);
+    if (selectedOption) {
+        selectedOption.classList.add('selected');
+    }
+    
+    // Show/hide invalid reason field
+    const reasonContainer = document.getElementById('invalidReasonContainer');
+    if (status === 'invalid') {
+        reasonContainer.style.display = 'block';
+    } else {
+        reasonContainer.style.display = 'none';
+    }
+}
+
+async function submitValidation() {
+    const recordId = document.getElementById('validationRecordId').value;
+    const statusRadio = document.querySelector('input[name="validationStatus"]:checked');
+    
+    if (!statusRadio) {
+        showToast('Pilih status validasi', 'error');
+        return;
+    }
+    
+    const status = statusRadio.value;
+    const reason = status === 'invalid' ? document.getElementById('invalidReason').value.trim() : '';
+    
+    if (status === 'invalid' && !reason) {
+        showToast('Masukkan keterangan invalid', 'error');
+        return;
+    }
+    
+    // Get current user
+    const currentUser = auth.getUser();
+    const validatorName = currentUser ? currentUser.name : 'Unknown';
+    
+    showLoading('Menyimpan validasi...');
+    
+    try {
+        // Update record with validation info
+        const record = allRecords.find(r => r.id === recordId);
+        if (record) {
+            record.validationStatus = status;
+            record.validationReason = reason;
+            record.validatedBy = validatorName;
+            record.validatedAt = new Date().toISOString();
+            
+            // Update in storage
+            await storage.updateRecord(recordId, record);
+            
+            hideLoading();
+            showToast(`Record berhasil di-${status === 'valid' ? 'validasi' : 'invalid'}kan`, 'success');
+            closeValidationPopup();
+            
+            // Re-render records
+            renderRecords();
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error saving validation:', error);
+        showToast('Gagal menyimpan validasi', 'error');
+    }
+}
+
 // Close popup when clicking outside
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('popup-overlay')) {
@@ -669,5 +849,6 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeAddDataPopup();
         closePreviewPopup();
+        closeValidationPopup();
     }
 });

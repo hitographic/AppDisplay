@@ -1262,3 +1262,114 @@ body {
     cursor: pointer;
     font-size: 1rem;
 }
+
+/* =====================================================
+   VALIDATION BADGE & POPUP
+   ===================================================== */
+.validation-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+}
+
+.validation-badge.valid {
+    background: #c8e6c9;
+    color: #2e7d32;
+}
+
+.validation-badge.invalid {
+    background: #ffcdd2;
+    color: #c62828;
+}
+
+.validation-badge.pending {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.btn-validate {
+    background: #2196f3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-validate:hover {
+    background: #1976d2;
+}
+
+.validation-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.validation-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.validation-option:hover {
+    border-color: #bdbdbd;
+}
+
+.validation-option input {
+    display: none;
+}
+
+.validation-option.selected.valid-option {
+    border-color: #4caf50;
+    background: #e8f5e9;
+}
+
+.validation-option.selected.invalid-option {
+    border-color: #f44336;
+    background: #ffebee;
+}
+
+.validation-icon {
+    font-size: 24px;
+}
+
+.valid-option .validation-icon {
+    color: #4caf50;
+}
+
+.invalid-option .validation-icon {
+    color: #f44336;
+}
+
+.validation-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.validation-text strong {
+    font-size: 14px;
+}
+
+.validation-text small {
+    color: #666;
+    font-size: 12px;
+}
+

@@ -60,10 +60,21 @@ class Auth {
                 );
                 
                 if (result.success && result.user) {
+                    // Parse permissions
+                    let permissions = [];
+                    if (result.user.permissions) {
+                        if (Array.isArray(result.user.permissions)) {
+                            permissions = result.user.permissions;
+                        } else if (typeof result.user.permissions === 'string') {
+                            permissions = result.user.permissions.split('|').map(p => p.trim()).filter(p => p);
+                        }
+                    }
+                    
                     this.currentUser = {
                         nik: result.user.nik,
                         name: result.user.name,
-                        role: result.user.role || 'viewer',
+                        role: result.user.role || 'field',
+                        permissions: permissions,
                         loginTime: new Date().toISOString()
                     };
                     localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
@@ -79,10 +90,17 @@ class Auth {
         // Fallback to local config
         const user = CONFIG.USERS.find(u => u.nik === nik && u.password === password);
         if (user) {
+            // Parse permissions from local config
+            let permissions = user.permissions || [];
+            if (typeof permissions === 'string') {
+                permissions = permissions.split('|').map(p => p.trim()).filter(p => p);
+            }
+            
             this.currentUser = {
                 nik: user.nik,
                 name: user.name,
-                role: user.role || 'viewer',
+                role: user.role || 'field',
+                permissions: permissions,
                 loginTime: new Date().toISOString()
             };
             localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));

@@ -10,7 +10,7 @@ const CONFIG = {
     
     // Google Sheets Web App URL (akan diisi setelah deploy Apps Script)
     // PENTING: Ganti dengan URL Web App Anda setelah deploy
-    GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzErCITjSs1pq9USzivpECzn0HJS1wf0cAB4J8HzOGs0r6x57Mdz6QiCbTiW-ByxjERSg/exec',
+    GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzDm0C0rvUPDhJlgJKIrskZHGjKS4Xl-ZVlGcOlNY125p5jr_lPEFxLRUBRLNz1oYAYwA/exec',
     
     // Google Drive API Scopes
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
@@ -22,13 +22,31 @@ const CONFIG = {
     APP_NAME: 'Valid Display',
     VERSION: '1.0.0',
     
-    // User credentials dengan role
-    // role: 'admin' = bisa tambah/edit/hapus data + upload Google Drive
-    // role: 'viewer' = hanya bisa lihat data (tidak perlu login Google)
+    // User credentials dengan role dan permissions
+    // Roles: admin, manager, supervisor, field
+    // Permissions: user_admin, records_viewer, records_editor, records_validator
     USERS: [
-        { nik: '50086913', password: 'Ind0f00d25', name: 'Admin User', role: 'admin' },
-        { nik: '12345678', password: 'viewer123', name: 'Viewer User', role: 'viewer' },
-        { nik: '11111111', password: 'lihat123', name: 'Staff View', role: 'viewer' }
+        { 
+            nik: '50086913', 
+            password: 'Ind0f00d25', 
+            name: 'Admin User', 
+            role: 'admin',
+            permissions: ['user_admin', 'records_viewer', 'records_editor', 'records_validator']
+        },
+        { 
+            nik: '12345678', 
+            password: 'viewer123', 
+            name: 'Viewer User', 
+            role: 'field',
+            permissions: ['records_viewer']
+        },
+        { 
+            nik: '11111111', 
+            password: 'lihat123', 
+            name: 'Staff View', 
+            role: 'supervisor',
+            permissions: ['records_viewer', 'records_validator']
+        }
     ],
     
     // Photo Types

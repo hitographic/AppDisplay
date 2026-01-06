@@ -1,9 +1,35 @@
 // =====================================================
 // VALID DISPLAY - User Management Script
+// With Roles, Permissions, and Bulk Upload
 // =====================================================
 
 let allUsers = [];
+let parsedCSVData = [];
 const webAppUrl = CONFIG.GOOGLE_SHEETS_WEBAPP_URL || '';
+
+// Role definitions
+const ROLES = {
+    admin: { name: 'Admin', icon: '👑', color: '#1976d2' },
+    manager: { name: 'Manager', icon: '📊', color: '#f57c00' },
+    supervisor: { name: 'Supervisor', icon: '👔', color: '#388e3c' },
+    field: { name: 'Field', icon: '🏃', color: '#7b1fa2' }
+};
+
+// Permission definitions
+const PERMISSIONS = {
+    user_admin: { name: 'User Admin', icon: 'fas fa-users-cog', desc: 'Kelola User & Permissions' },
+    records_viewer: { name: 'Viewer', icon: 'fas fa-eye', desc: 'Lihat Records' },
+    records_editor: { name: 'Editor', icon: 'fas fa-edit', desc: 'CRUD Records' },
+    records_validator: { name: 'Validator', icon: 'fas fa-check-double', desc: 'Validasi Records' }
+};
+
+// Default permissions per role
+const DEFAULT_PERMISSIONS = {
+    admin: ['user_admin', 'records_viewer', 'records_editor', 'records_validator'],
+    manager: ['records_viewer', 'records_editor', 'records_validator'],
+    supervisor: ['records_viewer', 'records_validator'],
+    field: ['records_viewer', 'records_editor']
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Users page loaded');
@@ -14,23 +40,42 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Check if admin
-    if (!isAdmin()) {
+    // Check if has user_admin permission
+    const currentUser = auth.getUser();
+    if (!hasPermission('user_admin')) {
         alert('Anda tidak memiliki akses ke halaman ini');
         window.location.href = 'records.html';
         return;
     }
 
     // Set user name
-    const user = auth.getUser();
-    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userName').textContent = currentUser.name;
 
     // Hide any existing loading overlay first
     hideLoading();
     
     // Load users
     loadUsers();
+    
+    // Setup drag and drop for CSV
+    setupDragAndDrop();
 });
+
+// Check if current user has permission
+function hasPermission(permission) {
+    const user = auth.getUser();
+    if (!user) return false;
+    
+    // Legacy support: admin role has all permissions
+    if (user.role === 'admin') return true;
+    
+    // Check permissions array
+    if (user.permissions && Array.isArray(user.permissions)) {
+        return user.permissions.includes(permission);
+    }
+    
+    return false;
+}
 
 // JSONP request dengan cache buster
 function jsonpRequest(url) {
@@ -41,7 +86,7 @@ function jsonpRequest(url) {
             delete window[callbackName];
             if (script && script.parentNode) script.parentNode.removeChild(script);
             reject(new Error('Request timeout'));
-        }, 15000); // 15 detik timeout
+        }, 15000);
 
         window[callbackName] = (data) => {
             console.log('JSONP callback received:', data);
@@ -52,7 +97,6 @@ function jsonpRequest(url) {
         };
 
         const script = document.createElement('script');
-        // Add cache buster
         const cacheBuster = '_cb=' + Date.now();
         script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName + '&' + cacheBuster;
         
@@ -132,11 +176,15 @@ async function loadUsers() {
         
         if (result && result.success) {
             allUsers = result.users || [];
+            // Ensure permissions is array for each user
+            allUsers = allUsers.map(u => ({
+                ...u,
+                permissions: parsePermissions(u.permissions)
+            }));
             renderUsersTable();
             showToast('Data user berhasil dimuat', 'success');
         } else {
             showToast('Gagal memuat data user: ' + (result?.error || 'Unknown error'), 'error');
-            // Fallback to local
             loadLocalUsers();
         }
     } catch (error) {
@@ -147,13 +195,24 @@ async function loadUsers() {
     }
 }
 
+// Parse permissions from various formats
+function parsePermissions(perms) {
+    if (!perms) return [];
+    if (Array.isArray(perms)) return perms;
+    if (typeof perms === 'string') {
+        return perms.split('|').map(p => p.trim()).filter(p => p);
+    }
+    return [];
+}
+
 // Fallback: Load users from local config
 function loadLocalUsers() {
     allUsers = CONFIG.USERS.map(u => ({
         nik: u.nik,
         password: u.password,
         name: u.name,
-        role: u.role
+        role: u.role || 'field',
+        permissions: u.permissions || DEFAULT_PERMISSIONS[u.role] || ['records_viewer']
     }));
     renderUsersTable();
 }
@@ -167,14 +226,26 @@ function renderUsersTable() {
         return;
     }
     
-    tbody.innerHTML = allUsers.map(user => `
+    tbody.innerHTML = allUsers.map(user => {
+        const role = ROLES[user.role] || ROLES.field;
+        const permissions = user.permissions || [];
+        
+        return `
         <tr>
             <td><strong>${user.nik}</strong></td>
             <td>${user.name}</td>
             <td>
                 <span class="role-badge role-${user.role}">
-                    ${user.role === 'admin' ? '👑 Admin' : '👁️ Viewer'}
+                    ${role.icon} ${role.name}
                 </span>
+            </td>
+            <td>
+                <div class="permission-badges">
+                    ${permissions.map(p => {
+                        const perm = PERMISSIONS[p];
+                        return perm ? `<span class="perm-badge perm-${p}"><i class="${perm.icon}"></i> ${perm.name}</span>` : '';
+                    }).join('')}
+                </div>
             </td>
             <td>
                 <div class="action-btns">
@@ -187,7 +258,7 @@ function renderUsersTable() {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 // Render empty state
@@ -195,7 +266,7 @@ function renderEmptyState() {
     const tbody = document.getElementById('usersTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="4" class="empty-state">
+            <td colspan="5" class="empty-state">
                 <i class="fas fa-users-slash"></i>
                 <p>Belum ada user</p>
             </td>
@@ -210,6 +281,7 @@ function showAddModal() {
     document.getElementById('originalNik').value = '';
     document.getElementById('userForm').reset();
     document.getElementById('userNik').disabled = false;
+    clearPermissionCheckboxes();
     document.getElementById('userModal').classList.add('active');
 }
 
@@ -222,11 +294,48 @@ function editUser(nik) {
     document.getElementById('editMode').value = 'edit';
     document.getElementById('originalNik').value = nik;
     document.getElementById('userNik').value = user.nik;
-    document.getElementById('userNik').disabled = true; // NIK tidak bisa diubah
+    document.getElementById('userNik').disabled = true;
     document.getElementById('userName2').value = user.name;
     document.getElementById('userPassword').value = user.password;
-    document.getElementById('userRole').value = user.role;
+    document.getElementById('userRole').value = user.role || 'field';
+    
+    // Set permissions
+    setPermissionCheckboxes(user.permissions || []);
+    
     document.getElementById('userModal').classList.add('active');
+}
+
+// Set permission checkboxes
+function setPermissionCheckboxes(permissions) {
+    clearPermissionCheckboxes();
+    permissions.forEach(p => {
+        const checkbox = document.querySelector(`input[value="${p}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
+}
+
+// Clear permission checkboxes
+function clearPermissionCheckboxes() {
+    document.querySelectorAll('input[name="permissions"]').forEach(cb => {
+        cb.checked = false;
+    });
+}
+
+// Get selected permissions
+function getSelectedPermissions() {
+    const permissions = [];
+    document.querySelectorAll('input[name="permissions"]:checked').forEach(cb => {
+        permissions.push(cb.value);
+    });
+    return permissions;
+}
+
+// On role change - set default permissions
+function onRoleChange() {
+    const role = document.getElementById('userRole').value;
+    if (role && DEFAULT_PERMISSIONS[role]) {
+        setPermissionCheckboxes(DEFAULT_PERMISSIONS[role]);
+    }
 }
 
 // Close modal
@@ -244,8 +353,9 @@ async function saveUser(event) {
     const name = document.getElementById('userName2').value.trim();
     const password = document.getElementById('userPassword').value;
     const role = document.getElementById('userRole').value;
+    const permissions = getSelectedPermissions();
     
-    if (!nik || !name || !password) {
+    if (!nik || !name || !password || !role) {
         showToast('Mohon lengkapi semua field', 'error');
         return;
     }
@@ -258,13 +368,13 @@ async function saveUser(event) {
         if (editMode === 'add') {
             result = await postRequest({
                 action: 'addUser',
-                user: { nik, name, password, role }
+                user: { nik, name, password, role, permissions: permissions.join('|') }
             });
         } else {
             result = await postRequest({
                 action: 'updateUser',
                 nik: originalNik,
-                user: { name, password, role }
+                user: { name, password, role, permissions: permissions.join('|') }
             });
         }
         
@@ -273,7 +383,6 @@ async function saveUser(event) {
         if (result.success) {
             showToast(editMode === 'add' ? 'User berhasil ditambahkan' : 'User berhasil diupdate', 'success');
             closeModal();
-            // Reload after short delay
             setTimeout(() => loadUsers(), 1000);
         } else {
             showToast(result.error || 'Gagal menyimpan', 'error');
@@ -286,7 +395,6 @@ async function saveUser(event) {
 
 // Delete user
 async function deleteUser(nik, name) {
-    // Prevent deleting yourself
     const currentUser = auth.getUser();
     if (currentUser.nik === nik) {
         showToast('Tidak bisa menghapus akun sendiri', 'error');
@@ -319,6 +427,235 @@ async function deleteUser(nik, name) {
     }
 }
 
+// ==================== BULK UPLOAD ====================
+
+function showBulkUploadModal() {
+    document.getElementById('bulkModal').classList.add('active');
+    document.getElementById('csvFile').value = '';
+    document.getElementById('csvPaste').value = '';
+    document.getElementById('csvPreviewContainer').style.display = 'none';
+    parsedCSVData = [];
+}
+
+function closeBulkModal() {
+    document.getElementById('bulkModal').classList.remove('active');
+}
+
+// Setup drag and drop
+function setupDragAndDrop() {
+    const dropZone = document.getElementById('dropZone');
+    if (!dropZone) return;
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'));
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'));
+    });
+    
+    dropZone.addEventListener('drop', handleDrop);
+}
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+        processCSVFile(files[0]);
+    }
+}
+
+function handleCSVFile(event) {
+    const file = event.target.files[0];
+    if (file) {
+        processCSVFile(file);
+    }
+}
+
+function processCSVFile(file) {
+    if (!file.name.endsWith('.csv')) {
+        showToast('Mohon upload file CSV', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        parseCSVContent(content);
+    };
+    reader.readAsText(file);
+}
+
+function parseCSVFromTextarea() {
+    const content = document.getElementById('csvPaste').value.trim();
+    if (!content) {
+        showToast('Mohon masukkan data CSV', 'error');
+        return;
+    }
+    parseCSVContent(content);
+}
+
+function parseCSVContent(content) {
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    
+    if (lines.length === 0) {
+        showToast('File CSV kosong', 'error');
+        return;
+    }
+    
+    // Check if first line is header
+    const firstLine = lines[0].toLowerCase();
+    let startIndex = 0;
+    if (firstLine.includes('nik') && firstLine.includes('nama')) {
+        startIndex = 1;
+    }
+    
+    parsedCSVData = [];
+    const existingNiks = allUsers.map(u => u.nik);
+    
+    for (let i = startIndex; i < lines.length; i++) {
+        const parts = parseCSVLine(lines[i]);
+        
+        if (parts.length >= 4) {
+            const nik = parts[0].trim();
+            const nama = parts[1].trim();
+            const password = parts[2].trim();
+            const role = parts[3].trim().toLowerCase();
+            const permissions = parts[4] ? parts[4].trim() : '';
+            
+            let valid = true;
+            let error = '';
+            
+            if (!nik) { valid = false; error = 'NIK kosong'; }
+            else if (!nama) { valid = false; error = 'Nama kosong'; }
+            else if (!password) { valid = false; error = 'Password kosong'; }
+            else if (!['admin', 'manager', 'supervisor', 'field'].includes(role)) {
+                valid = false; 
+                error = 'Role tidak valid';
+            }
+            else if (existingNiks.includes(nik)) {
+                valid = false;
+                error = 'NIK sudah ada';
+            }
+            
+            parsedCSVData.push({
+                nik,
+                nama,
+                password,
+                role,
+                permissions: permissions || DEFAULT_PERMISSIONS[role]?.join('|') || 'records_viewer',
+                valid,
+                error
+            });
+        }
+    }
+    
+    renderCSVPreview();
+}
+
+// Parse CSV line handling quoted strings
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    
+    return result;
+}
+
+function renderCSVPreview() {
+    const container = document.getElementById('csvPreviewContainer');
+    const tbody = document.getElementById('csvPreviewBody');
+    const validCount = parsedCSVData.filter(d => d.valid).length;
+    
+    document.getElementById('previewCount').textContent = parsedCSVData.length;
+    document.getElementById('validCount').textContent = validCount;
+    
+    tbody.innerHTML = parsedCSVData.map(data => `
+        <tr class="${data.valid ? 'valid' : 'invalid'}">
+            <td>${data.valid ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i> ' + data.error}</td>
+            <td>${data.nik}</td>
+            <td>${data.nama}</td>
+            <td>${data.password}</td>
+            <td>${data.role}</td>
+            <td>${data.permissions}</td>
+        </tr>
+    `).join('');
+    
+    container.style.display = 'block';
+    
+    if (validCount === 0) {
+        showToast('Tidak ada data valid untuk diupload', 'warning');
+    }
+}
+
+async function uploadBulkUsers() {
+    const validUsers = parsedCSVData.filter(d => d.valid);
+    
+    if (validUsers.length === 0) {
+        showToast('Tidak ada data valid untuk diupload', 'error');
+        return;
+    }
+    
+    showLoading(`Mengupload ${validUsers.length} users...`);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const userData of validUsers) {
+        try {
+            await postRequest({
+                action: 'addUser',
+                user: {
+                    nik: userData.nik,
+                    name: userData.nama,
+                    password: userData.password,
+                    role: userData.role,
+                    permissions: userData.permissions
+                }
+            });
+            successCount++;
+        } catch (error) {
+            console.error('Error adding user:', userData.nik, error);
+            failCount++;
+        }
+    }
+    
+    hideLoading();
+    
+    if (successCount > 0) {
+        showToast(`Berhasil menambahkan ${successCount} user${failCount > 0 ? `, ${failCount} gagal` : ''}`, 'success');
+        closeBulkModal();
+        setTimeout(() => loadUsers(), 1000);
+    } else {
+        showToast('Gagal menambahkan user', 'error');
+    }
+}
+
+// ==================== UTILITIES ====================
+
 // Toast notification
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
@@ -348,8 +685,10 @@ function logout() {
 }
 
 // Close modal on outside click
-document.getElementById('userModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeModal();
-    }
+document.getElementById('userModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+document.getElementById('bulkModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeBulkModal();
 });

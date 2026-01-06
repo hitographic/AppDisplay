@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .users-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -56,17 +56,31 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
+            display: inline-block;
         }
         
-        .role-admin {
-            background: #e3f2fd;
-            color: #1976d2;
+        .role-admin { background: #e3f2fd; color: #1976d2; }
+        .role-manager { background: #fff3e0; color: #f57c00; }
+        .role-supervisor { background: #e8f5e9; color: #388e3c; }
+        .role-field { background: #f3e5f5; color: #7b1fa2; }
+        
+        .permission-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
         }
         
-        .role-viewer {
-            background: #f3e5f5;
-            color: #7b1fa2;
+        .perm-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
         }
+        
+        .perm-user_admin { background: #ffcdd2; color: #c62828; }
+        .perm-records_viewer { background: #e1bee7; color: #6a1b9a; }
+        .perm-records_editor { background: #c8e6c9; color: #2e7d32; }
+        .perm-records_validator { background: #b3e5fc; color: #0277bd; }
         
         .action-btns {
             display: flex;
@@ -119,9 +133,13 @@
             border-radius: 12px;
             padding: 30px;
             width: 90%;
-            max-width: 450px;
+            max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
+        }
+        
+        .modal-content.wide {
+            max-width: 700px;
         }
         
         .modal-header {
@@ -156,18 +174,78 @@
         }
         
         .form-group input,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 14px;
+            box-sizing: border-box;
         }
         
         .form-group input:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: var(--primary-color);
+        }
+        
+        /* Permission Checkboxes */
+        .permission-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .permission-section h4 {
+            margin: 0 0 15px 0;
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+        
+        .permission-group {
+            margin-bottom: 15px;
+        }
+        
+        .permission-group-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .permission-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .permission-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .permission-checkbox:hover {
+            background: #e3f2fd;
+            border-color: var(--primary-color);
+        }
+        
+        .permission-checkbox input {
+            width: auto;
+            cursor: pointer;
+        }
+        
+        .permission-checkbox span {
+            font-size: 13px;
         }
         
         .btn-submit {
@@ -199,6 +277,93 @@
             margin-bottom: 20px;
         }
         
+        /* Bulk Upload Styles */
+        .bulk-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .bulk-upload-area:hover,
+        .bulk-upload-area.dragover {
+            border-color: var(--primary-color);
+            background: #f8f9fa;
+        }
+        
+        .bulk-upload-area i {
+            font-size: 48px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        
+        .bulk-upload-area p {
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        .csv-preview {
+            max-height: 300px;
+            overflow: auto;
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .csv-preview table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .csv-preview th,
+        .csv-preview td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        
+        .csv-preview th {
+            background: #f5f5f5;
+            position: sticky;
+            top: 0;
+        }
+        
+        .csv-preview tr.valid { background: #e8f5e9; }
+        .csv-preview tr.invalid { background: #ffebee; }
+        
+        .csv-format-info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        
+        .csv-format-info code {
+            background: #bbdefb;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-bulk {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-bulk:hover {
+            background: #388e3c;
+        }
+        
         @media (max-width: 768px) {
             .users-table th,
             .users-table td {
@@ -213,6 +378,11 @@
             .users-table {
                 display: block;
                 overflow-x: auto;
+            }
+            
+            .header-buttons {
+                width: 100%;
+                justify-content: flex-end;
             }
         }
     </style>
@@ -240,10 +410,13 @@
                     <h1><i class="fas fa-users-cog"></i> User Management</h1>
                     <p>Kelola pengguna aplikasi Valid Display</p>
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div class="header-buttons">
                     <a href="records.html" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Kembali
                     </a>
+                    <button class="btn btn-bulk" onclick="showBulkUploadModal()">
+                        <i class="fas fa-file-csv"></i> Bulk Upload
+                    </button>
                     <button class="btn btn-primary" onclick="showAddModal()">
                         <i class="fas fa-plus"></i> Tambah User
                     </button>
@@ -257,12 +430,13 @@
                             <th>NIK</th>
                             <th>Nama</th>
                             <th>Role</th>
+                            <th>Permissions</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
                         <tr>
-                            <td colspan="4" class="empty-state">
+                            <td colspan="5" class="empty-state">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 <p>Memuat data...</p>
                             </td>
@@ -286,8 +460,7 @@
                 
                 <div class="form-group">
                     <label for="userNik">NIK</label>
-                    <input type="text" id="userNik" placeholder="Masukkan NIK (8 digit)" 
-                           pattern="[0-9]{8}" maxlength="8" required>
+                    <input type="text" id="userNik" placeholder="Masukkan NIK" required>
                 </div>
                 
                 <div class="form-group">
@@ -302,16 +475,109 @@
                 
                 <div class="form-group">
                     <label for="userRole">Role</label>
-                    <select id="userRole" required>
-                        <option value="viewer">Viewer (Hanya lihat)</option>
-                        <option value="admin">Admin (Full akses)</option>
+                    <select id="userRole" required onchange="onRoleChange()">
+                        <option value="">-- Pilih Role --</option>
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="field">Field</option>
                     </select>
+                </div>
+                
+                <!-- Permission Section -->
+                <div class="permission-section" id="permissionSection">
+                    <h4><i class="fas fa-key"></i> Permissions</h4>
+                    
+                    <!-- Admin Permission -->
+                    <div class="permission-group" id="adminPermGroup">
+                        <div class="permission-group-title">Admin Access</div>
+                        <div class="permission-checkboxes">
+                            <label class="permission-checkbox">
+                                <input type="checkbox" id="permUserAdmin" name="permissions" value="user_admin">
+                                <span><i class="fas fa-users-cog"></i> Kelola User & Permissions</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Records Permission -->
+                    <div class="permission-group">
+                        <div class="permission-group-title">Records Access</div>
+                        <div class="permission-checkboxes">
+                            <label class="permission-checkbox">
+                                <input type="checkbox" id="permViewer" name="permissions" value="records_viewer">
+                                <span><i class="fas fa-eye"></i> Viewer (Lihat saja)</span>
+                            </label>
+                            <label class="permission-checkbox">
+                                <input type="checkbox" id="permEditor" name="permissions" value="records_editor">
+                                <span><i class="fas fa-edit"></i> Editor (CRUD)</span>
+                            </label>
+                            <label class="permission-checkbox">
+                                <input type="checkbox" id="permValidator" name="permissions" value="records_validator">
+                                <span><i class="fas fa-check-double"></i> Validator</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn-submit">
                     <i class="fas fa-save"></i> Simpan User
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Bulk Upload Modal -->
+    <div class="modal" id="bulkModal">
+        <div class="modal-content wide">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-csv"></i> Bulk Upload Users</h2>
+                <button class="modal-close" onclick="closeBulkModal()">&times;</button>
+            </div>
+            
+            <div class="csv-format-info">
+                <strong><i class="fas fa-info-circle"></i> Format CSV:</strong><br>
+                <code>NIK,Nama,Password,Role,Permissions</code><br>
+                <small>Contoh: <code>12345678,John Doe,pass123,field,records_viewer|records_editor</code></small><br>
+                <small>Role: admin, manager, supervisor, field</small><br>
+                <small>Permissions: user_admin, records_viewer, records_editor, records_validator (pisahkan dengan |)</small>
+            </div>
+            
+            <div class="bulk-upload-area" id="dropZone" onclick="document.getElementById('csvFile').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p><strong>Klik untuk upload file CSV</strong></p>
+                <p>atau drag & drop file ke sini</p>
+                <input type="file" id="csvFile" accept=".csv" hidden onchange="handleCSVFile(event)">
+            </div>
+            
+            <div class="form-group">
+                <label for="csvPaste">Atau paste data CSV di sini:</label>
+                <textarea id="csvPaste" rows="5" placeholder="NIK,Nama,Password,Role,Permissions&#10;12345678,John Doe,pass123,field,records_viewer"></textarea>
+                <button type="button" class="btn btn-secondary" style="margin-top:10px;" onclick="parseCSVFromTextarea()">
+                    <i class="fas fa-paste"></i> Parse CSV
+                </button>
+            </div>
+            
+            <div id="csvPreviewContainer" style="display:none;">
+                <h4>Preview Data (<span id="previewCount">0</span> users)</h4>
+                <div class="csv-preview">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>NIK</th>
+                                <th>Nama</th>
+                                <th>Password</th>
+                                <th>Role</th>
+                                <th>Permissions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csvPreviewBody"></tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn-submit" onclick="uploadBulkUsers()" style="margin-top:15px;">
+                    <i class="fas fa-upload"></i> Upload <span id="validCount">0</span> Users
+                </button>
+            </div>
         </div>
     </div>
 
