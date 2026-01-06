@@ -57,12 +57,24 @@ function doPost(e) {
   try {
     let data;
     
+    // Log raw request for debugging
+    Logger.log('=== POST Request Debug ===');
+    Logger.log('e.parameter: ' + JSON.stringify(e.parameter || {}));
+    Logger.log('e.parameters: ' + JSON.stringify(e.parameters || {}));
+    Logger.log('e.postData: ' + JSON.stringify(e.postData || {}));
+    
     // Parse data from different sources
     if (e.postData && e.postData.contents) {
+      Logger.log('Parsing from postData.contents');
       data = JSON.parse(e.postData.contents);
     } else if (e.parameter && e.parameter.data) {
+      Logger.log('Parsing from e.parameter.data');
       data = JSON.parse(e.parameter.data);
+    } else if (e.parameters && e.parameters.data && e.parameters.data[0]) {
+      Logger.log('Parsing from e.parameters.data[0]');
+      data = JSON.parse(e.parameters.data[0]);
     } else {
+      Logger.log('No data found in request');
       data = {};
     }
     
@@ -107,6 +119,8 @@ function doPost(e) {
     Logger.log('POST error: ' + error.toString());
     result = { success: false, error: error.toString() };
   }
+  
+  Logger.log('POST result: ' + JSON.stringify(result));
   
   // Send postMessage for iframe communication
   const html = `
@@ -955,6 +969,24 @@ function testGetAllRecords() {
   const result = getAllRecords();
   Logger.log('Found ' + (result.records ? result.records.length : 0) + ' records');
   Logger.log('Result: ' + JSON.stringify(result).substring(0, 1000));
+  return result;
+}
+
+// Alias for addRecord (handleAdd)
+function handleAdd(record) {
+  return addRecord(record);
+}
+
+// Test adding record from web
+function testAddFromWeb() {
+  const result = addRecord({
+    tanggal: "2025-01-06",
+    flavor: "TEST-WEB-" + Date.now(),
+    negara: "Indonesia", 
+    kodeProduksi: "TEST123",
+    photo_bumbu: "https://example.com/photo.jpg"
+  });
+  Logger.log('Result: ' + JSON.stringify(result));
   return result;
 }
 
