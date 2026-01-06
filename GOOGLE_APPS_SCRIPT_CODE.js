@@ -28,10 +28,14 @@ function doGet(e) {
         result = getUsers();
         break;
       case 'getRecords':
-        result = getRecords(e.parameter);
+      case 'getAll':  // Support both action names
+        result = getAllRecords();
+        break;
+      case 'get':
+        result = getRecordById(e.parameter.id);
         break;
       default:
-        result = { success: false, error: 'Unknown action' };
+        result = { success: false, error: 'Unknown action: ' + action };
     }
   } catch(error) {
     result = { success: false, error: error.toString() };
@@ -48,10 +52,25 @@ function doGet(e) {
 // =====================================================
 function doPost(e) {
   let result;
+  let callbackName = '';
   
   try {
-    const data = JSON.parse(e.postData.contents || e.parameter.data || '{}');
+    let data;
+    
+    // Parse data from different sources
+    if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else if (e.parameter && e.parameter.data) {
+      data = JSON.parse(e.parameter.data);
+    } else {
+      data = {};
+    }
+    
+    callbackName = data.callback || '';
     const action = data.action || '';
+    
+    Logger.log('POST action: ' + action);
+    Logger.log('POST data: ' + JSON.stringify(data).substring(0, 500));
     
     switch(action) {
       case 'addUser':
@@ -66,14 +85,17 @@ function doPost(e) {
       case 'bulkAddUsers':
         result = bulkAddUsers(data.users);
         break;
+      case 'add':
       case 'addRecord':
         result = addRecord(data.record);
         break;
+      case 'update':
       case 'updateRecord':
-        result = updateRecord(data.id, data.record);
+        result = updateRecord(data.recordId || data.id, data.record);
         break;
+      case 'delete':
       case 'deleteRecord':
-        result = deleteRecord(data.id);
+        result = deleteRecord(data.recordId || data.id);
         break;
       case 'validateRecord':
         result = validateRecord(data.id, data.validation);
@@ -82,14 +104,14 @@ function doPost(e) {
         result = { success: false, error: 'Unknown action: ' + action };
     }
   } catch(error) {
+    Logger.log('POST error: ' + error.toString());
     result = { success: false, error: error.toString() };
   }
   
   // Send postMessage for iframe communication
-  const callback = e.parameter?.callback || '';
   const html = `
     <script>
-      window.parent.postMessage(${JSON.stringify({...result, callbackName: callback})}, '*');
+      window.parent.postMessage(${JSON.stringify({...result, callbackName: callbackName})}, '*');
     </script>
   `;
   return HtmlService.createHtmlOutput(html);
@@ -331,49 +353,112 @@ function createUsersSheet(ss) {
 // RECORD FUNCTIONS
 // =====================================================
 
-// Get all records with optional filters
-function getRecords(params) {
+// Get all records - compatible with existing sheet structure
+function getAllRecords() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_RECORDS);
   
   if (!sheet) {
+    Logger.log('Sheet Records not found');
     return { success: true, records: [] };
   }
   
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) {
+    Logger.log('No data in Records sheet');
     return { success: true, records: [] };
   }
   
   const headers = data[0];
+  Logger.log('Headers: ' + headers.join(', '));
+  
   const records = [];
   
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (!row[0]) continue;
+    if (!row[0]) continue; // Skip empty rows
     
-    const record = { _rowIndex: i + 1 };
+    // Map row data to record object
+    const record = {};
+    headers.forEach((header, index) => {
+      // Convert header to camelCase for frontend compatibility
+      const key = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      
+      let value = row[index];
+      
+      // Parse JSON strings (for photos object)
+      if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+        try {
+          value = JSON.parse(value);
+        } catch(e) {
+          // Keep as string if not valid JSON
+        }
+      }
+      
+      record[key] = value || '';
+    });
+    
+    // Also keep original header names for compatibility
     headers.forEach((header, index) => {
       record[header] = row[index] || '';
     });
     
-    // Apply filters if any
-    let include = true;
-    if (params) {
-      if (params.flavor && record.flavor !== params.flavor) include = false;
-      if (params.negara && record.negara !== params.negara) include = false;
-      if (params.status && record.validation_status !== params.status) include = false;
+    // Parse photos from individual columns into photos object
+    record.photos = {};
+    const photoTypes = ['bumbu', 'mbumbu', 'si', 'karton', 'etiket', 'etiketbanded', 'plakban'];
+    photoTypes.forEach(type => {
+      const colName = 'photo_' + type;
+      const value = record[colName];
+      if (value) {
+        // Check if it's a JSON object or a file ID
+        if (typeof value === 'object') {
+          record.photos[type === 'mbumbu' ? 'm-bumbu' : (type === 'etiketbanded' ? 'etiket-banded' : type)] = value;
+        } else if (typeof value === 'string' && value.length > 5) {
+          // Assume it's a file ID
+          record.photos[type === 'mbumbu' ? 'm-bumbu' : (type === 'etiketbanded' ? 'etiket-banded' : type)] = {
+            id: value,
+            directLink: 'https://lh3.googleusercontent.com/d/' + value
+          };
+        }
+      }
+    });
+    
+    // Parse kodeProduksi
+    if (record.kodeProduksi || record.kode_produksi) {
+      const kodeValue = record.kodeProduksi || record.kode_produksi;
+      if (typeof kodeValue === 'string') {
+        try {
+          record.kodeProduksi = JSON.parse(kodeValue);
+        } catch(e) {
+          record.kodeProduksi = [kodeValue];
+        }
+      }
     }
     
-    if (include) {
-      records.push(record);
-    }
+    records.push(record);
   }
   
+  Logger.log('Found ' + records.length + ' records');
   return { success: true, records: records };
 }
 
-// Add new record
+// Get single record by ID
+function getRecordById(id) {
+  if (!id) {
+    return { success: false, error: 'ID required' };
+  }
+  
+  const result = getAllRecords();
+  if (result.success && result.records) {
+    const record = result.records.find(r => String(r.id) === String(id));
+    if (record) {
+      return { success: true, record: record };
+    }
+  }
+  return { success: false, error: 'Record not found' };
+}
+
+// Add new record - compatible with existing sheet structure
 function addRecord(record) {
   if (!record) {
     return { success: false, error: 'Data record tidak valid' };
@@ -383,34 +468,76 @@ function addRecord(record) {
   let sheet = ss.getSheetByName(SHEET_RECORDS);
   
   if (!sheet) {
-    sheet = createRecordsSheet(ss);
+    return { success: false, error: 'Sheet Records tidak ditemukan. Mohon buat sheet Records terlebih dahulu.' };
   }
-  
-  // Generate ID
-  const id = 'REC' + Date.now();
-  record.id = id;
-  record.created_at = new Date().toISOString();
-  record.validation_status = 'pending';
-  record.validated_by = '';
-  record.validated_at = '';
-  record.validation_reason = '';
   
   // Get headers
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  Logger.log('Headers for add: ' + headers.join(', '));
   
-  // Build row
-  const row = headers.map(header => record[header] || '');
+  // Generate ID if not exists
+  if (!record.id) {
+    record.id = 'REC' + Date.now();
+  }
   
+  // Set timestamps
+  const now = new Date().toISOString();
+  record.createdAt = record.createdAt || now;
+  record.updatedAt = now;
+  
+  // Build row based on headers
+  const row = headers.map(header => {
+    // Check various formats of the key
+    let value = record[header];
+    
+    // Try camelCase version
+    if (value === undefined) {
+      const camelKey = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      value = record[camelKey];
+    }
+    
+    // Handle photo columns
+    if (header.startsWith('photo_') && record.photos) {
+      const photoType = header.replace('photo_', '');
+      const mappedType = photoType === 'mbumbu' ? 'm-bumbu' : (photoType === 'etiketbanded' ? 'etiket-banded' : photoType);
+      const photoData = record.photos[mappedType];
+      if (photoData) {
+        // Store just the file ID for simplicity
+        value = photoData.id || JSON.stringify(photoData);
+      }
+    }
+    
+    // Handle kodeProduksi
+    if (header === 'kodeProduksi' || header === 'kode_produksi') {
+      if (Array.isArray(record.kodeProduksi)) {
+        value = JSON.stringify(record.kodeProduksi);
+      } else {
+        value = record.kodeProduksi || '';
+      }
+    }
+    
+    // Convert objects to JSON string
+    if (value && typeof value === 'object') {
+      value = JSON.stringify(value);
+    }
+    
+    return value || '';
+  });
+  
+  Logger.log('Adding row: ' + row.join(' | '));
   sheet.appendRow(row);
   
-  return { success: true, message: 'Record berhasil ditambahkan', id: id };
+  return { success: true, message: 'Record berhasil ditambahkan', id: record.id };
 }
 
-// Update record
+// Update record - compatible with existing sheet structure
 function updateRecord(id, recordData) {
   if (!id || !recordData) {
     return { success: false, error: 'Data tidak lengkap' };
   }
+  
+  Logger.log('Updating record: ' + id);
+  Logger.log('Data: ' + JSON.stringify(recordData).substring(0, 500));
   
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_RECORDS);
@@ -423,12 +550,57 @@ function updateRecord(id, recordData) {
   const headers = data[0];
   const idCol = headers.indexOf('id');
   
+  if (idCol === -1) {
+    return { success: false, error: 'Kolom id tidak ditemukan' };
+  }
+  
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idCol]) === String(id)) {
-      // Update each field
+      Logger.log('Found record at row ' + (i + 1));
+      
+      // Update each column
       headers.forEach((header, colIndex) => {
-        if (header !== 'id' && header !== 'created_at' && recordData.hasOwnProperty(header)) {
-          sheet.getRange(i + 1, colIndex + 1).setValue(recordData[header]);
+        if (header === 'id' || header === 'createdAt' || header === 'created_at') {
+          return; // Don't update these
+        }
+        
+        let value = recordData[header];
+        
+        // Try camelCase version
+        if (value === undefined) {
+          const camelKey = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+          value = recordData[camelKey];
+        }
+        
+        // Handle photo columns
+        if (header.startsWith('photo_') && recordData.photos) {
+          const photoType = header.replace('photo_', '');
+          const mappedType = photoType === 'mbumbu' ? 'm-bumbu' : (photoType === 'etiketbanded' ? 'etiket-banded' : photoType);
+          const photoData = recordData.photos[mappedType];
+          if (photoData) {
+            value = photoData.id || JSON.stringify(photoData);
+          }
+        }
+        
+        // Handle kodeProduksi
+        if (header === 'kodeProduksi' || header === 'kode_produksi') {
+          if (Array.isArray(recordData.kodeProduksi)) {
+            value = JSON.stringify(recordData.kodeProduksi);
+          }
+        }
+        
+        // Set updatedAt
+        if (header === 'updatedAt' || header === 'updated_at') {
+          value = new Date().toISOString();
+        }
+        
+        // Convert objects to JSON string
+        if (value && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        
+        if (value !== undefined) {
+          sheet.getRange(i + 1, colIndex + 1).setValue(value);
         }
       });
       
@@ -445,6 +617,8 @@ function deleteRecord(id) {
     return { success: false, error: 'ID tidak boleh kosong' };
   }
   
+  Logger.log('Deleting record: ' + id);
+  
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_RECORDS);
   
@@ -456,9 +630,14 @@ function deleteRecord(id) {
   const headers = data[0];
   const idCol = headers.indexOf('id');
   
+  if (idCol === -1) {
+    return { success: false, error: 'Kolom id tidak ditemukan' };
+  }
+  
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idCol]) === String(id)) {
       sheet.deleteRow(i + 1);
+      Logger.log('Deleted row ' + (i + 1));
       return { success: true, message: 'Record berhasil dihapus' };
     }
   }
