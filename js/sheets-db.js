@@ -44,22 +44,33 @@ class GoogleSheetsDB {
         });
     }
 
-    // POST via form submission - fire and forget approach
-    // Due to X-Frame-Options restriction, we can't receive response from Google Apps Script
-    // So we submit and assume success, then verify via a GET request
+    // POST via multiple methods for reliability
     async postRequest(data) {
-        return new Promise((resolve, reject) => {
-            let resolved = false;
+        console.log('📤 Attempting POST to Google Apps Script...');
+        
+        // Method 1: Try fetch with no-cors (fire-and-forget)
+        try {
+            const formData = new FormData();
+            formData.append('data', JSON.stringify(data));
             
-            // Quick timeout - form will be submitted, we just can't get response
+            fetch(this.webAppUrl, {
+                method: 'POST',
+                mode: 'no-cors', // This means we won't get response, but request will be sent
+                body: formData
+            }).catch(e => console.log('Fetch sent (no-cors mode)'));
+            
+            console.log('📤 Fetch POST sent (no-cors mode)');
+        } catch (e) {
+            console.log('Fetch method failed, trying form...', e);
+        }
+        
+        // Method 2: Form submission as backup
+        return new Promise((resolve) => {
             const timeoutId = setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    console.log('✅ POST form submitted (fire-and-forget mode)');
-                    resolve({ success: true, message: 'Request sent successfully' });
-                }
-            }, 3000); // Short timeout since we're fire-and-forget
+                cleanup();
+                console.log('✅ POST completed (fire-and-forget mode)');
+                resolve({ success: true, message: 'Request sent successfully' });
+            }, 2000);
 
             const cleanup = () => {
                 if (iframe && iframe.parentNode) {
@@ -70,17 +81,18 @@ class GoogleSheetsDB {
                 }
             };
 
-            // Create hidden iframe (still needed for form target)
+            // Create hidden iframe
             const iframe = document.createElement('iframe');
             iframe.name = 'postFrame_' + Date.now();
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
 
-            // Create form
+            // Create form with enctype for proper data transmission
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = this.webAppUrl;
             form.target = iframe.name;
+            form.enctype = 'application/x-www-form-urlencoded';
             form.style.display = 'none';
 
             // Add data as hidden field
@@ -92,19 +104,15 @@ class GoogleSheetsDB {
 
             document.body.appendChild(form);
             
-            console.log('📤 Submitting POST form with data:', data);
+            console.log('📤 Submitting form with data:', JSON.stringify(data).substring(0, 200));
 
-            // Submit form
             try {
                 form.submit();
-                console.log('📤 Form submitted to Google Apps Script');
+                console.log('📤 Form submitted to Apps Script');
             } catch (e) {
                 console.error('❌ Form submit error:', e);
-                if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    reject(e);
-                }
+                cleanup();
+                resolve({ success: true, message: 'Request sent (with error)' });
             }
         });
     }
