@@ -12,6 +12,7 @@ const SHEET_RECORDS = 'Records';
 
 // =====================================================
 // MAIN HANDLER - doGet untuk JSONP
+// Supports both read AND write operations via GET (for CORS bypass)
 // =====================================================
 function doGet(e) {
   const action = e.parameter.action || '';
@@ -20,6 +21,18 @@ function doGet(e) {
   let result;
   
   try {
+    // Parse data parameter if exists (for write operations)
+    let data = {};
+    if (e.parameter.data) {
+      try {
+        data = JSON.parse(e.parameter.data);
+      } catch(err) {
+        Logger.log('Failed to parse data parameter: ' + err);
+      }
+    }
+    
+    Logger.log('doGet action: ' + action);
+    
     switch(action) {
       case 'login':
         result = handleLogin(e.parameter.nik, e.parameter.password);
@@ -28,18 +41,47 @@ function doGet(e) {
         result = getUsers();
         break;
       case 'getRecords':
-      case 'getAll':  // Support both action names
+      case 'getAll':
         result = getAllRecords();
         break;
       case 'get':
         result = getRecordById(e.parameter.id);
         break;
+      // Write operations via GET (for CORS bypass)
+      case 'add':
+      case 'addRecord':
+        Logger.log('Adding record via GET: ' + JSON.stringify(data).substring(0, 300));
+        result = addRecord(data.record || data);
+        break;
+      case 'update':
+      case 'updateRecord':
+        result = updateRecord(data.id || e.parameter.id, data.record || data);
+        break;
+      case 'delete':
+      case 'deleteRecord':
+        result = deleteRecord(data.id || e.parameter.id);
+        break;
+      case 'validateRecord':
+        result = validateRecord(data.id || e.parameter.id, data.validation || data);
+        break;
+      case 'addUser':
+        result = addUser(data.user || data);
+        break;
+      case 'updateUser':
+        result = updateUser(data.nik || e.parameter.nik, data.user || data);
+        break;
+      case 'deleteUser':
+        result = deleteUser(data.nik || e.parameter.nik);
+        break;
       default:
         result = { success: false, error: 'Unknown action: ' + action };
     }
   } catch(error) {
+    Logger.log('doGet error: ' + error.toString());
     result = { success: false, error: error.toString() };
   }
+  
+  Logger.log('doGet result: ' + JSON.stringify(result).substring(0, 200));
   
   // Return JSONP response
   const jsonOutput = JSON.stringify(result);

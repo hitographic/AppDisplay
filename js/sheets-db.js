@@ -44,32 +44,37 @@ class GoogleSheetsDB {
         });
     }
 
-    // POST via multiple methods for reliability
+    // Use JSONP (GET) for write operations too - bypasses CORS completely
+    // Data is sent as URL parameter, returned via JSONP callback
     async postRequest(data) {
-        console.log('📤 Attempting POST to Google Apps Script...');
+        console.log('📤 Sending request via JSONP (GET)...');
         
-        // Method 1: Try fetch with no-cors (fire-and-forget)
         try {
-            const formData = new FormData();
-            formData.append('data', JSON.stringify(data));
+            // Encode data as URL parameter
+            const encodedData = encodeURIComponent(JSON.stringify(data));
+            const url = `${this.webAppUrl}?action=${data.action}&data=${encodedData}`;
             
-            fetch(this.webAppUrl, {
-                method: 'POST',
-                mode: 'no-cors', // This means we won't get response, but request will be sent
-                body: formData
-            }).catch(e => console.log('Fetch sent (no-cors mode)'));
+            console.log('📤 JSONP URL length:', url.length);
             
-            console.log('📤 Fetch POST sent (no-cors mode)');
-        } catch (e) {
-            console.log('Fetch method failed, trying form...', e);
+            // Use JSONP request (same as getAllRecords)
+            const result = await this.jsonpRequest(url);
+            console.log('✅ JSONP response:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ JSONP request failed:', error);
+            
+            // Fallback to form submission
+            console.log('📤 Falling back to form submission...');
+            return this.formSubmit(data);
         }
-        
-        // Method 2: Form submission as backup
+    }
+    
+    // Fallback form submission
+    async formSubmit(data) {
         return new Promise((resolve) => {
-            const timeoutId = setTimeout(() => {
+            setTimeout(() => {
                 cleanup();
-                console.log('✅ POST completed (fire-and-forget mode)');
-                resolve({ success: true, message: 'Request sent successfully' });
+                resolve({ success: true, message: 'Request sent (form fallback)' });
             }, 2000);
 
             const cleanup = () => {
@@ -81,21 +86,17 @@ class GoogleSheetsDB {
                 }
             };
 
-            // Create hidden iframe
             const iframe = document.createElement('iframe');
             iframe.name = 'postFrame_' + Date.now();
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
 
-            // Create form with enctype for proper data transmission
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = this.webAppUrl;
             form.target = iframe.name;
-            form.enctype = 'application/x-www-form-urlencoded';
             form.style.display = 'none';
 
-            // Add data as hidden field
             const input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'data';
@@ -104,13 +105,9 @@ class GoogleSheetsDB {
 
             document.body.appendChild(form);
             
-            console.log('📤 Submitting form with data:', JSON.stringify(data).substring(0, 200));
-
             try {
                 form.submit();
-                console.log('📤 Form submitted to Apps Script');
             } catch (e) {
-                console.error('❌ Form submit error:', e);
                 cleanup();
                 resolve({ success: true, message: 'Request sent (with error)' });
             }
