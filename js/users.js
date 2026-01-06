@@ -171,7 +171,12 @@ async function loadUsers() {
                 };
             });
             console.log('All users processed:', allUsers);
+            
+            // Initialize filtered users
+            filteredUsers = [...allUsers];
+            
             renderUsersTable();
+            updatePagination();
             showToast('Data user berhasil dimuat', 'success');
         } else {
             showToast('Gagal memuat data user: ' + (result?.error || 'Unknown error'), 'error');
@@ -223,16 +228,32 @@ function loadLocalUsers() {
 function renderUsersTable() {
     const tbody = document.getElementById('usersTableBody');
     
-    if (allUsers.length === 0) {
-        renderEmptyState();
+    // Use filteredUsers if search is active, otherwise use allUsers
+    const usersToShow = filteredUsers.length > 0 || document.getElementById('searchInput').value ? filteredUsers : allUsers;
+    
+    if (usersToShow.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>Tidak ada user yang cocok dengan filter</p>
+                </td>
+            </tr>
+        `;
         return;
     }
     
-    console.log('Rendering users table:', allUsers);
+    console.log('Rendering users table:', usersToShow);
     
-    tbody.innerHTML = allUsers.map(user => {
+    // Calculate pagination
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginatedUsers = usersToShow.slice(start, end);
+    
+    tbody.innerHTML = paginatedUsers.map(user => {
         const role = ROLES[user.role] || ROLES.field;
         const permissions = parsePermissions(user.permissions);
+        const isSelected = selectedUsers.has(String(user.nik));
         
         console.log(`Rendering user ${user.nik} with permissions:`, permissions);
         
@@ -247,6 +268,13 @@ function renderUsersTable() {
         
         return `
         <tr>
+            <td class="checkbox-cell">
+                <input type="checkbox" 
+                       class="user-checkbox user-row-checkbox" 
+                       data-nik="${user.nik}"
+                       ${isSelected ? 'checked' : ''}
+                       onchange="toggleUserSelection(this)">
+            </td>
             <td><strong>${user.nik}</strong></td>
             <td>${user.name}</td>
             <td>

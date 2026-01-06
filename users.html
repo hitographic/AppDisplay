@@ -22,6 +22,125 @@
             gap: 15px;
         }
         
+        .search-filter-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .search-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .bulk-actions-bar {
+            background: #fff3cd;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .bulk-actions-bar.active {
+            display: flex;
+        }
+        
+        .bulk-info {
+            font-weight: 600;
+            color: #856404;
+        }
+        
+        .bulk-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border-radius: 0 0 12px 12px;
+        }
+        
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .page-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .checkbox-cell {
+            width: 50px;
+            text-align: center;
+        }
+        
+        .user-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
         .users-table-container {
             background: white;
             border-radius: 12px;
@@ -411,22 +530,78 @@
                     <p>Kelola pengguna aplikasi Valid Display</p>
                 </div>
                 <div class="header-buttons">
-                    <a href="records.html" class="btn btn-secondary">
+                    <button class="btn-secondary" onclick="window.location.href='index.html'">
                         <i class="fas fa-arrow-left"></i> Kembali
-                    </a>
-                    <button class="btn btn-bulk" onclick="showBulkUploadModal()">
-                        <i class="fas fa-file-csv"></i> Bulk Upload
                     </button>
-                    <button class="btn btn-primary" onclick="showAddModal()">
+                    <button class="btn-success" onclick="openBulkUploadModal()" style="display: none;" id="btnBulkUpload">
+                        <i class="fas fa-file-upload"></i> Import CSV
+                    </button>
+                    <button class="btn-primary" onclick="openAddUserModal()">
                         <i class="fas fa-plus"></i> Tambah User
                     </button>
                 </div>
             </div>
+            
+            <!-- Search and Filter Bar -->
+            <div class="search-filter-bar">
+                <div class="search-row">
+                    <input type="text" 
+                           class="search-input" 
+                           id="searchInput" 
+                           placeholder="🔍 Cari NIK, Nama, atau Role..." 
+                           oninput="handleSearch()">
+                    
+                    <select class="filter-select" id="roleFilter" onchange="handleSearch()">
+                        <option value="">Semua Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="field">Field</option>
+                    </select>
+                    
+                    <select class="filter-select" id="permissionFilter" onchange="handleSearch()">
+                        <option value="">Semua Permission</option>
+                        <option value="user_admin">User Admin</option>
+                        <option value="records_viewer">Records Viewer</option>
+                        <option value="records_editor">Records Editor</option>
+                        <option value="records_validator">Records Validator</option>
+                    </select>
+                    
+                    <select class="filter-select" id="perPageSelect" onchange="changePageSize()">
+                        <option value="10">10 per halaman</option>
+                        <option value="25">25 per halaman</option>
+                        <option value="50">50 per halaman</option>
+                        <option value="100">100 per halaman</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Bulk Actions Bar -->
+            <div class="bulk-actions-bar" id="bulkActionsBar">
+                <div class="bulk-info">
+                    <span id="selectedCount">0</span> user dipilih
+                </div>
+                <div class="bulk-btn-group">
+                    <button class="btn-primary" onclick="bulkEditPermissions()">
+                        <i class="fas fa-edit"></i> Edit Permissions
+                    </button>
+                    <button class="btn-delete" onclick="bulkDeleteUsers()">
+                        <i class="fas fa-trash"></i> Hapus Terpilih
+                    </button>
+                    <button class="btn-secondary" onclick="clearSelection()">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                </div>
+            </div>
 
+            <!-- Table Container -->
             <div class="users-table-container">
                 <table class="users-table">
                     <thead>
                         <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="selectAll" class="user-checkbox" onchange="toggleSelectAll()">
+                            </th>
                             <th>NIK</th>
                             <th>Nama</th>
                             <th>Role</th>
@@ -436,13 +611,23 @@
                     </thead>
                     <tbody id="usersTableBody">
                         <tr>
-                            <td colspan="5" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 <p>Memuat data...</p>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+                
+                <!-- Pagination -->
+                <div class="pagination">
+                    <div class="pagination-info">
+                        Menampilkan <span id="showingStart">0</span> - <span id="showingEnd">0</span> dari <span id="totalUsers">0</span> user
+                    </div>
+                    <div class="pagination-controls" id="paginationControls">
+                        <!-- Pagination buttons akan diisi oleh JavaScript -->
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -581,6 +766,48 @@
         </div>
     </div>
 
+    <!-- Bulk Edit Permissions Modal -->
+    <div class="modal" id="bulkEditModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-users-cog"></i> Bulk Edit Permissions</h2>
+                <button class="modal-close" onclick="closeBulkEditModal()">&times;</button>
+            </div>
+            
+            <p style="margin-bottom: 20px; color: #666;">
+                <i class="fas fa-info-circle"></i> Pilih permissions yang akan diterapkan ke <strong id="bulkEditCount">0</strong> user terpilih
+            </p>
+            
+            <div class="form-group">
+                <label class="checkbox-group-label">
+                    <i class="fas fa-shield-alt"></i> Permissions
+                </label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="bulkPermUserAdmin" value="user_admin">
+                        <span><i class="fas fa-user-shield"></i> User Admin</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="bulkPermViewer" value="records_viewer">
+                        <span><i class="fas fa-eye"></i> Viewer</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="bulkPermEditor" value="records_editor">
+                        <span><i class="fas fa-edit"></i> Editor</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="bulkPermValidator" value="records_validator">
+                        <span><i class="fas fa-check-double"></i> Validator</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="button" class="btn-submit" onclick="saveBulkPermissions()">
+                <i class="fas fa-save"></i> Simpan Permissions
+            </button>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
@@ -595,6 +822,7 @@
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/users-pagination.js"></script>
     <script src="js/users.js"></script>
 </body>
 </html>
