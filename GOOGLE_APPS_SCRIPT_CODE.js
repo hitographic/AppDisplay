@@ -55,14 +55,19 @@ function doGet(e) {
         break;
       case 'update':
       case 'updateRecord':
-        result = updateRecord(data.id || e.parameter.id, data.record || data);
+        // Support multiple ways to pass id
+        const updateId = data.recordId || data.id || e.parameter.id || e.parameter.recordId;
+        Logger.log('Updating record via GET, id: ' + updateId);
+        result = updateRecord(updateId, data.record || data);
         break;
       case 'delete':
       case 'deleteRecord':
-        result = deleteRecord(data.id || e.parameter.id);
+        const deleteId = data.recordId || data.id || e.parameter.id || e.parameter.recordId;
+        result = deleteRecord(deleteId);
         break;
       case 'validateRecord':
-        result = validateRecord(data.id || e.parameter.id, data.validation || data);
+        const validateId = data.recordId || data.id || e.parameter.id || e.parameter.recordId;
+        result = validateRecord(validateId, data.validation || data);
         break;
       case 'addUser':
         result = addUser(data.user || data);
