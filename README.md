@@ -121,6 +121,4 @@ Aplikasi akan tersedia di: `https://hitographic.github.io/AppDisplay/`
 - Font Awesome Icons
 - LocalStorage untuk offline support
 
-## Lisensi
 
-© 2025 Valid Display System - Indofood
