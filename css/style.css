@@ -72,18 +72,18 @@ body {
 .login-header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--white);
-    padding: 40px 30px;
+    padding: 30px 30px;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    min-height: 140px;
 }
 
 .login-header .login-logo {
     max-width: 100%;
     height: auto;
-    max-height: 180px;
+    max-height: 90px;
 }
 
 .login-header .logo {
@@ -1179,11 +1179,11 @@ body {
 @media (max-width: 480px) {
     .login-header {
         padding: 30px 20px;
-        min-height: 160px;
+        min-height: 130px;
     }
 
     .login-header .login-logo {
-        max-height: 140px;
+        max-height: 70px;
     }
 
     .login-header h1 {
