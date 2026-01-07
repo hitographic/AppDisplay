@@ -572,20 +572,31 @@ body {
 
 /* Validation Info Modal */
 .validation-info-modal {
-    max-width: 400px;
+    max-width: 450px;
+}
+
+.validation-info-modal .popup-body {
+    padding: 25px;
+}
+
+.validation-info-modal .popup-footer {
+    padding: 15px 25px;
+    background: var(--gray-100);
+    border-top: 1px solid var(--gray-200);
+    text-align: right;
 }
 
 .validation-info-popup {
-    padding: 10px 0;
+    padding: 0;
 }
 
 .validation-info-popup .validation-status {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 600;
-    padding: 15px;
+    padding: 20px;
     border-radius: var(--border-radius);
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .validation-info-popup .validation-status.valid {
@@ -604,26 +615,34 @@ body {
 }
 
 .validation-info-popup .validation-status i {
-    margin-right: 8px;
+    margin-right: 10px;
 }
 
 .validation-info-popup .validation-detail {
-    padding: 10px 15px;
+    padding: 12px 16px;
     background: var(--gray-100);
     border-radius: var(--border-radius);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.validation-info-popup .validation-detail:last-child {
+    margin-bottom: 0;
 }
 
 .validation-info-popup .validation-detail i {
     color: var(--primary);
-    margin-right: 8px;
-    width: 16px;
+    width: 18px;
+    flex-shrink: 0;
 }
 
 .validation-info-popup .validation-detail.reason {
     background: #fff3cd;
     border-left: 4px solid var(--warning);
+    margin-top: 15px;
 }
 
 .validation-info-popup .validation-detail.reason i {

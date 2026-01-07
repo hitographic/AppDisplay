@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.7 - Move validation info to popup modal with info button
+// Version 1.0.8 - Improved validation info modal spacing and margins
 
-const CACHE_NAME = 'mds-track-v1.0.7';
+const CACHE_NAME = 'mds-track-v1.0.8';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
