@@ -662,8 +662,8 @@ async function proceedToCreateDisplay() {
         return;
     }
 
-    // Validate nomorMaterial is a number
-    if (isNaN(nomorMaterial) || nomorMaterial === '') {
+    // Validate nomorMaterial contains only digits
+    if (!/^\d+$/.test(nomorMaterial)) {
         showToast('Nomor Material harus berupa angka', 'error');
         return;
     }

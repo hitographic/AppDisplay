@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.4 - Added duplicate Nomor Material validation
+// Version 1.0.5 - Fix Nomor Material input type to preserve leading zeros
 
-const CACHE_NAME = 'mds-track-v1.0.4';
+const CACHE_NAME = 'mds-track-v1.0.5';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
