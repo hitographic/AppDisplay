@@ -663,12 +663,16 @@ async function simpanSemua() {
 
         // Save to storage (Google Sheets + local)
         if (currentData.isEdit) {
+            console.log('📝 Calling storage.updateRecord()...');
             await storage.updateRecord(currentData.id, record);
-            console.log('✅ Record updated');
+            console.log('✅ Record updated to localStorage');
         } else {
+            console.log('✏️ Calling storage.addRecord()...');
             await storage.addRecord(record);
-            console.log('✅ Record added');
+            console.log('✅ Record added to localStorage');
         }
+
+        console.log('⏳ Data saved to localStorage. Google Sheets sync in background...');
 
         // Clear temp data
         storage.clearTempData();
@@ -685,10 +689,15 @@ async function simpanSemua() {
             showToast('Data berhasil disimpan!', 'success');
         }
 
+        // Wait a bit longer for Google Sheets to sync (important!)
+        // Google Sheets sync takes 10-30 seconds, so we wait 3 seconds before redirect
+        // to ensure localStorage is updated
+        console.log('⏳ Waiting for sync before redirect...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
         // Navigate back to records
-        setTimeout(() => {
-            window.location.href = 'records.html';
-        }, 1500);
+        console.log('↩️ Redirecting to records.html...');
+        window.location.href = 'records.html';
     } catch (error) {
         hideLoading();
         console.error('Error saving:', error);
