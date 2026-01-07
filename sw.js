@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.1.0 - Clean URLs support (remove .html from URLs)
+// Version 1.1.1 - Fixed editor permission for add/edit data
 
-const CACHE_NAME = 'mds-track-v1.1.0';
+const CACHE_NAME = 'mds-track-v1.1.1';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

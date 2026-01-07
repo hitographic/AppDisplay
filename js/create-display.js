@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Protect page
     if (!protectPage()) return;
 
-    // Only admin can access this page
-    if (!isAdmin()) {
+    // Only users with editor permission can access this page
+    if (!hasPermission('records_editor')) {
         showToast('Anda tidak memiliki akses ke halaman ini', 'error');
         setTimeout(() => {
             window.location.href = '../records/';

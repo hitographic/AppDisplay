@@ -578,8 +578,8 @@ function resetSearch() {
 // ==================== ADD DATA POPUP ====================
 
 function openAddDataPopup() {
-    // Only admin can add data
-    if (!isAdmin()) {
+    // Only users with editor permission can add data
+    if (!canEdit()) {
         showToast('Anda tidak memiliki akses untuk menambah data', 'error');
         return;
     }
