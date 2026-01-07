@@ -92,14 +92,16 @@
         <div id="advancedSearchPanel" class="search-panel hidden">
             <div class="search-grid">
                 <div class="search-field">
-                    <label><i class="fas fa-globe"></i> Negara</label>
-                    <select id="searchNegara">
-                        <option value="">Semua Negara</option>
-                    </select>
+                    <label><i class="fas fa-barcode"></i> Nomor Material</label>
+                    <input type="number" id="searchNomorMaterial" placeholder="Cari nomor material...">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-tag"></i> Flavor</label>
                     <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)">
+                </div>
+                <div class="search-field">
+                    <label><i class="fas fa-globe"></i> Negara</label>
+                    <input type="text" id="searchNegara" placeholder="Cari negara...">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-calendar"></i> Tanggal</label>
@@ -155,6 +157,12 @@
                     <input type="date" id="inputTanggal" required>
                 </div>
                 <div class="form-group">
+                    <label for="inputNomorMaterial">
+                        <i class="fas fa-barcode"></i> Nomor Material
+                    </label>
+                    <input type="number" id="inputNomorMaterial" placeholder="Masukkan nomor material" required min="0">
+                </div>
+                <div class="form-group">
                     <label for="inputFlavor">
                         <i class="fas fa-tag"></i> Nama Flavor
                     </label>
@@ -164,23 +172,7 @@
                     <label for="inputNegara">
                         <i class="fas fa-globe"></i> Negara
                     </label>
-                    <select id="inputNegara" required>
-                        <option value="">Pilih Negara</option>
-                        <option value="Indonesia">Indonesia</option>
-                        <option value="Malaysia">Malaysia</option>
-                        <option value="Singapore">Singapore</option>
-                        <option value="Thailand">Thailand</option>
-                        <option value="Vietnam">Vietnam</option>
-                        <option value="Philippines">Philippines</option>
-                        <option value="Japan">Japan</option>
-                        <option value="Korea">Korea</option>
-                        <option value="China">China</option>
-                        <option value="Middle East">Middle East</option>
-                        <option value="Europe">Europe</option>
-                        <option value="USA">USA</option>
-                        <option value="Australia">Australia</option>
-                        <option value="Other">Other</option>
-                    </select>
+                    <input type="text" id="inputNegara" placeholder="Masukkan nama negara" required>
                 </div>
                 <div class="popup-actions">
                     <button type="button" class="btn-secondary" onclick="closeAddDataPopup()">
@@ -216,6 +208,9 @@
                 <!-- Preview images akan dimuat di sini -->
             </div>
             <div class="preview-info">
+                <div id="previewRecordInfo" class="record-info-list">
+                    <!-- Record info (negara, nomor material) akan dimuat di sini -->
+                </div>
                 <p><strong>Kode Produksi:</strong></p>
                 <div id="previewKodeProduksi" class="kode-produksi-list"></div>
             </div>

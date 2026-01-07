@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.2 - Force cache refresh after syntax fix
+// Version 1.0.3 - Added Nomor Material field
 
-const CACHE_NAME = 'mds-track-v1.0.2';
+const CACHE_NAME = 'mds-track-v1.0.3';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

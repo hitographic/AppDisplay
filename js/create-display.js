@@ -62,6 +62,12 @@ function displayInfo() {
     document.getElementById('infoNegara').textContent = currentData.negara;
     document.getElementById('infoTanggal').textContent = formatDate(currentData.tanggal);
     
+    // Display nomor material if exists
+    const infoNomorMaterial = document.getElementById('infoNomorMaterial');
+    if (infoNomorMaterial) {
+        infoNomorMaterial.textContent = currentData.nomorMaterial || '-';
+    }
+    
     // Show edit button if in edit mode
     const btnEditFlavor = document.getElementById('btnEditFlavor');
     if (btnEditFlavor && currentData.isEdit) {
@@ -631,11 +637,12 @@ async function simpanSemua() {
         const currentUser = auth.getUser();
         const userName = currentUser ? currentUser.name : 'Unknown';
 
-        // Prepare final record (16 kolom - dengan createdBy/updatedBy)
+        // Prepare final record (17 kolom - dengan nomorMaterial, createdBy/updatedBy)
         const record = {
             id: currentData.id,
             tanggal: currentData.tanggal,
             flavor: currentData.flavor,
+            nomorMaterial: currentData.nomorMaterial || '',
             negara: currentData.negara,
             photos: {},
             kodeProduksi: kodeProduksi,

@@ -856,9 +856,11 @@ function createRecordsSheet(ss) {
   const sheet = ss.insertSheet(SHEET_RECORDS);
   
   // Set headers - sesuaikan dengan kebutuhan aplikasi
+  // PENTING: Urutan kolom harus sesuai dengan yang digunakan di sheets-db.js
   const headers = [
     'id',
     'flavor',
+    'nomorMaterial',
     'negara',
     'kode_produksi',
     'foto_bumbu',

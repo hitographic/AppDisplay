@@ -348,6 +348,7 @@ function renderRecords() {
             </div>
             <div class="card-content">
                 <h3 class="card-title">${escapeHtml(record.flavor)}</h3>
+                ${record.nomorMaterial ? `<div class="card-meta"><span><i class="fas fa-barcode"></i> ${escapeHtml(record.nomorMaterial)}</span></div>` : ''}
                 <div class="card-meta">
                     <span><i class="fas fa-globe"></i> ${escapeHtml(record.negara)}</span>
                     <span><i class="fas fa-calendar-plus"></i> ${formatDate(record.tanggal)}</span>
@@ -499,19 +500,9 @@ function hidePagination() {
 }
 
 function initSearchFilters() {
-    // Populate country filter
-    const negaraSelect = document.getElementById('searchNegara');
-    
-    // Get unique countries from records
-    const uniqueCountries = [...new Set(allRecords.map(r => r.negara))].sort();
-    
-    // Add all countries from config
-    CONFIG.COUNTRIES.forEach(country => {
-        const option = document.createElement('option');
-        option.value = country;
-        option.textContent = country;
-        negaraSelect.appendChild(option);
-    });
+    // No longer needed since Negara is now a text input
+    // Keeping empty function for compatibility
+    console.log('Search filters initialized (text inputs)');
 }
 
 function toggleAdvancedSearch() {
@@ -520,18 +511,23 @@ function toggleAdvancedSearch() {
 }
 
 function applySearch() {
-    const negara = document.getElementById('searchNegara').value.toLowerCase();
-    const flavor = document.getElementById('searchFlavor').value.toLowerCase();
+    const nomorMaterial = document.getElementById('searchNomorMaterial').value.trim();
+    const flavor = document.getElementById('searchFlavor').value.toLowerCase().trim();
+    const negara = document.getElementById('searchNegara').value.toLowerCase().trim();
     const date = document.getElementById('searchDate').value;
 
     filteredRecords = allRecords.filter(record => {
         let match = true;
 
-        if (negara && record.negara.toLowerCase() !== negara) {
+        if (nomorMaterial && record.nomorMaterial !== nomorMaterial) {
             match = false;
         }
 
         if (flavor && !record.flavor.toLowerCase().includes(flavor)) {
+            match = false;
+        }
+
+        if (negara && !record.negara.toLowerCase().includes(negara)) {
             match = false;
         }
 
@@ -549,8 +545,9 @@ function applySearch() {
 }
 
 function resetSearch() {
-    document.getElementById('searchNegara').value = '';
+    document.getElementById('searchNomorMaterial').value = '';
     document.getElementById('searchFlavor').value = '';
+    document.getElementById('searchNegara').value = '';
     document.getElementById('searchDate').value = '';
 
     filteredRecords = [...allRecords];
@@ -625,11 +622,18 @@ async function checkDuplicateFlavorNegara(flavor, negara) {
 
 async function proceedToCreateDisplay() {
     const tanggal = document.getElementById('inputTanggal').value;
+    const nomorMaterial = document.getElementById('inputNomorMaterial').value.trim();
     const flavor = document.getElementById('inputFlavor').value.trim();
-    const negara = document.getElementById('inputNegara').value;
+    const negara = document.getElementById('inputNegara').value.trim();
 
-    if (!tanggal || !flavor || !negara) {
+    if (!tanggal || !nomorMaterial || !flavor || !negara) {
         showToast('Mohon lengkapi semua field', 'error');
+        return;
+    }
+
+    // Validate nomorMaterial is a number
+    if (isNaN(nomorMaterial) || nomorMaterial === '') {
+        showToast('Nomor Material harus berupa angka', 'error');
         return;
     }
 
@@ -648,6 +652,7 @@ async function proceedToCreateDisplay() {
     const tempData = {
         id: storage.generateId(),
         tanggal: tanggal,
+        nomorMaterial: nomorMaterial,
         flavor: flavor,
         negara: negara,
         createdAt: new Date().toISOString(),
@@ -682,6 +687,9 @@ function openPreview(recordId) {
     
     // Show first tab content
     showPreviewTab('bumbu');
+    
+    // Show record info (negara, nomor material)
+    renderPreviewRecordInfo();
     
     // Show kode produksi
     renderKodeProduksi();
@@ -762,6 +770,32 @@ function renderKodeProduksi() {
         const kodeText = Array.isArray(kode) ? kode.filter(k => k).join(' | ') : kode;
         return `<span>Kode ${index + 1}: ${escapeHtml(kodeText)}</span>`;
     }).join('');
+}
+
+function renderPreviewRecordInfo() {
+    const container = document.getElementById('previewRecordInfo');
+    
+    if (!currentPreviewRecord) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '<div class="record-info-grid">';
+    
+    if (currentPreviewRecord.negara) {
+        html += `<span><i class="fas fa-globe"></i> <strong>Negara:</strong> ${escapeHtml(currentPreviewRecord.negara)}</span>`;
+    }
+    
+    if (currentPreviewRecord.nomorMaterial) {
+        html += `<span><i class="fas fa-barcode"></i> <strong>Nomor Material:</strong> ${escapeHtml(currentPreviewRecord.nomorMaterial)}</span>`;
+    }
+    
+    if (currentPreviewRecord.tanggal) {
+        html += `<span><i class="fas fa-calendar-alt"></i> <strong>Tanggal:</strong> ${formatDate(currentPreviewRecord.tanggal)}</span>`;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 // ==================== RECORD ACTIONS ====================

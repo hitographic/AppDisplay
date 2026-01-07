@@ -704,6 +704,27 @@ body {
     border-top: 1px solid var(--gray-200);
 }
 
+.record-info-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.record-info-grid span {
+    background: var(--white);
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.record-info-grid span i {
+    color: var(--primary);
+}
+
 .kode-produksi-list {
     margin-top: 10px;
     display: flex;
