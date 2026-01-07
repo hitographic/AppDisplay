@@ -74,6 +74,16 @@ body {
     color: var(--white);
     padding: 40px 30px;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.login-header .login-logo {
+    max-width: 100%;
+    height: auto;
+    max-height: 180px;
 }
 
 .login-header .logo {
@@ -1169,6 +1179,11 @@ body {
 @media (max-width: 480px) {
     .login-header {
         padding: 30px 20px;
+        min-height: 160px;
+    }
+
+    .login-header .login-logo {
+        max-height: 140px;
     }
 
     .login-header h1 {
