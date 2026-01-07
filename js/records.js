@@ -518,6 +518,7 @@ function applySearch() {
     const flavor = document.getElementById('searchFlavor').value.toLowerCase().trim();
     const negara = document.getElementById('searchNegara').value.toLowerCase().trim();
     const date = document.getElementById('searchDate').value;
+    const validationStatus = document.getElementById('searchValidation').value;
 
     filteredRecords = allRecords.filter(record => {
         let match = true;
@@ -538,6 +539,18 @@ function applySearch() {
             match = false;
         }
 
+        // Filter by validation status
+        if (validationStatus) {
+            const recordStatus = record.isValidated ? (record.validationStatus || 'valid') : 'pending';
+            if (validationStatus === 'valid' && recordStatus !== 'valid') {
+                match = false;
+            } else if (validationStatus === 'invalid' && recordStatus !== 'invalid') {
+                match = false;
+            } else if (validationStatus === 'pending' && record.isValidated) {
+                match = false;
+            }
+        }
+
         return match;
     });
 
@@ -552,6 +565,7 @@ function resetSearch() {
     document.getElementById('searchFlavor').value = '';
     document.getElementById('searchNegara').value = '';
     document.getElementById('searchDate').value = '';
+    document.getElementById('searchValidation').value = '';
 
     filteredRecords = [...allRecords];
     currentPage = 1; // Reset to first page

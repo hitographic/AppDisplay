@@ -25,8 +25,7 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
-            <i class="fas fa-box-open"></i>
-            <span>VALID DISPLAY</span>
+            <img src="assets/Navigation MDS.png" alt="MDS" class="nav-logo">
         </div>
         <div class="nav-user">
             <span id="userName">User</span>
@@ -92,7 +91,7 @@
             <div class="search-grid">
                 <div class="search-field">
                     <label><i class="fas fa-barcode"></i> Nomor Material</label>
-                    <input type="number" id="searchNomorMaterial" placeholder="Cari nomor material...">
+                    <input type="text" id="searchNomorMaterial" placeholder="Cari nomor material...">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-tag"></i> Flavor</label>
@@ -105,6 +104,15 @@
                 <div class="search-field">
                     <label><i class="fas fa-calendar"></i> Tanggal</label>
                     <input type="date" id="searchDate">
+                </div>
+                <div class="search-field">
+                    <label><i class="fas fa-check-circle"></i> Status Validasi</label>
+                    <select id="searchValidation">
+                        <option value="">Semua Status</option>
+                        <option value="valid">Valid</option>
+                        <option value="invalid">Invalid</option>
+                        <option value="pending">Belum Validasi</option>
+                    </select>
                 </div>
                 <div class="search-actions">
                     <button class="btn-primary" onclick="applySearch()">

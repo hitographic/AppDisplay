@@ -222,6 +222,12 @@ body {
     font-size: 1.5rem;
 }
 
+.nav-brand .nav-logo {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+}
+
 .nav-user {
     display: flex;
     align-items: center;

@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.8 - Improved validation info modal spacing and margins
+// Version 1.0.9 - Added validation status filter and navigation logo
 
-const CACHE_NAME = 'mds-track-v1.0.8';
+const CACHE_NAME = 'mds-track-v1.0.9';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
