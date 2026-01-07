@@ -359,6 +359,19 @@ function renderRecords() {
                 <div class="card-meta">
                     <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}${record.updatedBy ? ` oleh ${escapeHtml(record.updatedBy)}` : ''}</span>
                 </div>
+                ${record.validationStatus === 'valid' || record.validationStatus === 'invalid' ? `
+                <div class="card-meta validation-info ${record.validationStatus}">
+                    <span title="Divalidasi">
+                        <i class="fas ${record.validationStatus === 'valid' ? 'fa-check-circle' : 'fa-times-circle'}"></i> 
+                        ${record.validationStatus === 'valid' ? 'Valid' : 'Invalid'}${record.validatedBy ? ` oleh ${escapeHtml(record.validatedBy)}` : ''}
+                    </span>
+                </div>
+                ${record.validationStatus === 'invalid' && record.validationReason ? `
+                <div class="card-meta validation-reason">
+                    <span title="Alasan Invalid"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(record.validationReason)}</span>
+                </div>
+                ` : ''}
+                ` : ''}
                 <span class="card-badge">${escapeHtml(record.negara)}</span>
             </div>
             <div class="card-actions" onclick="event.stopPropagation()">

@@ -518,6 +518,33 @@ body {
     width: 16px;
 }
 
+/* Validation info in card */
+.card-meta.validation-info.valid span {
+    color: var(--success);
+}
+
+.card-meta.validation-info.valid i {
+    color: var(--success);
+}
+
+.card-meta.validation-info.invalid span {
+    color: var(--danger);
+}
+
+.card-meta.validation-info.invalid i {
+    color: var(--danger);
+}
+
+.card-meta.validation-reason span {
+    color: var(--warning);
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+.card-meta.validation-reason i {
+    color: var(--warning);
+}
+
 .card-badge {
     display: inline-block;
     background: var(--primary-color);

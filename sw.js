@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.5 - Fix Nomor Material input type to preserve leading zeros
+// Version 1.0.6 - Add validation info to card, fix Tambah User button
 
-const CACHE_NAME = 'mds-track-v1.0.5';
+const CACHE_NAME = 'mds-track-v1.0.6';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
