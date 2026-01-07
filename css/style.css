@@ -518,33 +518,6 @@ body {
     width: 16px;
 }
 
-/* Validation info in card */
-.card-meta.validation-info.valid span {
-    color: var(--success);
-}
-
-.card-meta.validation-info.valid i {
-    color: var(--success);
-}
-
-.card-meta.validation-info.invalid span {
-    color: var(--danger);
-}
-
-.card-meta.validation-info.invalid i {
-    color: var(--danger);
-}
-
-.card-meta.validation-reason span {
-    color: var(--warning);
-    font-style: italic;
-    font-size: 0.8rem;
-}
-
-.card-meta.validation-reason i {
-    color: var(--warning);
-}
-
 .card-badge {
     display: inline-block;
     background: var(--primary-color);
@@ -586,6 +559,75 @@ body {
 .btn-delete {
     background: var(--danger-color);
     color: var(--white);
+}
+
+.btn-info {
+    background: var(--info, #17a2b8);
+    color: var(--white);
+}
+
+.btn-info:hover {
+    background: #138496;
+}
+
+/* Validation Info Modal */
+.validation-info-modal {
+    max-width: 400px;
+}
+
+.validation-info-popup {
+    padding: 10px 0;
+}
+
+.validation-info-popup .validation-status {
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.validation-info-popup .validation-status.valid {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+}
+
+.validation-info-popup .validation-status.invalid {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+}
+
+.validation-info-popup .validation-status.pending {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+    color: #856404;
+}
+
+.validation-info-popup .validation-status i {
+    margin-right: 8px;
+}
+
+.validation-info-popup .validation-detail {
+    padding: 10px 15px;
+    background: var(--gray-100);
+    border-radius: var(--border-radius);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.validation-info-popup .validation-detail i {
+    color: var(--primary);
+    margin-right: 8px;
+    width: 16px;
+}
+
+.validation-info-popup .validation-detail.reason {
+    background: #fff3cd;
+    border-left: 4px solid var(--warning);
+}
+
+.validation-info-popup .validation-detail.reason i {
+    color: var(--warning);
 }
 
 /* =====================================================

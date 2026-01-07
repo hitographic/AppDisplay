@@ -359,19 +359,6 @@ function renderRecords() {
                 <div class="card-meta">
                     <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}${record.updatedBy ? ` oleh ${escapeHtml(record.updatedBy)}` : ''}</span>
                 </div>
-                ${record.validationStatus === 'valid' || record.validationStatus === 'invalid' ? `
-                <div class="card-meta validation-info ${record.validationStatus}">
-                    <span title="Divalidasi">
-                        <i class="fas ${record.validationStatus === 'valid' ? 'fa-check-circle' : 'fa-times-circle'}"></i> 
-                        ${record.validationStatus === 'valid' ? 'Valid' : 'Invalid'}${record.validatedBy ? ` oleh ${escapeHtml(record.validatedBy)}` : ''}
-                    </span>
-                </div>
-                ${record.validationStatus === 'invalid' && record.validationReason ? `
-                <div class="card-meta validation-reason">
-                    <span title="Alasan Invalid"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(record.validationReason)}</span>
-                </div>
-                ` : ''}
-                ` : ''}
                 <span class="card-badge">${escapeHtml(record.negara)}</span>
             </div>
             <div class="card-actions" onclick="event.stopPropagation()">
@@ -384,6 +371,9 @@ function renderRecords() {
                 </button>
                 <button class="btn-delete" onclick="deleteRecord('${record.id}')">
                     <i class="fas fa-trash"></i>
+                </button>
+                <button class="btn-info" onclick="showValidationInfo('${record.id}')" title="Info Validasi">
+                    <i class="fas fa-info-circle"></i>
                 </button>
                 ` : ''}
                 ${userCanValidate ? `
@@ -1000,6 +990,94 @@ function showToast(message, type = 'info') {
 }
 
 // ==================== VALIDATION FUNCTIONS ====================
+
+// Show validation info popup (for Editor only)
+function showValidationInfo(recordId) {
+    const record = allRecords.find(r => r.id === recordId);
+    if (!record) {
+        showToast('Record tidak ditemukan', 'error');
+        return;
+    }
+    
+    let statusText = '';
+    let statusClass = '';
+    let statusIcon = '';
+    
+    if (record.validationStatus === 'valid') {
+        statusText = 'Valid';
+        statusClass = 'valid';
+        statusIcon = 'fa-check-circle';
+    } else if (record.validationStatus === 'invalid') {
+        statusText = 'Invalid';
+        statusClass = 'invalid';
+        statusIcon = 'fa-times-circle';
+    } else {
+        statusText = 'Belum Divalidasi';
+        statusClass = 'pending';
+        statusIcon = 'fa-clock';
+    }
+    
+    let infoHtml = `
+        <div class="validation-info-popup">
+            <div class="validation-status ${statusClass}">
+                <i class="fas ${statusIcon}"></i> ${statusText}
+            </div>
+    `;
+    
+    if (record.validatedBy) {
+        infoHtml += `<div class="validation-detail"><i class="fas fa-user"></i> Divalidasi oleh: <strong>${escapeHtml(record.validatedBy)}</strong></div>`;
+    }
+    
+    if (record.validatedAt) {
+        infoHtml += `<div class="validation-detail"><i class="fas fa-calendar-check"></i> Tanggal validasi: ${formatDateTime(record.validatedAt)}</div>`;
+    }
+    
+    if (record.validationStatus === 'invalid' && record.validationReason) {
+        infoHtml += `<div class="validation-detail reason"><i class="fas fa-exclamation-triangle"></i> Alasan: <strong>${escapeHtml(record.validationReason)}</strong></div>`;
+    }
+    
+    infoHtml += '</div>';
+    
+    // Show in modal or alert
+    showValidationInfoModal(record.flavor, infoHtml);
+}
+
+function showValidationInfoModal(title, content) {
+    // Create modal if not exists
+    let modal = document.getElementById('validationInfoModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'validationInfoModal';
+        modal.className = 'popup-overlay hidden';
+        modal.innerHTML = `
+            <div class="popup-content validation-info-modal">
+                <div class="popup-header">
+                    <h2 id="validationInfoTitle"><i class="fas fa-info-circle"></i> Info Validasi</h2>
+                    <button class="btn-close" onclick="closeValidationInfoModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="popup-body" id="validationInfoContent">
+                </div>
+                <div class="popup-footer">
+                    <button class="btn-secondary" onclick="closeValidationInfoModal()">Tutup</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('validationInfoTitle').innerHTML = `<i class="fas fa-info-circle"></i> Info Validasi - ${escapeHtml(title)}`;
+    document.getElementById('validationInfoContent').innerHTML = content;
+    modal.classList.remove('hidden');
+}
+
+function closeValidationInfoModal() {
+    const modal = document.getElementById('validationInfoModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
 
 function openValidationPopup(recordId) {
     if (!canValidate()) {

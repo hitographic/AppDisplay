@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.6 - Add validation info to card, fix Tambah User button
+// Version 1.0.7 - Move validation info to popup modal with info button
 
-const CACHE_NAME = 'mds-track-v1.0.6';
+const CACHE_NAME = 'mds-track-v1.0.7';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
