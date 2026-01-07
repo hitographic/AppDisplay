@@ -620,6 +620,37 @@ async function checkDuplicateFlavorNegara(flavor, negara) {
     }
 }
 
+// Check for duplicate Nomor Material
+async function checkDuplicateNomorMaterial(nomorMaterial) {
+    try {
+        // Get all existing records
+        const existingRecords = await storage.getAllRecords();
+        
+        if (!existingRecords || existingRecords.length === 0) {
+            return { isDuplicate: false };
+        }
+        
+        // Find duplicate (same nomor material)
+        const duplicate = existingRecords.find(record => {
+            return record.nomorMaterial && 
+                String(record.nomorMaterial).trim() === String(nomorMaterial).trim();
+        });
+        
+        if (duplicate) {
+            return {
+                isDuplicate: true,
+                existingRecord: duplicate,
+                message: `Nomor Material "${nomorMaterial}" sudah ada!\n\nFlavor: ${duplicate.flavor || '-'}\nNegara: ${duplicate.negara || '-'}\nData dibuat oleh: ${duplicate.createdBy || 'Unknown'}\nTanggal: ${duplicate.tanggal || duplicate.createdAt}\n\nSilakan gunakan Nomor Material yang berbeda.`
+            };
+        }
+        
+        return { isDuplicate: false };
+    } catch (error) {
+        console.error('Error checking duplicate nomor material:', error);
+        return { isDuplicate: false };
+    }
+}
+
 async function proceedToCreateDisplay() {
     const tanggal = document.getElementById('inputTanggal').value;
     const nomorMaterial = document.getElementById('inputNomorMaterial').value.trim();
@@ -637,8 +668,18 @@ async function proceedToCreateDisplay() {
         return;
     }
 
-    // Check for duplicate Flavor + Negara
+    // Check for duplicate Nomor Material
     showLoading('Memeriksa data duplikat...');
+    const nomorMaterialCheck = await checkDuplicateNomorMaterial(nomorMaterial);
+    
+    if (nomorMaterialCheck.isDuplicate) {
+        hideLoading();
+        alert('⚠️ NOMOR MATERIAL DUPLIKAT!\n\n' + nomorMaterialCheck.message);
+        showToast('Nomor Material sudah ada', 'error');
+        return;
+    }
+
+    // Check for duplicate Flavor + Negara
     const duplicateCheck = await checkDuplicateFlavorNegara(flavor, negara);
     hideLoading();
     
