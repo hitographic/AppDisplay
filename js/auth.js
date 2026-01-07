@@ -270,3 +270,70 @@ function logout() {
         auth.logout();
     }
 }
+
+// Debug function to check system status
+function debugSystemStatus() {
+    console.group('🔍 SYSTEM DEBUG STATUS');
+    
+    // Check user
+    const user = auth.getUser();
+    console.log('User logged in:', !!user);
+    console.log('User data:', user);
+    
+    // Check storage
+    const records = localStorage.getItem(CONFIG.STORAGE_KEYS.RECORDS);
+    console.log('Records in localStorage:', !!records);
+    console.log('Number of records:', records ? JSON.parse(records).length : 0);
+    
+    // Check Google Sheets config
+    console.log('Google Sheets Web App URL:', CONFIG.GOOGLE_SHEETS_WEBAPP_URL);
+    console.log('Web App configured:', CONFIG.GOOGLE_SHEETS_WEBAPP_URL && CONFIG.GOOGLE_SHEETS_WEBAPP_URL !== 'YOUR_WEBAPP_URL');
+    
+    // Check sheetsDB status
+    console.log('SheetsDB configured:', sheetsDB?.isConfigured());
+    console.log('SheetsDB URL:', sheetsDB?.webAppUrl);
+    
+    // Check storage config
+    console.log('Storage using Google Sheets:', storage?.useGoogleSheets);
+    console.log('Online status:', navigator.onLine);
+    
+    console.groupEnd();
+}
+
+// Make it available globally
+window.debugSystemStatus = debugSystemStatus;
+
+// Test JSONP request function
+async function testGoogleSheetsConnection() {
+    console.group('🧪 Testing Google Sheets Connection');
+    
+    const webAppUrl = CONFIG.GOOGLE_SHEETS_WEBAPP_URL;
+    console.log('Web App URL:', webAppUrl);
+    
+    // Test 1: Simple GET request to check if server is responding
+    try {
+        console.log('Test 1: Checking if server responds...');
+        const testUrl = webAppUrl + '?action=getAll&callback=testCallback';
+        console.log('Test URL:', testUrl);
+        
+        // Fetch without JSONP first to see raw response
+        const response = await fetch(testUrl);
+        const text = await response.text();
+        console.log('Raw response:', text.substring(0, 200));
+    } catch (e) {
+        console.error('Test 1 failed (CORS expected):', e.message);
+    }
+    
+    // Test 2: JSONP request
+    try {
+        console.log('Test 2: JSONP request...');
+        const result = await sheetsDB.jsonpRequest(webAppUrl + '?action=getAll', 5000);
+        console.log('✅ JSONP Success:', result);
+    } catch (e) {
+        console.error('❌ JSONP failed:', e.message);
+    }
+    
+    console.groupEnd();
+}
+
+window.testGoogleSheetsConnection = testGoogleSheetsConnection;

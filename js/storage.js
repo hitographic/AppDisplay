@@ -38,16 +38,27 @@ class Storage {
     async getAllRecords() {
         if (this.useGoogleSheets && this.isOnline) {
             try {
-                const records = await sheetsDB.getAllRecords();
-                if (records !== null) {
+                console.log('📡 Storage: Attempting to fetch from Google Sheets...');
+                const records = await Promise.race([
+                    sheetsDB.getAllRecords(),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Storage fetch timeout')), 12000)
+                    )
+                ]);
+                
+                if (records !== null && records.length >= 0) {
+                    console.log(`✅ Storage: Fetched ${records.length} records from Google Sheets`);
                     // Cache to local storage
                     this.saveRecordsLocal(records);
                     return records;
                 }
             } catch (error) {
-                console.error('Error fetching from Google Sheets:', error);
+                console.error('❌ Storage: Error fetching from Google Sheets:', error.message);
+                console.log('⚠️ Storage: Falling back to local storage');
             }
         }
+        
+        console.log('📦 Storage: Using local storage');
         return this.getRecordsLocal();
     }
 

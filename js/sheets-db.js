@@ -16,28 +16,36 @@ class GoogleSheetsDB {
     }
 
     // JSONP request untuk GET (bypass CORS)
-    jsonpRequest(url) {
+    jsonpRequest(url, timeoutMs = 10000) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonpCallback_' + (++this.callbackCounter) + '_' + Date.now();
             const timeoutId = setTimeout(() => {
                 delete window[callbackName];
-                if (script.parentNode) script.parentNode.removeChild(script);
-                reject(new Error('JSONP request timeout'));
-            }, 30000);
+                if (script && script.parentNode) script.parentNode.removeChild(script);
+                console.warn(`⏱️ JSONP request timeout (${timeoutMs}ms) for:`, url);
+                reject(new Error(`JSONP request timeout after ${timeoutMs}ms`));
+            }, timeoutMs);
 
             window[callbackName] = (data) => {
                 clearTimeout(timeoutId);
+                console.log('✅ JSONP callback received:', callbackName);
                 delete window[callbackName];
-                if (script.parentNode) script.parentNode.removeChild(script);
+                if (script && script.parentNode) script.parentNode.removeChild(script);
                 resolve(data);
             };
 
             const script = document.createElement('script');
-            script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+            // Add callback parameter to URL
+            const separator = url.includes('?') ? '&' : '?';
+            script.src = url + separator + 'callback=' + callbackName;
+            
+            console.log('📡 JSONP Request URL:', script.src);
+            
             script.onerror = () => {
                 clearTimeout(timeoutId);
                 delete window[callbackName];
-                if (script.parentNode) script.parentNode.removeChild(script);
+                if (script && script.parentNode) script.parentNode.removeChild(script);
+                console.error('❌ JSONP script load error:', script.src);
                 reject(new Error('JSONP script load error'));
             };
             document.head.appendChild(script);
@@ -122,11 +130,21 @@ class GoogleSheetsDB {
         }
 
         try {
-            const data = await this.jsonpRequest(`${this.webAppUrl}?action=getAll`);
+            console.log('📡 Fetching records from Google Sheets...');
+            const url = `${this.webAppUrl}?action=getAll`;
+            console.log('📡 Request URL:', url);
+            
+            const data = await this.jsonpRequest(url, 8000);
             console.log('✅ Data fetched from Google Sheets:', data);
+            
+            if (data.success === false) {
+                console.warn('❌ Server returned error:', data.error);
+                return null;
+            }
+            
             return data.records || [];
         } catch (error) {
-            console.error('Error fetching from Google Sheets:', error);
+            console.error('❌ Error fetching from Google Sheets:', error.message);
             return null;
         }
     }

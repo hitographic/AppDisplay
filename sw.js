@@ -26,11 +26,17 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('[ServiceWorker] Caching app shell');
-      return cache.addAll(URLS_TO_CACHE).catch(err => {
-        console.warn('[ServiceWorker] Cache addAll error:', err);
-        // Continue even if some files fail to cache
-        return Promise.resolve();
-      });
+      // Cache files one by one to continue even if some fail
+      return Promise.allSettled(
+        URLS_TO_CACHE.map(url => 
+          cache.add(url).catch(err => {
+            console.warn(`[ServiceWorker] Failed to cache ${url}:`, err.message);
+          })
+        )
+      ).then(() => console.log('[ServiceWorker] Cache installation completed'));
+    }).catch(err => {
+      console.warn('[ServiceWorker] Cache open error:', err);
+      return Promise.resolve();
     })
   );
   self.skipWaiting();
