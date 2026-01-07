@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.1.1 - Fixed editor permission for add/edit data
+// Version 1.1.2 - Moved permission functions to auth.js for global access
 
-const CACHE_NAME = 'mds-track-v1.1.1';
+const CACHE_NAME = 'mds-track-v1.1.2';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

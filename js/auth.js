@@ -256,6 +256,37 @@ function protectPage() {
     return true;
 }
 
+// Check if user has specific permission
+function hasPermission(permission) {
+    const user = auth.getUser();
+    if (!user) return false;
+    
+    // Legacy support: admin role has all permissions
+    if (user.role === 'admin') return true;
+    
+    // Check permissions array
+    if (user.permissions && Array.isArray(user.permissions)) {
+        return user.permissions.includes(permission);
+    }
+    
+    return false;
+}
+
+// Check if user can edit (has records_editor permission)
+function canEdit() {
+    return hasPermission('records_editor');
+}
+
+// Check if user can validate (has records_validator permission)
+function canValidate() {
+    return hasPermission('records_validator');
+}
+
+// Check if user can view (has any records permission)
+function canView() {
+    return hasPermission('records_viewer') || hasPermission('records_editor') || hasPermission('records_validator');
+}
+
 // Check if user is admin
 function isAdmin() {
     const user = auth.getUser();

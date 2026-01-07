@@ -13,33 +13,7 @@ let currentPage = 1;
 let recordsPerPage = 12; // Default 12 records per page (3x4 grid)
 const recordsPerPageOptions = [8, 12, 16, 24, 48];
 
-// Permission check functions
-function hasPermission(permission) {
-    const user = auth.getUser();
-    if (!user) return false;
-    
-    // Legacy support: admin role has all permissions
-    if (user.role === 'admin') return true;
-    
-    // Check permissions array
-    if (user.permissions && Array.isArray(user.permissions)) {
-        return user.permissions.includes(permission);
-    }
-    
-    return false;
-}
-
-function canEdit() {
-    return hasPermission('records_editor');
-}
-
-function canValidate() {
-    return hasPermission('records_validator');
-}
-
-function canView() {
-    return hasPermission('records_viewer') || hasPermission('records_editor') || hasPermission('records_validator');
-}
+// Permission functions are now in auth.js (hasPermission, canEdit, canValidate, canView)
 
 document.addEventListener('DOMContentLoaded', function() {
     // Protect page
