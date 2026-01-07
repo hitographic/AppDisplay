@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 1.0.1
+// Version 1.0.2 - Force cache refresh after syntax fix
 
-const CACHE_NAME = 'mds-track-v1.0.1';
+const CACHE_NAME = 'mds-track-v1.0.2';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
@@ -13,6 +13,11 @@ const URLS_TO_CACHE = [
   '/AppDisplay/js/config.js',
   '/AppDisplay/js/auth.js',
   '/AppDisplay/js/login.js',
+  '/AppDisplay/js/records.js',
+  '/AppDisplay/js/sheets-db.js',
+  '/AppDisplay/js/storage.js',
+  '/AppDisplay/js/create-display.js',
+  '/AppDisplay/js/test-data.js',
   '/AppDisplay/assets/Favicon MDS.png',
   '/AppDisplay/assets/App MDS.png',
   '/AppDisplay/assets/Login MDS.png',
