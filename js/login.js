@@ -5,7 +5,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Check if already logged in
     if (auth.isLoggedIn()) {
-        window.location.href = 'records.html';
+        window.location.href = 'records/';
         return;
     }
 
@@ -44,7 +44,7 @@ async function handleLogin() {
             showToast('Login berhasil! Mengalihkan...', 'success');
             
             setTimeout(() => {
-                window.location.href = 'records.html';
+                window.location.href = 'records/';
             }, 1000);
         } else {
             showToast(result.message, 'error');

@@ -1,14 +1,17 @@
 // MDS Track - Service Worker
-// Version 1.0.9 - Added validation status filter and navigation logo
+// Version 1.1.0 - Clean URLs support (remove .html from URLs)
 
-const CACHE_NAME = 'mds-track-v1.0.9';
+const CACHE_NAME = 'mds-track-v1.1.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
   '/AppDisplay/index.html',
-  '/AppDisplay/records.html',
-  '/AppDisplay/create-display.html',
-  '/AppDisplay/users.html',
+  '/AppDisplay/records/',
+  '/AppDisplay/records/index.html',
+  '/AppDisplay/create-display/',
+  '/AppDisplay/create-display/index.html',
+  '/AppDisplay/users/',
+  '/AppDisplay/users/index.html',
   '/AppDisplay/css/style.css',
   '/AppDisplay/js/config.js',
   '/AppDisplay/js/auth.js',
@@ -21,6 +24,7 @@ const URLS_TO_CACHE = [
   '/AppDisplay/assets/Favicon MDS.png',
   '/AppDisplay/assets/App MDS.png',
   '/AppDisplay/assets/Login MDS.png',
+  '/AppDisplay/assets/Navigation MDS.png',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2'
 ];

@@ -49,7 +49,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!canView()) {
         showToast('Anda tidak memiliki akses untuk melihat records', 'error');
         setTimeout(() => {
-            window.location.href = 'index.html';
+            const basePath = window.location.pathname.includes('/AppDisplay') ? '/AppDisplay/' : '/';
+            window.location.href = basePath;
         }, 1500);
         return;
     }
@@ -721,7 +722,7 @@ async function proceedToCreateDisplay() {
     storage.saveTempData(tempData);
 
     // Navigate to create display page
-    window.location.href = 'create-display.html';
+    window.location.href = '../create-display/';
 }
 
 // ==================== PREVIEW POPUP ====================
@@ -876,7 +877,7 @@ function editRecord(recordId) {
     storage.saveTempData({ ...record, isEdit: true });
     
     // Navigate to create display page
-    window.location.href = 'create-display.html';
+    window.location.href = '../create-display/';
 }
 
 async function deleteRecord(recordId) {

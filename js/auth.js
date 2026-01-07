@@ -114,7 +114,9 @@ class Auth {
         this.currentUser = null;
         localStorage.removeItem(CONFIG.STORAGE_KEYS.USER);
         localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-        window.location.href = 'index.html';
+        // Navigate to root (login page)
+        const basePath = window.location.pathname.includes('/AppDisplay') ? '/AppDisplay/' : '/';
+        window.location.href = basePath;
     }
 
     // Get current user
@@ -246,7 +248,9 @@ const auth = new Auth();
 // Protect page - redirect to login if not authenticated
 function protectPage() {
     if (!auth.isLoggedIn()) {
-        window.location.href = 'index.html';
+        // Navigate to root (login page)
+        const basePath = window.location.pathname.includes('/AppDisplay') ? '/AppDisplay/' : '/';
+        window.location.href = basePath;
         return false;
     }
     return true;

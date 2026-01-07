@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!isAdmin()) {
         showToast('Anda tidak memiliki akses ke halaman ini', 'error');
         setTimeout(() => {
-            window.location.href = 'records.html';
+            window.location.href = '../records/';
         }, 1500);
         return;
     }
@@ -31,7 +31,7 @@ async function initCreateDisplayPage() {
     if (!currentData) {
         showToast('Data tidak ditemukan. Kembali ke halaman sebelumnya.', 'error');
         setTimeout(() => {
-            window.location.href = 'records.html';
+            window.location.href = '../records/';
         }, 1500);
         return;
     }
@@ -703,8 +703,8 @@ async function simpanSemua() {
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Navigate back to records
-        console.log('↩️ Redirecting to records.html...');
-        window.location.href = 'records.html';
+        console.log('↩️ Redirecting to records...');
+        window.location.href = '../records/';
     } catch (error) {
         hideLoading();
         console.error('Error saving:', error);
@@ -761,7 +761,7 @@ function collectKodeProduksi() {
 function goBack() {
     if (confirm('Data yang belum disimpan akan hilang. Lanjutkan?')) {
         storage.clearTempData();
-        window.location.href = 'records.html';
+        window.location.href = '../records/';
     }
 }
 
