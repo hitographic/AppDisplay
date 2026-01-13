@@ -784,3 +784,47 @@ function testGetAll() {
   const result = getAllRecordsData();
   Logger.log(JSON.stringify(result));
 }
+
+// Test fungsi pencarian file - jalankan ini untuk debug
+function testFindFile() {
+  Logger.log('=== TEST FIND FILE ===');
+  
+  // Test folder ID
+  Logger.log('MAIN_FOLDER_ID: ' + MAIN_FOLDER_ID);
+  
+  try {
+    var mainFolder = DriveApp.getFolderById(MAIN_FOLDER_ID);
+    Logger.log('Main folder name: ' + mainFolder.getName());
+    
+    // List semua subfolder
+    var subfolders = mainFolder.getFolders();
+    Logger.log('Subfolders:');
+    while (subfolders.hasNext()) {
+      var folder = subfolders.next();
+      Logger.log('  - ' + folder.getName() + ' (ID: ' + folder.getId() + ')');
+    }
+    
+    // Test cari folder Bumbu
+    var bumbuFolderId = getFolderIdByName('Bumbu');
+    Logger.log('Bumbu folder ID: ' + bumbuFolderId);
+    
+    if (bumbuFolderId) {
+      var bumbuFolder = DriveApp.getFolderById(bumbuFolderId);
+      var files = bumbuFolder.getFiles();
+      Logger.log('Files in Bumbu folder:');
+      while (files.hasNext()) {
+        var file = files.next();
+        Logger.log('  - ' + file.getName() + ' (ID: ' + file.getId() + ')');
+      }
+      
+      // Test cari file spesifik
+      var testResult = findFileInFolder('Bumbu', 'GSS MG O HS');
+      Logger.log('Search result for "GSS MG O HS": ' + JSON.stringify(testResult));
+    }
+    
+  } catch (e) {
+    Logger.log('ERROR: ' + e.message);
+  }
+  
+  Logger.log('=== TEST END ===');
+}
