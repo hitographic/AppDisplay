@@ -443,6 +443,121 @@ function deleteUserData(nik) {
 // RECORDS MANAGEMENT FUNCTIONS
 // =====================================================
 
+// Mapping kolom foto ke folder Google Drive
+// PENTING: Ganti FOLDER_ID dengan ID folder sebenarnya di Google Drive Anda
+var PHOTO_FOLDER_IDS = {
+  photo_bumbu: null,       // Folder "Bumbu" - akan diisi otomatis atau manual
+  photo_mbumbu: null,      // Folder "Minyak Bumbu"
+  photo_si: null,          // Folder "Kode SI"
+  photo_karton: null,      // Folder "Kode Karton"
+  photo_etiket: null,      // Folder "Kode Etiket"
+  photo_etiketbanded: null,// Folder "Five or Six in One"
+  photo_plakban: null      // Folder "Plakban"
+};
+
+// Nama folder di Google Drive untuk setiap kolom foto
+var PHOTO_FOLDER_NAMES = {
+  photo_bumbu: 'Bumbu',
+  photo_mbumbu: 'Minyak Bumbu',
+  photo_si: 'Kode SI',
+  photo_karton: 'Kode Karton',
+  photo_etiket: 'Kode Etiket',
+  photo_etiketbanded: 'Five or Six in One',
+  photo_plakban: 'Plakban'
+};
+
+// ID folder utama AppDisplay_Data (ambil dari config atau hardcode)
+var MAIN_FOLDER_ID = '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23';
+
+// Cache folder IDs untuk performa
+var folderIdCache = {};
+
+// Fungsi untuk mendapatkan ID folder berdasarkan nama
+function getFolderIdByName(folderName) {
+  if (folderIdCache[folderName]) {
+    return folderIdCache[folderName];
+  }
+  
+  try {
+    var mainFolder = DriveApp.getFolderById(MAIN_FOLDER_ID);
+    var folders = mainFolder.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      var folder = folders.next();
+      folderIdCache[folderName] = folder.getId();
+      return folder.getId();
+    }
+  } catch (e) {
+    Logger.log('Error getting folder: ' + e.message);
+  }
+  return null;
+}
+
+// Fungsi untuk mencari file di folder berdasarkan nama (dengan atau tanpa ekstensi)
+function findFileInFolder(folderName, fileName) {
+  if (!fileName || fileName.trim() === '') return null;
+  
+  var folderId = getFolderIdByName(folderName);
+  if (!folderId) return null;
+  
+  try {
+    var folder = DriveApp.getFolderById(folderId);
+    var files = folder.getFiles();
+    
+    // Normalisasi nama file (hapus ekstensi jika ada)
+    var searchName = fileName.trim();
+    var searchNameNoExt = searchName.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+    
+    while (files.hasNext()) {
+      var file = files.next();
+      var name = file.getName();
+      var nameNoExt = name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+      
+      // Cocokkan nama dengan atau tanpa ekstensi (case-insensitive)
+      if (name.toLowerCase() === searchName.toLowerCase() || 
+          nameNoExt.toLowerCase() === searchNameNoExt.toLowerCase()) {
+        return {
+          id: file.getId(),
+          name: file.getName(),
+          directLink: 'https://lh3.googleusercontent.com/d/' + file.getId()
+        };
+      }
+    }
+  } catch (e) {
+    Logger.log('Error finding file: ' + e.message);
+  }
+  return null;
+}
+
+// Parse photo value - bisa JSON object atau nama file string
+function parsePhotoValue(value, photoKey) {
+  if (!value || value === '') return null;
+  
+  var strValue = String(value).trim();
+  
+  // Coba parse sebagai JSON dulu
+  try {
+    var parsed = JSON.parse(strValue);
+    if (parsed && typeof parsed === 'object' && parsed.id) {
+      return parsed;
+    }
+  } catch (e) {
+    // Bukan JSON, lanjut ke nama file
+  }
+  
+  // Jika bukan JSON, anggap sebagai nama file dan cari di folder
+  var folderName = PHOTO_FOLDER_NAMES[photoKey];
+  if (folderName) {
+    var fileData = findFileInFolder(folderName, strValue);
+    if (fileData) {
+      return fileData;
+    }
+    // Jika tidak ketemu, return object dengan nama saja
+    return { name: strValue, id: null, directLink: null };
+  }
+  
+  return null;
+}
+
 // Get all records
 // Struktur 16 kolom: id(0), tanggal(1), flavor(2), negara(3), createdAt(4), updatedAt(5),
 //                    createdBy(6), updatedBy(7),
@@ -470,13 +585,13 @@ function getAllRecordsData() {
         createdBy: row[6] || '',
         updatedBy: row[7] || '',
         photos: {
-          bumbu: row[8] ? safeJsonParse(row[8]) : null,
-          'm-bumbu': row[9] ? safeJsonParse(row[9]) : null,
-          si: row[10] ? safeJsonParse(row[10]) : null,
-          karton: row[11] ? safeJsonParse(row[11]) : null,
-          etiket: row[12] ? safeJsonParse(row[12]) : null,
-          'etiket-banded': row[13] ? safeJsonParse(row[13]) : null,
-          plakban: row[14] ? safeJsonParse(row[14]) : null
+          bumbu: parsePhotoValue(row[8], 'photo_bumbu'),
+          'm-bumbu': parsePhotoValue(row[9], 'photo_mbumbu'),
+          si: parsePhotoValue(row[10], 'photo_si'),
+          karton: parsePhotoValue(row[11], 'photo_karton'),
+          etiket: parsePhotoValue(row[12], 'photo_etiket'),
+          'etiket-banded': parsePhotoValue(row[13], 'photo_etiketbanded'),
+          plakban: parsePhotoValue(row[14], 'photo_plakban')
         },
         kodeProduksi: row[15] ? safeJsonParse(row[15]) : []
       });
@@ -515,13 +630,13 @@ function getRecordByIdData(id) {
           createdBy: row[6] || '',
           updatedBy: row[7] || '',
           photos: {
-            bumbu: row[8] ? safeJsonParse(row[8]) : null,
-            'm-bumbu': row[9] ? safeJsonParse(row[9]) : null,
-            si: row[10] ? safeJsonParse(row[10]) : null,
-            karton: row[11] ? safeJsonParse(row[11]) : null,
-            etiket: row[12] ? safeJsonParse(row[12]) : null,
-            'etiket-banded': row[13] ? safeJsonParse(row[13]) : null,
-            plakban: row[14] ? safeJsonParse(row[14]) : null
+            bumbu: parsePhotoValue(row[8], 'photo_bumbu'),
+            'm-bumbu': parsePhotoValue(row[9], 'photo_mbumbu'),
+            si: parsePhotoValue(row[10], 'photo_si'),
+            karton: parsePhotoValue(row[11], 'photo_karton'),
+            etiket: parsePhotoValue(row[12], 'photo_etiket'),
+            'etiket-banded': parsePhotoValue(row[13], 'photo_etiketbanded'),
+            plakban: parsePhotoValue(row[14], 'photo_plakban')
           },
           kodeProduksi: row[15] ? safeJsonParse(row[15]) : []
         }
