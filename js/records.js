@@ -829,8 +829,17 @@ function showPreviewTab(tabId) {
     console.log('📷 Preview tab:', tabId);
     console.log('📷 Photo data:', photo);
 
+    // Helper: cek apakah id adalah ID Google Drive valid (bukan nama file)
+    // ID Google Drive biasanya panjang ~33 karakter dan tidak mengandung spasi atau ekstensi file
+    const isValidDriveId = (id) => {
+        if (!id || typeof id !== 'string') return false;
+        // Jika ada spasi, titik (ekstensi), atau terlalu pendek, kemungkinan nama file
+        if (id.includes(' ') || id.includes('.') || id.length < 20) return false;
+        return true;
+    };
+
     if (photo && typeof photo === 'object') {
-        if (photo.id) {
+        if (photo.id && isValidDriveId(photo.id)) {
             // Use Google Drive thumbnail URL format (more reliable for display)
             const imgSrc = `https://lh3.googleusercontent.com/d/${photo.id}`;
             console.log('📷 Image source:', imgSrc);
@@ -841,8 +850,17 @@ function showPreviewTab(tabId) {
         } else if (photo.base64) {
             // Fallback to base64 if available
             previewContent.innerHTML = `<img src="${photo.base64}" alt="${tabId}">`;
-        } else if (photo.directLink) {
+        } else if (photo.directLink && isValidDriveId(photo.directLink.split('/d/')[1])) {
             previewContent.innerHTML = `<img src="${photo.directLink}" alt="${tabId}">`;
+        } else if (photo.id || photo.name) {
+            // Jika id/name adalah nama file (bukan ID Google Drive valid)
+            const fileName = photo.name || photo.id || '';
+            previewContent.innerHTML = `
+                <div class="no-image">
+                    <i class="fas fa-image"></i>
+                    <p>Foto ${tabId} tidak ditemukan<br><small>Nama file: ${fileName}</small><br><small style="color:#888;">Gunakan ID Google Drive, bukan nama file</small></p>
+                </div>
+            `;
         } else {
             previewContent.innerHTML = `
                 <div class="no-image">
@@ -856,7 +874,7 @@ function showPreviewTab(tabId) {
         previewContent.innerHTML = `
             <div class="no-image">
                 <i class="fas fa-image"></i>
-                <p>Foto ${tabId} tidak ditemukan di Google Drive<br><small>Nama file: ${photo}</small></p>
+                <p>Foto ${tabId} tidak ditemukan<br><small>Nama file: ${photo}</small><br><small style="color:#888;">Gunakan ID Google Drive, bukan nama file</small></p>
             </div>
         `;
     } else {
