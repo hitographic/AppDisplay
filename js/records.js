@@ -367,6 +367,71 @@ function renderRecords() {
 
 // ==================== PAGINATION FUNCTIONS ====================
 
+// ==================== RECORDS INPUT FUNCTIONS ====================
+
+// Mapping kolom foto ke folder Google Drive
+const PHOTO_FOLDER_MAP = {
+    photo_bumbu: 'Bumbu',
+    photo_mbumbu: 'Minyak Bumbu',
+    photo_si: 'Kode SI',
+    photo_karton: 'Kode Karton',
+    photo_etiket: 'Kode Etiket',
+    photo_etiketbanded: 'Five or Six in One',
+    photo_plakban: 'Plakban'
+};
+
+/**
+ * Fungsi 1: Input manual dari Google Drive & Google Sheet
+ * Mengambil data dari Google Sheet dan menggabungkan link foto dari Google Drive berdasarkan nama file (flavor)
+ * @param {Array} sheetRecords - Data dari Google Sheet
+ * @param {Object} driveFilesByFolder - { folderName: [ {name, id, webViewLink, ...}, ... ] }
+ * @returns {Array} records dengan url foto terisi
+ */
+async function importRecordsManualFromSheetAndDrive(sheetRecords, driveFilesByFolder) {
+    return sheetRecords.map(record => {
+        // Untuk setiap kolom foto, cari file di folder yang sesuai
+        Object.keys(PHOTO_FOLDER_MAP).forEach(photoKey => {
+            const folderName = PHOTO_FOLDER_MAP[photoKey];
+            const fileName = record[photoKey];
+            if (fileName && driveFilesByFolder[folderName]) {
+                // Cari file di folder dengan nama persis (case-insensitive)
+                const file = driveFilesByFolder[folderName].find(f => f.name.toLowerCase() === fileName.toLowerCase());
+                if (file) {
+                    record[photoKey + '_url'] = file.webViewLink || file.webContentLink || '';
+                } else {
+                    record[photoKey + '_url'] = '';
+                }
+            } else {
+                record[photoKey + '_url'] = '';
+            }
+        });
+        return record;
+    });
+}
+
+/**
+ * Fungsi 2: Input melalui App
+ * Upload foto ke Google Drive di folder sesuai mapping, nama file = flavor
+ * @param {Object} record - Data record (flavor, dll)
+ * @param {Object} photoFiles - { photo_bumbu: File, photo_mbumbu: File, ... }
+ * @param {Function} uploadToDrive - fungsi async(folderName, file, fileName) => {id, name, webViewLink}
+ * @returns {Object} record dengan info foto terisi
+ */
+async function inputRecordFromApp(record, photoFiles, uploadToDrive) {
+    for (const photoKey of Object.keys(PHOTO_FOLDER_MAP)) {
+        const folderName = PHOTO_FOLDER_MAP[photoKey];
+        const file = photoFiles[photoKey];
+        if (file) {
+            // Nama file = flavor + ekstensi asli
+            const ext = file.name.split('.').pop();
+            const fileName = record.flavor + (ext ? ('.' + ext) : '');
+            const uploaded = await uploadToDrive(folderName, file, fileName);
+            record[photoKey] = uploaded.name;
+            record[photoKey + '_url'] = uploaded.webViewLink || uploaded.webContentLink || '';
+        }
+    }
+    return record;
+}
 function renderPagination(totalPages, totalRecords) {
     const paginationContainer = document.getElementById('paginationContainer');
     if (!paginationContainer) return;
@@ -703,30 +768,26 @@ async function proceedToCreateDisplay() {
 
 function openPreview(recordId) {
     currentPreviewRecord = storage.getRecordById(recordId);
-    
+    // Fallback: jika record tidak punya field photos, buat object kosong
+    if (currentPreviewRecord && typeof currentPreviewRecord.photos !== 'object') {
+        currentPreviewRecord.photos = {};
+    }
     console.log('🔍 Opening preview for:', recordId);
     console.log('🔍 Record data:', currentPreviewRecord);
     console.log('🔍 Photos:', currentPreviewRecord?.photos);
-    
     if (!currentPreviewRecord) {
         showToast('Record tidak ditemukan', 'error');
         return;
     }
-
     const popup = document.getElementById('previewPopup');
     const title = document.getElementById('previewTitle');
-    
     title.innerHTML = `<i class="fas fa-images"></i> ${escapeHtml(currentPreviewRecord.flavor)}`;
-    
     // Show first tab content
     showPreviewTab('bumbu');
-    
     // Show record info (negara, nomor material)
     renderPreviewRecordInfo();
-    
     // Show kode produksi
     renderKodeProduksi();
-    
     popup.classList.remove('hidden');
 }
 

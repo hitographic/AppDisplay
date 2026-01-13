@@ -166,10 +166,11 @@ class Storage {
         return true;
     }
 
-    // Get single record by ID
+    // Get single record by ID (support string/number)
     getRecordById(id) {
         const records = this.getRecordsLocal();
-        return records.find(r => r.id === id);
+        // Cari dengan id persis, atau id string/number
+        return records.find(r => r.id == id); // pakai == agar '3' dan 3 cocok
     }
 
     // Save temporary data (for create display process)
