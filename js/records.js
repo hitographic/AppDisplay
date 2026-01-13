@@ -828,19 +828,37 @@ function showPreviewTab(tabId) {
     const photo = currentPreviewRecord.photos[tabId];
     console.log('📷 Preview tab:', tabId);
     console.log('📷 Photo data:', photo);
-    
-    if (photo && photo.id) {
-        // Use Google Drive thumbnail URL format (more reliable for display)
-        const imgSrc = `https://lh3.googleusercontent.com/d/${photo.id}`;
-        console.log('📷 Image source:', imgSrc);
-        
+
+    if (photo && typeof photo === 'object') {
+        if (photo.id) {
+            // Use Google Drive thumbnail URL format (more reliable for display)
+            const imgSrc = `https://lh3.googleusercontent.com/d/${photo.id}`;
+            console.log('📷 Image source:', imgSrc);
+            previewContent.innerHTML = `
+                <img src="${imgSrc}" alt="${tabId}"
+                     onerror="this.onerror=null; this.src='${photo.directLink || ''}'; if(!this.src) this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-exclamation-triangle\\'></i><p>Gagal memuat gambar</p></div>';">
+            `;
+        } else if (photo.base64) {
+            // Fallback to base64 if available
+            previewContent.innerHTML = `<img src="${photo.base64}" alt="${tabId}">`;
+        } else if (photo.directLink) {
+            previewContent.innerHTML = `<img src="${photo.directLink}" alt="${tabId}">`;
+        } else {
+            previewContent.innerHTML = `
+                <div class="no-image">
+                    <i class="fas fa-image"></i>
+                    <p>Foto ${tabId} tidak tersedia</p>
+                </div>
+            `;
+        }
+    } else if (typeof photo === 'string' && photo.length > 0) {
+        // Jika hanya nama file (input manual), tampilkan fallback
         previewContent.innerHTML = `
-            <img src="${imgSrc}" alt="${tabId}" 
-                 onerror="this.onerror=null; this.src='${photo.directLink || ''}'; if(!this.src) this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-exclamation-triangle\\'></i><p>Gagal memuat gambar</p></div>';">
+            <div class="no-image">
+                <i class="fas fa-image"></i>
+                <p>Foto ${tabId} tidak ditemukan di Google Drive<br><small>Nama file: ${photo}</small></p>
+            </div>
         `;
-    } else if (photo && photo.base64) {
-        // Fallback to base64 if available
-        previewContent.innerHTML = `<img src="${photo.base64}" alt="${tabId}">`;
     } else {
         previewContent.innerHTML = `
             <div class="no-image">
