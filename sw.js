@@ -1,13 +1,15 @@
 // MDS Track - Service Worker
-// Version 1.1.2 - Moved permission functions to auth.js for global access
+// Version 1.3.0 - Added Master Data page support
 
-const CACHE_NAME = 'mds-track-v1.1.2';
+const CACHE_NAME = 'mds-track-v1.3.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
   '/AppDisplay/index.html',
   '/AppDisplay/records/',
   '/AppDisplay/records/index.html',
+  '/AppDisplay/records.html',
+  '/AppDisplay/master.html',
   '/AppDisplay/create-display/',
   '/AppDisplay/create-display/index.html',
   '/AppDisplay/users/',
@@ -20,6 +22,7 @@ const URLS_TO_CACHE = [
   '/AppDisplay/js/sheets-db.js',
   '/AppDisplay/js/storage.js',
   '/AppDisplay/js/create-display.js',
+  '/AppDisplay/js/master.js',
   '/AppDisplay/js/test-data.js',
   '/AppDisplay/assets/Favicon MDS.png',
   '/AppDisplay/assets/App MDS.png',
@@ -69,9 +72,9 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - different strategies for different content types
 self.addEventListener('fetch', event => {
-  // Skip cross-origin requests
+  // Skip cross-origin requests (except CDN and Google)
   if (!event.request.url.includes(self.location.origin) && 
       !event.request.url.includes('cdnjs.cloudflare.com') &&
       !event.request.url.includes('googleapis.com') &&
@@ -81,10 +84,35 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cache first strategy for static assets
+  // NETWORK-FIRST strategy for JS files (to get latest updates)
+  if (event.request.method === 'GET' && event.request.url.includes('.js')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (!response || response.status !== 200) {
+            // Network failed, try cache
+            return caches.match(event.request).then(cached => cached || response);
+          }
+          
+          // Network success - update cache
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+          
+          return response;
+        })
+        .catch(() => {
+          // Offline - return from cache
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // CACHE-FIRST strategy for static assets (images, fonts, CSS)
   if (event.request.method === 'GET' && 
       (event.request.url.includes('.css') || 
-       event.request.url.includes('.js') || 
        event.request.url.includes('.png') || 
        event.request.url.includes('.jpg') ||
        event.request.url.includes('.woff'))) {
@@ -107,7 +135,7 @@ self.addEventListener('fetch', event => {
           
           return response;
         }).catch(() => {
-          // Return offline page or cached response
+          // Return cached response if network fails
           return caches.match(event.request);
         });
       })

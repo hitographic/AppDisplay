@@ -199,6 +199,13 @@ function doGet(e) {
     } else if (action === 'getUser') {
       const nik = e.parameter.nik;
       result = getUserByNik(nik);
+    }
+    // Master Data actions
+    else if (action === 'getMaster') {
+      result = getAllMasterData();
+    } else if (action === 'getMasterByFlavor') {
+      const flavor = e.parameter.flavor;
+      result = getMasterByFlavor(flavor);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -262,6 +269,14 @@ function doPost(e) {
       result = updateUserData(data.nik, data.user);
     } else if (action === 'deleteUser') {
       result = deleteUserData(data.nik);
+    }
+    // Master Data actions
+    else if (action === 'addMaster') {
+      result = addMasterData(data.master);
+    } else if (action === 'updateMaster') {
+      result = updateMasterData(data.masterId, data.master);
+    } else if (action === 'deleteMaster') {
+      result = deleteMasterData(data.masterId);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -825,6 +840,300 @@ function testFindFile() {
   } catch (e) {
     Logger.log('ERROR: ' + e.message);
   }
+  
+  Logger.log('=== TEST END ===');
+}
+
+// =====================================================
+// MASTER DATA MANAGEMENT FUNCTIONS
+// =====================================================
+// STRUKTUR MASTER (11 kolom):
+// A:id, B:negara, C:flavor, D:keterangan, E:distributor,
+// F:bumbu, G:minyakBumbu, H:kodeSI, I:kodeEtiket, J:kodeKarton, K:fiveOrSixInOne, L:plakban
+// M:createdAt, N:updatedAt, O:createdBy, P:updatedBy
+
+// Header untuk Master sheet
+var MASTER_HEADERS = ['id', 'negara', 'flavor', 'keterangan', 'distributor',
+                      'bumbu', 'minyakBumbu', 'kodeSI', 'kodeEtiket', 'kodeKarton', 
+                      'fiveOrSixInOne', 'plakban',
+                      'createdAt', 'updatedAt', 'createdBy', 'updatedBy'];
+
+// Get or create Master sheet
+function getMasterSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Master');
+  
+  // Jika sheet "Master" belum ada, buat otomatis
+  if (!sheet) {
+    sheet = ss.insertSheet('Master');
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setValues([MASTER_HEADERS]);
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  
+  return sheet;
+}
+
+// Fix Master sheet structure
+function fixMasterStructure() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Master');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('Master');
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setValues([MASTER_HEADERS]);
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { success: true, message: 'Sheet Master dibuat baru dengan struktur yang benar' };
+  }
+  
+  // Perbaiki header
+  sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setValues([MASTER_HEADERS]);
+  sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  
+  return { success: true, message: 'Header Master diperbaiki' };
+}
+
+// Get all Master Data
+function getAllMasterData() {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) {
+    return { success: true, data: [] };
+  }
+  
+  var masters = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (row[0]) {  // Check if id exists
+      masters.push({
+        id: String(row[0]),
+        negara: row[1] || '',
+        flavor: row[2] || '',
+        keterangan: row[3] || '',
+        distributor: row[4] || '',
+        bumbu: row[5] || '',
+        minyakBumbu: row[6] || '',
+        kodeSI: row[7] || '',
+        kodeEtiket: row[8] || '',
+        kodeKarton: row[9] || '',
+        fiveOrSixInOne: row[10] || '',
+        plakban: row[11] || '',
+        createdAt: row[12] || '',
+        updatedAt: row[13] || '',
+        createdBy: row[14] || '',
+        updatedBy: row[15] || ''
+      });
+    }
+  }
+  
+  return { success: true, data: masters };
+}
+
+// Get Master by Flavor
+function getMasterByFlavor(flavor) {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][2]).toLowerCase() === String(flavor).toLowerCase()) {
+      return {
+        success: true,
+        master: {
+          id: String(data[i][0]),
+          negara: data[i][1] || '',
+          flavor: data[i][2] || '',
+          keterangan: data[i][3] || '',
+          distributor: data[i][4] || '',
+          bumbu: data[i][5] || '',
+          minyakBumbu: data[i][6] || '',
+          kodeSI: data[i][7] || '',
+          kodeEtiket: data[i][8] || '',
+          kodeKarton: data[i][9] || '',
+          fiveOrSixInOne: data[i][10] || '',
+          plakban: data[i][11] || '',
+          createdAt: data[i][12] || '',
+          updatedAt: data[i][13] || '',
+          createdBy: data[i][14] || '',
+          updatedBy: data[i][15] || ''
+        }
+      };
+    }
+  }
+  
+  return { success: false, error: 'Master not found' };
+}
+
+// Add Master Data
+function addMasterData(master) {
+  var sheet = getMasterSheet();
+  
+  // Generate new ID
+  var data = sheet.getDataRange().getValues();
+  var maxId = 0;
+  for (var i = 1; i < data.length; i++) {
+    var currentId = parseInt(data[i][0]) || 0;
+    if (currentId > maxId) maxId = currentId;
+  }
+  var newId = maxId + 1;
+  
+  var now = new Date().toISOString();
+  
+  var row = [
+    newId,
+    master.negara || '',
+    master.flavor || '',
+    master.keterangan || '',
+    master.distributor || '',
+    master.bumbu || '',
+    master.minyakBumbu || '',
+    master.kodeSI || '',
+    master.kodeEtiket || '',
+    master.kodeKarton || '',
+    master.fiveOrSixInOne || '',
+    master.plakban || '',
+    now,                        // createdAt
+    now,                        // updatedAt
+    master.createdBy || '',
+    master.createdBy || ''      // updatedBy = createdBy at creation
+  ];
+  
+  sheet.appendRow(row);
+  
+  return { 
+    success: true, 
+    message: 'Master data added', 
+    masterId: newId,
+    master: {
+      id: String(newId),
+      negara: master.negara || '',
+      flavor: master.flavor || '',
+      keterangan: master.keterangan || '',
+      distributor: master.distributor || '',
+      bumbu: master.bumbu || '',
+      minyakBumbu: master.minyakBumbu || '',
+      kodeSI: master.kodeSI || '',
+      kodeEtiket: master.kodeEtiket || '',
+      kodeKarton: master.kodeKarton || '',
+      fiveOrSixInOne: master.fiveOrSixInOne || '',
+      plakban: master.plakban || '',
+      createdAt: now,
+      updatedAt: now,
+      createdBy: master.createdBy || '',
+      updatedBy: master.createdBy || ''
+    }
+  };
+}
+
+// Update Master Data
+function updateMasterData(masterId, master) {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(masterId)) {
+      var rowIndex = i + 1;  // 1-indexed
+      var now = new Date().toISOString();
+      
+      var row = [
+        masterId,
+        master.negara || data[i][1] || '',
+        master.flavor || data[i][2] || '',
+        master.keterangan || data[i][3] || '',
+        master.distributor || data[i][4] || '',
+        master.bumbu || data[i][5] || '',
+        master.minyakBumbu || data[i][6] || '',
+        master.kodeSI || data[i][7] || '',
+        master.kodeEtiket || data[i][8] || '',
+        master.kodeKarton || data[i][9] || '',
+        master.fiveOrSixInOne || data[i][10] || '',
+        master.plakban || data[i][11] || '',
+        data[i][12] || '',     // Keep original createdAt
+        now,                    // updatedAt
+        data[i][14] || '',     // Keep original createdBy
+        master.updatedBy || '' // updatedBy
+      ];
+      
+      sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+      
+      return { success: true, message: 'Master data updated' };
+    }
+  }
+  
+  return { success: false, error: 'Master not found' };
+}
+
+// Delete Master Data
+function deleteMasterData(masterId) {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(masterId)) {
+      sheet.deleteRow(i + 1);  // 1-indexed
+      return { success: true, message: 'Master data deleted' };
+    }
+  }
+  
+  return { success: false, error: 'Master not found' };
+}
+
+// Get unique values for dropdown (Negara list)
+function getNegaraList() {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  var negaraSet = {};
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1]) {  // negara column
+      negaraSet[data[i][1]] = true;
+    }
+  }
+  
+  return { success: true, data: Object.keys(negaraSet).sort() };
+}
+
+// Get unique Flavor list
+function getFlavorList() {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  var flavorSet = {};
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2]) {  // flavor column
+      flavorSet[data[i][2]] = true;
+    }
+  }
+  
+  return { success: true, data: Object.keys(flavorSet).sort() };
+}
+
+// Test Master functions
+function testMaster() {
+  Logger.log('=== TEST MASTER ===');
+  
+  // Test get all
+  var all = getAllMasterData();
+  Logger.log('All Masters: ' + JSON.stringify(all));
+  
+  // Test add
+  var added = addMasterData({
+    negara: 'Indonesia',
+    flavor: 'GSS Original',
+    keterangan: 'Test data',
+    distributor: 'PT ABC',
+    bumbu: 'Bumbu123',
+    minyakBumbu: 'MB456',
+    kodeSI: 'SI789',
+    kodeEtiket: 'ET012',
+    kodeKarton: 'KT345',
+    fiveOrSixInOne: 'FOS678',
+    plakban: 'PLB901',
+    createdBy: 'Admin'
+  });
+  Logger.log('Added: ' + JSON.stringify(added));
   
   Logger.log('=== TEST END ===');
 }

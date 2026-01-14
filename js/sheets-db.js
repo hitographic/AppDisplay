@@ -282,6 +282,113 @@ class GoogleSheetsDB {
             return null;
         }
     }
+
+    // =====================================================
+    // MASTER DATA FUNCTIONS
+    // =====================================================
+
+    // Get all master data
+    async getMasterData() {
+        if (!this.isConfigured()) {
+            console.log('Google Sheets not configured');
+            return { success: false, error: 'Not configured', data: [] };
+        }
+
+        try {
+            console.log('📡 Fetching master data from Google Sheets...');
+            const url = `${this.webAppUrl}?action=getMaster`;
+            console.log('📡 Request URL:', url);
+            
+            const data = await this.jsonpRequest(url, 8000);
+            console.log('✅ Master data fetched:', data);
+            
+            if (data.success === false) {
+                console.warn('❌ Server returned error:', data.error);
+                return { success: false, error: data.error, data: [] };
+            }
+            
+            return { success: true, data: data.data || [] };
+        } catch (error) {
+            console.error('❌ Error fetching master data:', error.message);
+            return { success: false, error: error.message, data: [] };
+        }
+    }
+
+    // Get master by flavor
+    async getMasterByFlavor(flavor) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            const url = `${this.webAppUrl}?action=getMasterByFlavor&flavor=${encodeURIComponent(flavor)}`;
+            const data = await this.jsonpRequest(url, 5000);
+            return data;
+        } catch (error) {
+            console.error('Error getting master by flavor:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Add master data
+    async addMaster(master) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            console.log('📤 Adding master data to Sheets');
+            const result = await this.postRequest({
+                action: 'addMaster',
+                master: master
+            });
+            console.log('✅ Master added:', result);
+            return result;
+        } catch (error) {
+            console.error('Error adding master:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Update master data
+    async updateMaster(masterId, master) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            console.log('📤 Updating master data:', masterId);
+            const result = await this.postRequest({
+                action: 'updateMaster',
+                masterId: String(masterId),
+                master: master
+            });
+            console.log('✅ Master updated:', result);
+            return result;
+        } catch (error) {
+            console.error('Error updating master:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Delete master data
+    async deleteMaster(masterId) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            const result = await this.postRequest({
+                action: 'deleteMaster',
+                masterId: String(masterId)
+            });
+            console.log('✅ Master deleted:', result);
+            return result;
+        } catch (error) {
+            console.error('Error deleting master:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 // Global instance

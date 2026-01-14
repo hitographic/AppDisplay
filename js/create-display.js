@@ -202,14 +202,73 @@ function skipGoogleDriveConnection() {
     }
 }
 
-// ==================== EDIT FLAVOR & NEGARA ====================
+// ==================== EDIT FLAVOR & NEGARA WITH MASTER DATA ====================
 
-function editFlavorNegara() {
+// Store master data for dropdown
+let masterDataList = [];
+let selectedMaster = null;
+
+async function loadMasterDataForDropdown() {
+    try {
+        console.log('📥 Loading master data for dropdown...');
+        const result = await sheetsDB.getMasterData();
+        if (result.success) {
+            masterDataList = result.data || [];
+            console.log('✅ Loaded', masterDataList.length, 'master records');
+            return masterDataList;
+        }
+    } catch (error) {
+        console.error('❌ Error loading master data:', error);
+    }
+    return [];
+}
+
+function populateMasterDropdown() {
+    const select = document.getElementById('editMasterSelect');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- Pilih Master Data --</option>';
+    
+    masterDataList.forEach(master => {
+        const option = document.createElement('option');
+        option.value = master.id;
+        option.textContent = `${master.flavor} (${master.negara})`;
+        option.dataset.negara = master.negara;
+        option.dataset.flavor = master.flavor;
+        select.appendChild(option);
+    });
+}
+
+function onMasterSelected() {
+    const select = document.getElementById('editMasterSelect');
+    const masterId = select.value;
+    
+    if (masterId) {
+        selectedMaster = masterDataList.find(m => String(m.id) === String(masterId));
+        if (selectedMaster) {
+            document.getElementById('editFlavor').value = selectedMaster.flavor;
+            document.getElementById('editNegara').value = selectedMaster.negara;
+        }
+    } else {
+        selectedMaster = null;
+    }
+}
+
+async function editFlavorNegara() {
     const popup = document.getElementById('editFlavorNegaraPopup');
     if (popup) {
+        // Load master data for dropdown
+        if (masterDataList.length === 0) {
+            await loadMasterDataForDropdown();
+        }
+        populateMasterDropdown();
+        
         // Pre-fill with current values
         document.getElementById('editFlavor').value = currentData.flavor || '';
         document.getElementById('editNegara').value = currentData.negara || '';
+        document.getElementById('editMasterSelect').value = '';
+        selectedMaster = null;
+        
         popup.classList.remove('hidden');
     }
 }
@@ -228,7 +287,7 @@ async function saveFlavorNegara(event) {
     const newNegara = document.getElementById('editNegara').value;
     
     if (!newFlavor || !newNegara) {
-        showToast('Mohon lengkapi semua field', 'error');
+        showToast('Mohon lengkapi Flavor dan Negara', 'error');
         return;
     }
     
@@ -253,6 +312,11 @@ async function saveFlavorNegara(event) {
     currentData.flavor = newFlavor;
     currentData.negara = newNegara;
     
+    // Store master reference if selected
+    if (selectedMaster) {
+        currentData.masterId = selectedMaster.id;
+    }
+    
     // Update display
     document.getElementById('infoFlavor').textContent = newFlavor;
     document.getElementById('infoNegara').textContent = newNegara;
@@ -262,6 +326,74 @@ async function saveFlavorNegara(event) {
     
     closeEditFlavorNegaraPopup();
     showToast('Flavor dan Negara berhasil diubah', 'success');
+}
+
+// ==================== QUICK MASTER POPUP ====================
+
+function openQuickMasterPopup() {
+    const popup = document.getElementById('quickMasterPopup');
+    if (popup) {
+        document.getElementById('quickMasterForm').reset();
+        popup.classList.remove('hidden');
+    }
+}
+
+function closeQuickMasterPopup() {
+    const popup = document.getElementById('quickMasterPopup');
+    if (popup) {
+        popup.classList.add('hidden');
+    }
+}
+
+async function saveQuickMaster(event) {
+    event.preventDefault();
+    
+    const user = auth.getUser();
+    const masterData = {
+        negara: document.getElementById('quickMasterNegara').value.trim(),
+        flavor: document.getElementById('quickMasterFlavor').value.trim(),
+        keterangan: document.getElementById('quickMasterKeterangan').value.trim(),
+        distributor: document.getElementById('quickMasterDistributor').value.trim(),
+        bumbu: document.getElementById('quickMasterBumbu').value.trim(),
+        minyakBumbu: document.getElementById('quickMasterMinyakBumbu').value.trim(),
+        kodeSI: document.getElementById('quickMasterKodeSI').value.trim(),
+        kodeEtiket: document.getElementById('quickMasterKodeEtiket').value.trim(),
+        createdBy: user?.name || 'Unknown'
+    };
+    
+    if (!masterData.negara || !masterData.flavor) {
+        showToast('Negara dan Flavor harus diisi', 'error');
+        return;
+    }
+    
+    showLoading('Menyimpan master data...');
+    
+    try {
+        const result = await sheetsDB.addMaster(masterData);
+        
+        if (result.success) {
+            // Add to local list
+            masterDataList.push(result.master);
+            populateMasterDropdown();
+            
+            // Select the new master
+            document.getElementById('editMasterSelect').value = result.masterId;
+            document.getElementById('editFlavor').value = masterData.flavor;
+            document.getElementById('editNegara').value = masterData.negara;
+            selectedMaster = result.master;
+            
+            hideLoading();
+            closeQuickMasterPopup();
+            showToast('Master data berhasil disimpan dan dipilih', 'success');
+        } else {
+            hideLoading();
+            showToast('Gagal menyimpan: ' + result.error, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error saving quick master:', error);
+        showToast('Error: ' + error.message, 'error');
+    }
 }
 
 // Update Google Drive status display

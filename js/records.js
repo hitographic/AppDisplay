@@ -66,6 +66,7 @@ async function initRecordsPage() {
 function setupPermissionBasedUI() {
     const addDataBtn = document.querySelector('.btn-primary[onclick="openAddDataPopup()"]');
     const userMgmtLink = document.getElementById('userManagementLink');
+    const masterDataLink = document.getElementById('masterDataLink');
     const googleDriveAlert = document.getElementById('googleDriveAlert');
     const googleDriveConnected = document.getElementById('googleDriveConnected');
     const driveConnectionPopup = document.getElementById('driveConnectionPopup');
@@ -74,6 +75,13 @@ function setupPermissionBasedUI() {
     if (hasPermission('user_admin')) {
         if (userMgmtLink) {
             userMgmtLink.style.display = 'inline-flex';
+        }
+    }
+    
+    // Show master data link for editors
+    if (canEdit()) {
+        if (masterDataLink) {
+            masterDataLink.style.display = 'inline-flex';
         }
     }
     
@@ -551,6 +559,14 @@ function initSearchFilters() {
 function toggleAdvancedSearch() {
     const panel = document.getElementById('advancedSearchPanel');
     panel.classList.toggle('hidden');
+    
+    // Hide search results when closing panel
+    if (panel.classList.contains('hidden')) {
+        const searchResultsList = document.getElementById('searchResultsList');
+        if (searchResultsList) {
+            searchResultsList.classList.add('hidden');
+        }
+    }
 }
 
 function applySearch() {
@@ -595,9 +611,81 @@ function applySearch() {
     });
 
     currentPage = 1; // Reset to first page when searching
+    
+    // Render search results in list view
+    renderSearchResultsList(filteredRecords);
+    
+    // Also update main grid if needed
     renderRecords();
     
     showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
+}
+
+// Render search results as list view inside Advanced Search panel
+function renderSearchResultsList(records) {
+    const searchResultsList = document.getElementById('searchResultsList');
+    const searchResultsContainer = document.getElementById('searchResultsContainer');
+    const searchResultsCount = document.getElementById('searchResultsCount');
+    
+    if (!searchResultsList || !searchResultsContainer) return;
+    
+    // Show the results section
+    searchResultsList.classList.remove('hidden');
+    searchResultsCount.textContent = records.length;
+    
+    if (records.length === 0) {
+        searchResultsContainer.innerHTML = `
+            <div class="empty-search-results" style="text-align: center; padding: 20px; color: var(--gray-600);">
+                <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                <p>Tidak ada data yang cocok dengan pencarian</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const userCanEdit = canEdit();
+    const userCanValidate = canValidate();
+    
+    searchResultsContainer.innerHTML = records.map(record => {
+        // Determine validation status indicator
+        let validationClass = 'pending';
+        if (record.validationStatus === 'valid') {
+            validationClass = 'valid';
+        } else if (record.validationStatus === 'invalid') {
+            validationClass = 'invalid';
+        }
+        
+        return `
+            <div class="search-result-item">
+                <div class="search-result-flavor">
+                    <span class="validation-indicator ${validationClass}" title="${validationClass === 'valid' ? 'Valid' : validationClass === 'invalid' ? 'Invalid' : 'Belum Validasi'}"></span>
+                    ${escapeHtml(record.flavor)}
+                </div>
+                <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
+                <div class="search-result-actions">
+                    <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${userCanEdit ? `
+                    <button class="btn-action edit" onclick="editRecord('${record.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action delete" onclick="deleteRecord('${record.id}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn-action info" onclick="showValidationInfo('${record.id}')" title="Info">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                    ` : ''}
+                    ${userCanValidate ? `
+                    <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
+                        <i class="fas fa-check-double"></i>
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function resetSearch() {
@@ -609,6 +697,13 @@ function resetSearch() {
 
     filteredRecords = [...allRecords];
     currentPage = 1; // Reset to first page
+    
+    // Hide search results list
+    const searchResultsList = document.getElementById('searchResultsList');
+    if (searchResultsList) {
+        searchResultsList.classList.add('hidden');
+    }
+    
     renderRecords();
     
     showToast('Filter direset', 'info');

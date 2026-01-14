@@ -345,7 +345,7 @@
     <div id="editFlavorNegaraPopup" class="popup-overlay hidden">
         <div class="popup-content edit-flavor-popup-content">
             <div class="popup-header">
-                <h2><i class="fas fa-edit"></i> Edit Flavor & Negara</h2>
+                <h2><i class="fas fa-edit"></i> Pilih Master Data</h2>
                 <button class="btn-close" onclick="closeEditFlavorNegaraPopup()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -353,12 +353,25 @@
             <div class="popup-body">
                 <form id="editFlavorNegaraForm" onsubmit="saveFlavorNegara(event)">
                     <div class="form-group">
+                        <label for="editMasterSelect"><i class="fas fa-clipboard-list"></i> Pilih dari Master</label>
+                        <select id="editMasterSelect" onchange="onMasterSelected()">
+                            <option value="">-- Pilih Master Data --</option>
+                            <!-- Options akan diisi dari Master Data -->
+                        </select>
+                        <button type="button" class="btn-add-inline" onclick="openQuickMasterPopup()">
+                            <i class="fas fa-plus"></i> Buat Master Baru
+                        </button>
+                    </div>
+                    
+                    <div class="form-divider"><span>atau Input Manual</span></div>
+                    
+                    <div class="form-group">
                         <label for="editFlavor"><i class="fas fa-tag"></i> Flavor</label>
-                        <input type="text" id="editFlavor" placeholder="Masukkan flavor" required>
+                        <input type="text" id="editFlavor" placeholder="Masukkan flavor">
                     </div>
                     <div class="form-group">
                         <label for="editNegara"><i class="fas fa-globe"></i> Negara</label>
-                        <select id="editNegara" required>
+                        <select id="editNegara">
                             <option value="">Pilih Negara</option>
                             <option value="Indonesia">Indonesia</option>
                             <option value="Malaysia">Malaysia</option>
@@ -388,6 +401,74 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Master Popup -->
+    <div id="quickMasterPopup" class="popup-overlay hidden">
+        <div class="popup-content popup-large">
+            <div class="popup-header">
+                <h2><i class="fas fa-plus-circle"></i> Buat Master Data Baru</h2>
+                <button class="btn-close" onclick="closeQuickMasterPopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="quickMasterForm" class="popup-form" onsubmit="saveQuickMaster(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-globe"></i> Negara <span class="required">*</span></label>
+                        <input type="text" id="quickMasterNegara" required placeholder="Masukkan negara">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Flavor <span class="required">*</span></label>
+                        <input type="text" id="quickMasterFlavor" required placeholder="Masukkan flavor">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-info-circle"></i> Keterangan</label>
+                        <input type="text" id="quickMasterKeterangan" placeholder="Masukkan keterangan">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-truck"></i> Distributor</label>
+                        <input type="text" id="quickMasterDistributor" placeholder="Masukkan distributor">
+                    </div>
+                </div>
+                
+                <div class="form-divider"><span>Informasi Kemasan (Opsional)</span></div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-box"></i> Bumbu</label>
+                        <input type="text" id="quickMasterBumbu" placeholder="Kode/nama bumbu">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-oil-can"></i> Minyak Bumbu</label>
+                        <input type="text" id="quickMasterMinyakBumbu" placeholder="Kode/nama minyak bumbu">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-barcode"></i> Kode SI</label>
+                        <input type="text" id="quickMasterKodeSI" placeholder="Kode SI">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-ticket-alt"></i> Kode Etiket</label>
+                        <input type="text" id="quickMasterKodeEtiket" placeholder="Kode etiket">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeQuickMasterPopup()">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Simpan Master & Gunakan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
