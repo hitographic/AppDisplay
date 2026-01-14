@@ -767,7 +767,14 @@ async function proceedToCreateDisplay() {
 // ==================== PREVIEW POPUP ====================
 
 function openPreview(recordId) {
-    currentPreviewRecord = storage.getRecordById(recordId);
+    // Cari dari allRecords yang sudah dimuat (bukan dari local storage)
+    currentPreviewRecord = allRecords.find(r => r.id == recordId); // == untuk string/number match
+    
+    // Fallback ke storage jika tidak ditemukan di allRecords
+    if (!currentPreviewRecord) {
+        currentPreviewRecord = storage.getRecordById(recordId);
+    }
+    
     // Fallback: jika record tidak punya field photos, buat object kosong
     if (currentPreviewRecord && typeof currentPreviewRecord.photos !== 'object') {
         currentPreviewRecord.photos = {};
