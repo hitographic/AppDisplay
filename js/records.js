@@ -767,10 +767,20 @@ async function proceedToCreateDisplay() {
 // ==================== PREVIEW POPUP ====================
 
 function openPreview(recordId) {
-    // Cari dari allRecords yang sudah dimuat (bukan dari local storage)
-    currentPreviewRecord = allRecords.find(r => r.id == recordId); // == untuk string/number match
+    console.log('🔍 Opening preview for:', recordId, 'type:', typeof recordId);
+    console.log('🔍 allRecords length:', allRecords.length);
+    console.log('🔍 allRecords IDs:', allRecords.map(r => ({ id: r.id, type: typeof r.id })));
     
-    // Fallback ke storage jika tidak ditemukan di allRecords
+    // Cari dari allRecords yang sudah dimuat (bukan dari local storage)
+    // Konversi kedua sisi ke string untuk perbandingan yang konsisten
+    currentPreviewRecord = allRecords.find(r => String(r.id) === String(recordId));
+    
+    // Fallback ke filteredRecords jika tidak ditemukan di allRecords
+    if (!currentPreviewRecord) {
+        currentPreviewRecord = filteredRecords.find(r => String(r.id) === String(recordId));
+    }
+    
+    // Fallback ke storage jika tidak ditemukan
     if (!currentPreviewRecord) {
         currentPreviewRecord = storage.getRecordById(recordId);
     }
@@ -779,9 +789,10 @@ function openPreview(recordId) {
     if (currentPreviewRecord && typeof currentPreviewRecord.photos !== 'object') {
         currentPreviewRecord.photos = {};
     }
-    console.log('🔍 Opening preview for:', recordId);
+    
     console.log('🔍 Record data:', currentPreviewRecord);
     console.log('🔍 Photos:', currentPreviewRecord?.photos);
+    
     if (!currentPreviewRecord) {
         showToast('Record tidak ditemukan', 'error');
         return;
