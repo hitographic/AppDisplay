@@ -1,332 +1,683 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#e31e24">
-    <meta name="description" content="Material Display System - Product Display Management">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="MDS Track">
-    
-    <title>Display Records - MDS Track</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="../assets/Favicon MDS.png">
-    <link rel="apple-touch-icon" href="../assets/App MDS.png">
-    
-    <!-- Manifest for PWA -->
-    <link rel="manifest" href="../manifest.json">
-    
-    <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <img src="../assets/Navigation MDS.png" alt="MDS" class="nav-logo">
-        </div>
-        <div class="nav-user">
-            <span id="userName">User</span>
-            <a href="../users/" id="userManagementLink" class="btn-nav" style="display:none; margin-right: 10px;">
-                <i class="fas fa-users-cog"></i> Users
-            </a>
-            <button class="btn-logout" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
-        </div>
-    </nav>
+<!DOCTYPE html><!DOCTYPE html>
 
-    <!-- Main Content -->
-    <main class="main-content">
+<html lang="id"><html lang="id">
+
+<head><head>
+
+    <meta charset="UTF-8">    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta name="theme-color" content="#e31e24">    <meta name="theme-color" content="#e31e24">
+
+    <meta name="description" content="Material Display System - Product Display Management">    <meta name="description" content="Material Display System - Product Display Management">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <meta name="apple-mobile-web-app-title" content="MDS Track">    <meta name="apple-mobile-web-app-title" content="MDS Track">
+
+        
+
+    <title>Display Records - MDS Track</title>    <title>Display Records - MDS Track</title>
+
+        
+
+    <!-- Favicon -->    <!-- Favicon -->
+
+    <link rel="icon" type="image/png" href="../assets/Favicon MDS.png">    <link rel="icon" type="image/png" href="../assets/Favicon MDS.png">
+
+    <link rel="apple-touch-icon" href="../assets/App MDS.png">    <link rel="apple-touch-icon" href="../assets/App MDS.png">
+
+        
+
+    <!-- Manifest for PWA -->    <!-- Manifest for PWA -->
+
+    <link rel="manifest" href="../manifest.json">    <link rel="manifest" href="../manifest.json">
+
+        
+
+    <link rel="stylesheet" href="../css/style.css">    <link rel="stylesheet" href="../css/style.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head></head>
+
+<body><body>
+
+    <!-- Navigation -->    <!-- Navigation -->
+
+    <nav class="navbar">    <nav class="navbar">
+
+        <div class="nav-brand">        <div class="nav-brand">
+
+            <img src="../assets/Navigation MDS.png" alt="MDS" class="nav-logo">            <img src="../assets/Navigation MDS.png" alt="MDS" class="nav-logo">
+
+        </div>        </div>
+
+        <div class="nav-user">        <div class="nav-user">
+
+            <span id="userName">User</span>            <span id="userName">User</span>
+
+            <a href="../master/" id="masterDataLink" class="btn-nav" style="display:none; margin-right: 10px;">            <a href="../users/" id="userManagementLink" class="btn-nav" style="display:none; margin-right: 10px;">
+
+                <i class="fas fa-clipboard-list"></i> Master                <i class="fas fa-users-cog"></i> Users
+
+            </a>            </a>
+
+            <a href="../users/" id="userManagementLink" class="btn-nav" style="display:none; margin-right: 10px;">            <button class="btn-logout" onclick="logout()">
+
+                <i class="fas fa-users-cog"></i> Users                <i class="fas fa-sign-out-alt"></i> Logout
+
+            </a>            </button>
+
+            <button class="btn-logout" onclick="logout()">        </div>
+
+                <i class="fas fa-sign-out-alt"></i> Logout    </nav>
+
+            </button>
+
+        </div>    <!-- Main Content -->
+
+    </nav>    <main class="main-content">
+
         <!-- Header Section -->
+
+    <!-- Main Content -->        <div class="page-header">
+
+    <main class="main-content">            <h1><i class="fas fa-database"></i> Display Records</h1>
+
+        <!-- Header Section -->        </div>
+
         <div class="page-header">
-            <h1><i class="fas fa-database"></i> Display Records</h1>
-        </div>
 
-        <!-- Google Drive Connection Alert (Editor Only) -->
-        <div id="googleDriveAlert" class="google-drive-alert" style="display: none;">
+            <h1><i class="fas fa-database"></i> Display Records</h1>        <!-- Google Drive Connection Alert (Editor Only) -->
+
+        </div>        <div id="googleDriveAlert" class="google-drive-alert" style="display: none;">
+
             <div class="alert-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="alert-content">
-                <h3>Google Drive: Tidak Terkoneksi</h3>
-                <p>Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive. Foto akan disimpan di Google Drive dan dapat diakses kapan saja.</p>
-            </div>
-            <button class="btn-connect-drive" onclick="openDriveConnectionPopup()">
+
+        <!-- Google Drive Connection Alert (Editor Only) -->                <i class="fas fa-exclamation-triangle"></i>
+
+        <div id="googleDriveAlert" class="google-drive-alert" style="display: none;">            </div>
+
+            <div class="alert-icon">            <div class="alert-content">
+
+                <i class="fas fa-exclamation-triangle"></i>                <h3>Google Drive: Tidak Terkoneksi</h3>
+
+            </div>                <p>Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive. Foto akan disimpan di Google Drive dan dapat diakses kapan saja.</p>
+
+            <div class="alert-content">            </div>
+
+                <h3>Google Drive: Tidak Terkoneksi</h3>            <button class="btn-connect-drive" onclick="openDriveConnectionPopup()">
+
+                <p>Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive. Foto akan disimpan di Google Drive dan dapat diakses kapan saja.</p>                <i class="fas fa-plug"></i> Koneksikan
+
+            </div>            </button>
+
+            <button class="btn-connect-drive" onclick="openDriveConnectionPopup()">        </div>
+
                 <i class="fas fa-plug"></i> Koneksikan
-            </button>
-        </div>
 
-        <!-- Google Drive Connected Alert (Editor Only) -->
-        <div id="googleDriveConnected" class="google-drive-connected" style="display: none;">
+            </button>        <!-- Google Drive Connected Alert (Editor Only) -->
+
+        </div>        <div id="googleDriveConnected" class="google-drive-connected" style="display: none;">
+
             <div class="alert-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="alert-content">
-                <h3>Google Drive: Terkoneksi <i class="fas fa-check"></i></h3>
-                <p>Foto akan disimpan di Google Drive Anda.</p>
-            </div>
-            <button class="btn-connected" onclick="openDriveConnectionPopup()">
+
+        <!-- Google Drive Connected Alert (Editor Only) -->                <i class="fas fa-check-circle"></i>
+
+        <div id="googleDriveConnected" class="google-drive-connected" style="display: none;">            </div>
+
+            <div class="alert-icon">            <div class="alert-content">
+
+                <i class="fas fa-check-circle"></i>                <h3>Google Drive: Terkoneksi <i class="fas fa-check"></i></h3>
+
+            </div>                <p>Foto akan disimpan di Google Drive Anda.</p>
+
+            <div class="alert-content">            </div>
+
+                <h3>Google Drive: Terkoneksi <i class="fas fa-check"></i></h3>            <button class="btn-connected" onclick="openDriveConnectionPopup()">
+
+                <p>Foto akan disimpan di Google Drive Anda.</p>                <i class="fas fa-cog"></i> Terhubung
+
+            </div>            </button>
+
+            <button class="btn-connected" onclick="openDriveConnectionPopup()">        </div>
+
                 <i class="fas fa-cog"></i> Terhubung
-            </button>
-        </div>
 
-        <!-- Action Bar -->
-        <div class="action-bar">
+            </button>        <!-- Action Bar -->
+
+        </div>        <div class="action-bar">
+
             <button class="btn-primary" onclick="openAddDataPopup()">
-                <i class="fas fa-plus"></i> Tambah Data
-            </button>
-            
-            <div class="search-section">
-                <button class="btn-secondary" onclick="toggleAdvancedSearch()">
-                    <i class="fas fa-search-plus"></i> Advanced Search
-                </button>
-            </div>
-        </div>
 
-        <!-- Advanced Search Panel -->
-        <div id="advancedSearchPanel" class="search-panel hidden">
+        <!-- Action Bar -->                <i class="fas fa-plus"></i> Tambah Data
+
+        <div class="action-bar">            </button>
+
+            <button class="btn-primary" onclick="openAddDataPopup()">            
+
+                <i class="fas fa-plus"></i> Tambah Data            <div class="search-section">
+
+            </button>                <button class="btn-secondary" onclick="toggleAdvancedSearch()">
+
+                                <i class="fas fa-search-plus"></i> Advanced Search
+
+            <div class="search-section">                </button>
+
+                <button class="btn-secondary" onclick="toggleAdvancedSearch()">            </div>
+
+                    <i class="fas fa-search-plus"></i> Advanced Search        </div>
+
+                </button>
+
+            </div>        <!-- Advanced Search Panel -->
+
+        </div>        <div id="advancedSearchPanel" class="search-panel hidden">
+
             <div class="search-grid">
-                <div class="search-field">
-                    <label><i class="fas fa-barcode"></i> Nomor Material</label>
-                    <input type="text" id="searchNomorMaterial" placeholder="Cari nomor material...">
+
+        <!-- Advanced Search Panel -->                <div class="search-field">
+
+        <div id="advancedSearchPanel" class="search-panel hidden">                    <label><i class="fas fa-barcode"></i> Nomor Material</label>
+
+            <div class="search-grid">                    <input type="text" id="searchNomorMaterial" placeholder="Cari nomor material...">
+
+                <div class="search-field">                </div>
+
+                    <label><i class="fas fa-barcode"></i> Nomor Material</label>                <div class="search-field">
+
+                    <input type="text" id="searchNomorMaterial" placeholder="Cari nomor material...">                    <label><i class="fas fa-tag"></i> Flavor</label>
+
+                </div>                    <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)">
+
+                <div class="search-field">                </div>
+
+                    <label><i class="fas fa-tag"></i> Flavor</label>                <div class="search-field">
+
+                    <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)">                    <label><i class="fas fa-globe"></i> Negara</label>
+
+                </div>                    <input type="text" id="searchNegara" placeholder="Cari negara...">
+
+                <div class="search-field">                </div>
+
+                    <label><i class="fas fa-globe"></i> Negara</label>                <div class="search-field">
+
+                    <input type="text" id="searchNegara" placeholder="Cari negara...">                    <label><i class="fas fa-calendar"></i> Tanggal</label>
+
+                </div>                    <input type="date" id="searchDate">
+
+                <div class="search-field">                </div>
+
+                    <label><i class="fas fa-calendar"></i> Tanggal</label>                <div class="search-field">
+
+                    <input type="date" id="searchDate">                    <label><i class="fas fa-check-circle"></i> Status Validasi</label>
+
+                </div>                    <select id="searchValidation">
+
+                <div class="search-field">                        <option value="">Semua Status</option>
+
+                    <label><i class="fas fa-check-circle"></i> Status Validasi</label>                        <option value="valid">Valid</option>
+
+                    <select id="searchValidation">                        <option value="invalid">Invalid</option>
+
+                        <option value="">Semua Status</option>                        <option value="pending">Belum Validasi</option>
+
+                        <option value="valid">Valid</option>                    </select>
+
+                        <option value="invalid">Invalid</option>                </div>
+
+                        <option value="pending">Belum Validasi</option>                <div class="search-actions">
+
+                    </select>                    <button class="btn-primary" onclick="applySearch()">
+
+                </div>                        <i class="fas fa-search"></i> Cari
+
+                <div class="search-actions">                    </button>
+
+                    <button class="btn-primary" onclick="applySearch()">                    <button class="btn-secondary" onclick="resetSearch()">
+
+                        <i class="fas fa-search"></i> Cari                        <i class="fas fa-undo"></i> Reset
+
+                    </button>                    </button>
+
+                    <button class="btn-secondary" onclick="resetSearch()">                </div>
+
+                        <i class="fas fa-undo"></i> Reset            </div>
+
+                    </button>        </div>
+
                 </div>
-                <div class="search-field">
-                    <label><i class="fas fa-tag"></i> Flavor</label>
-                    <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)">
-                </div>
-                <div class="search-field">
-                    <label><i class="fas fa-globe"></i> Negara</label>
-                    <input type="text" id="searchNegara" placeholder="Cari negara...">
-                </div>
-                <div class="search-field">
-                    <label><i class="fas fa-calendar"></i> Tanggal</label>
-                    <input type="date" id="searchDate">
-                </div>
-                <div class="search-field">
-                    <label><i class="fas fa-check-circle"></i> Status Validasi</label>
-                    <select id="searchValidation">
-                        <option value="">Semua Status</option>
-                        <option value="valid">Valid</option>
-                        <option value="invalid">Invalid</option>
-                        <option value="pending">Belum Validasi</option>
-                    </select>
-                </div>
-                <div class="search-actions">
-                    <button class="btn-primary" onclick="applySearch()">
-                        <i class="fas fa-search"></i> Cari
-                    </button>
-                    <button class="btn-secondary" onclick="resetSearch()">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
-                </div>
+
+            </div>        <!-- Records Grid -->
+
+                    <div class="records-container">
+
+            <!-- Search Results List View -->            <div id="recordsGrid" class="records-grid">
+
+            <div id="searchResultsList" class="search-results-list hidden">                <!-- Cards akan dimuat di sini -->
+
+                <h3><i class="fas fa-list"></i> Hasil Pencarian (<span id="searchResultsCount">0</span>)</h3>            </div>
+
+                <div id="searchResultsContainer" class="search-results-container">            
+
+                    <!-- Search results will be populated here -->            <div id="emptyState" class="empty-state hidden">
+
+                </div>                <i class="fas fa-inbox"></i>
+
+            </div>                <h3>Belum ada data</h3>
+
+        </div>                <p>Klik "Tambah Data" untuk menambahkan record baru</p>
+
             </div>
-        </div>
 
         <!-- Records Grid -->
-        <div class="records-container">
-            <div id="recordsGrid" class="records-grid">
-                <!-- Cards akan dimuat di sini -->
-            </div>
-            
-            <div id="emptyState" class="empty-state hidden">
-                <i class="fas fa-inbox"></i>
-                <h3>Belum ada data</h3>
-                <p>Klik "Tambah Data" untuk menambahkan record baru</p>
-            </div>
 
-            <div id="loadingRecords" class="loading-records hidden">
-                <div class="spinner"></div>
-                <p>Memuat data...</p>
+        <div class="records-container">            <div id="loadingRecords" class="loading-records hidden">
+
+            <div id="recordsGrid" class="records-grid">                <div class="spinner"></div>
+
+                <!-- Cards akan dimuat di sini -->                <p>Memuat data...</p>
+
+            </div>            </div>
+
+                        
+
+            <div id="emptyState" class="empty-state hidden">            <!-- Pagination -->
+
+                <i class="fas fa-inbox"></i>            <div id="paginationContainer" class="pagination-container"></div>
+
+                <h3>Belum ada data</h3>        </div>
+
+                <p>Klik "Tambah Data" untuk menambahkan record baru</p>    </main>
+
             </div>
-            
-            <!-- Pagination -->
-            <div id="paginationContainer" class="pagination-container"></div>
-        </div>
-    </main>
 
     <!-- Add Data Popup -->
-    <div id="addDataPopup" class="popup-overlay hidden">
-        <div class="popup-content">
-            <div class="popup-header">
-                <h2><i class="fas fa-plus-circle"></i> Tambah Data Baru</h2>
-                <button class="btn-close" onclick="closeAddDataPopup()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="addDataForm" class="popup-form">
+
+            <div id="loadingRecords" class="loading-records hidden">    <div id="addDataPopup" class="popup-overlay hidden">
+
+                <div class="spinner"></div>        <div class="popup-content">
+
+                <p>Memuat data...</p>            <div class="popup-header">
+
+            </div>                <h2><i class="fas fa-plus-circle"></i> Tambah Data Baru</h2>
+
+                            <button class="btn-close" onclick="closeAddDataPopup()">
+
+            <!-- Pagination -->                    <i class="fas fa-times"></i>
+
+            <div id="paginationContainer" class="pagination-container"></div>                </button>
+
+        </div>            </div>
+
+    </main>            <form id="addDataForm" class="popup-form">
+
                 <div class="form-group">
-                    <label for="inputTanggal">
-                        <i class="fas fa-calendar-alt"></i> Tanggal
-                    </label>
-                    <input type="date" id="inputTanggal" required>
-                </div>
-                <div class="form-group">
-                    <label for="inputNomorMaterial">
-                        <i class="fas fa-barcode"></i> Nomor Material
-                    </label>
-                    <input type="text" id="inputNomorMaterial" placeholder="Masukkan nomor material" required pattern="[0-9]+" inputmode="numeric">
-                </div>
-                <div class="form-group">
-                    <label for="inputFlavor">
-                        <i class="fas fa-tag"></i> Nama Flavor
-                    </label>
-                    <input type="text" id="inputFlavor" placeholder="Masukkan nama flavor" required>
-                </div>
-                <div class="form-group">
-                    <label for="inputNegara">
-                        <i class="fas fa-globe"></i> Negara
-                    </label>
-                    <input type="text" id="inputNegara" placeholder="Masukkan nama negara" required>
-                </div>
+
+    <!-- Add Data Popup -->                    <label for="inputTanggal">
+
+    <div id="addDataPopup" class="popup-overlay hidden">                        <i class="fas fa-calendar-alt"></i> Tanggal
+
+        <div class="popup-content">                    </label>
+
+            <div class="popup-header">                    <input type="date" id="inputTanggal" required>
+
+                <h2><i class="fas fa-plus-circle"></i> Tambah Data Baru</h2>                </div>
+
+                <button class="btn-close" onclick="closeAddDataPopup()">                <div class="form-group">
+
+                    <i class="fas fa-times"></i>                    <label for="inputNomorMaterial">
+
+                </button>                        <i class="fas fa-barcode"></i> Nomor Material
+
+            </div>                    </label>
+
+            <form id="addDataForm" class="popup-form">                    <input type="text" id="inputNomorMaterial" placeholder="Masukkan nomor material" required pattern="[0-9]+" inputmode="numeric">
+
+                <div class="form-group">                </div>
+
+                    <label for="inputTanggal">                <div class="form-group">
+
+                        <i class="fas fa-calendar-alt"></i> Tanggal                    <label for="inputFlavor">
+
+                    </label>                        <i class="fas fa-tag"></i> Nama Flavor
+
+                    <input type="date" id="inputTanggal" required>                    </label>
+
+                </div>                    <input type="text" id="inputFlavor" placeholder="Masukkan nama flavor" required>
+
+                <div class="form-group">                </div>
+
+                    <label for="inputNomorMaterial">                <div class="form-group">
+
+                        <i class="fas fa-barcode"></i> Nomor Material                    <label for="inputNegara">
+
+                    </label>                        <i class="fas fa-globe"></i> Negara
+
+                    <input type="text" id="inputNomorMaterial" placeholder="Masukkan nomor material" required pattern="[0-9]+" inputmode="numeric">                    </label>
+
+                </div>                    <input type="text" id="inputNegara" placeholder="Masukkan nama negara" required>
+
+                <div class="form-group">                </div>
+
+                    <label for="inputFlavor">                <div class="popup-actions">
+
+                        <i class="fas fa-tag"></i> Nama Flavor                    <button type="button" class="btn-secondary" onclick="closeAddDataPopup()">
+
+                    </label>                        <i class="fas fa-times"></i> Batal
+
+                    <input type="text" id="inputFlavor" placeholder="Masukkan nama flavor" required>                    </button>
+
+                </div>                    <button type="submit" class="btn-primary">
+
+                <div class="form-group">                        <i class="fas fa-arrow-right"></i> Lanjut ke Create Display
+
+                    <label for="inputNegara">                    </button>
+
+                        <i class="fas fa-globe"></i> Negara                </div>
+
+                    </label>            </form>
+
+                    <input type="text" id="inputNegara" placeholder="Masukkan nama negara" required>        </div>
+
+                </div>    </div>
+
                 <div class="popup-actions">
-                    <button type="button" class="btn-secondary" onclick="closeAddDataPopup()">
-                        <i class="fas fa-times"></i> Batal
-                    </button>
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-arrow-right"></i> Lanjut ke Create Display
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Preview Popup -->
-    <div id="previewPopup" class="popup-overlay hidden">
-        <div class="popup-content popup-preview">
-            <div class="popup-header">
-                <h2 id="previewTitle"><i class="fas fa-images"></i> Preview Display</h2>
-                <button class="btn-close" onclick="closePreviewPopup()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="preview-tabs">
+                    <button type="button" class="btn-secondary" onclick="closeAddDataPopup()">    <!-- Preview Popup -->
+
+                        <i class="fas fa-times"></i> Batal    <div id="previewPopup" class="popup-overlay hidden">
+
+                    </button>        <div class="popup-content popup-preview">
+
+                    <button type="submit" class="btn-primary">            <div class="popup-header">
+
+                        <i class="fas fa-arrow-right"></i> Lanjut ke Create Display                <h2 id="previewTitle"><i class="fas fa-images"></i> Preview Display</h2>
+
+                    </button>                <button class="btn-close" onclick="closePreviewPopup()">
+
+                </div>                    <i class="fas fa-times"></i>
+
+            </form>                </button>
+
+        </div>            </div>
+
+    </div>            <div class="preview-tabs">
+
                 <button class="tab-btn active" data-tab="bumbu">Bumbu</button>
-                <button class="tab-btn" data-tab="m-bumbu">M. Bumbu</button>
-                <button class="tab-btn" data-tab="si">SI</button>
-                <button class="tab-btn" data-tab="karton">Karton</button>
-                <button class="tab-btn" data-tab="etiket">Etiket</button>
-                <button class="tab-btn" data-tab="etiket-banded">Etiket Banded</button>
-                <button class="tab-btn" data-tab="plakban">Plakban</button>
-            </div>
-            <div id="previewContent" class="preview-content">
+
+    <!-- Preview Popup -->                <button class="tab-btn" data-tab="m-bumbu">M. Bumbu</button>
+
+    <div id="previewPopup" class="popup-overlay hidden">                <button class="tab-btn" data-tab="si">SI</button>
+
+        <div class="popup-content popup-preview">                <button class="tab-btn" data-tab="karton">Karton</button>
+
+            <div class="popup-header">                <button class="tab-btn" data-tab="etiket">Etiket</button>
+
+                <h2 id="previewTitle"><i class="fas fa-images"></i> Preview Display</h2>                <button class="tab-btn" data-tab="etiket-banded">Etiket Banded</button>
+
+                <button class="btn-close" onclick="closePreviewPopup()">                <button class="tab-btn" data-tab="plakban">Plakban</button>
+
+                    <i class="fas fa-times"></i>            </div>
+
+                </button>            <div id="previewContent" class="preview-content">
+
+            </div>                <!-- Preview images akan dimuat di sini -->
+
+            <div class="preview-tabs">            </div>
+
+                <button class="tab-btn active" data-tab="bumbu">Bumbu</button>            <div class="preview-info">
+
+                <button class="tab-btn" data-tab="m-bumbu">M. Bumbu</button>                <div id="previewRecordInfo" class="record-info-list">
+
+                <button class="tab-btn" data-tab="si">SI</button>                    <!-- Record info (negara, nomor material) akan dimuat di sini -->
+
+                <button class="tab-btn" data-tab="karton">Karton</button>                </div>
+
+                <button class="tab-btn" data-tab="etiket">Etiket</button>                <p><strong>Kode Produksi:</strong></p>
+
+                <button class="tab-btn" data-tab="etiket-banded">Etiket Banded</button>                <div id="previewKodeProduksi" class="kode-produksi-list"></div>
+
+                <button class="tab-btn" data-tab="plakban">Plakban</button>            </div>
+
+            </div>        </div>
+
+            <div id="previewContent" class="preview-content">    </div>
+
                 <!-- Preview images akan dimuat di sini -->
-            </div>
-            <div class="preview-info">
-                <div id="previewRecordInfo" class="record-info-list">
-                    <!-- Record info (negara, nomor material) akan dimuat di sini -->
-                </div>
-                <p><strong>Kode Produksi:</strong></p>
-                <div id="previewKodeProduksi" class="kode-produksi-list"></div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Validation Popup -->
-    <div id="validationPopup" class="popup-overlay hidden">
-        <div class="popup-content validation-popup-content">
-            <div class="popup-header">
-                <h2><i class="fas fa-check-double"></i> Validasi Record</h2>
-                <button class="btn-close" onclick="closeValidationPopup()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="popup-body">
+            </div>    <!-- Validation Popup -->
+
+            <div class="preview-info">    <div id="validationPopup" class="popup-overlay hidden">
+
+                <div id="previewRecordInfo" class="record-info-list">        <div class="popup-content validation-popup-content">
+
+                    <!-- Record info (negara, nomor material) akan dimuat di sini -->            <div class="popup-header">
+
+                </div>                <h2><i class="fas fa-check-double"></i> Validasi Record</h2>
+
+                <p><strong>Kode Produksi:</strong></p>                <button class="btn-close" onclick="closeValidationPopup()">
+
+                <div id="previewKodeProduksi" class="kode-produksi-list"></div>                    <i class="fas fa-times"></i>
+
+            </div>                </button>
+
+        </div>            </div>
+
+    </div>            <div class="popup-body">
+
                 <div id="validationRecordInfo" class="validation-info"></div>
-                
-                <div class="validation-options">
-                    <label class="validation-option valid-option" onclick="selectValidation('valid')">
-                        <input type="radio" name="validationStatus" value="valid">
-                        <span class="validation-icon"><i class="fas fa-check-circle"></i></span>
-                        <span class="validation-text">
-                            <strong>Valid</strong>
-                            <small>Data sudah sesuai</small>
-                        </span>
-                    </label>
-                    
-                    <label class="validation-option invalid-option" onclick="selectValidation('invalid')">
-                        <input type="radio" name="validationStatus" value="invalid">
-                        <span class="validation-icon"><i class="fas fa-times-circle"></i></span>
-                        <span class="validation-text">
-                            <strong>Invalid</strong>
-                            <small>Ada ketidaksesuaian</small>
-                        </span>
-                    </label>
-                </div>
-                
-                <div id="invalidReasonContainer" class="invalid-reason-container">
-                    <label for="invalidReason" class="form-label">
-                        <i class="fas fa-comment-dots"></i> Keterangan Invalid
-                    </label>
+
+    <!-- Validation Popup -->                
+
+    <div id="validationPopup" class="popup-overlay hidden">                <div class="validation-options">
+
+        <div class="popup-content validation-popup-content">                    <label class="validation-option valid-option" onclick="selectValidation('valid')">
+
+            <div class="popup-header">                        <input type="radio" name="validationStatus" value="valid">
+
+                <h2><i class="fas fa-check-double"></i> Validasi Record</h2>                        <span class="validation-icon"><i class="fas fa-check-circle"></i></span>
+
+                <button class="btn-close" onclick="closeValidationPopup()">                        <span class="validation-text">
+
+                    <i class="fas fa-times"></i>                            <strong>Valid</strong>
+
+                </button>                            <small>Data sudah sesuai</small>
+
+            </div>                        </span>
+
+            <div class="popup-body">                    </label>
+
+                <div id="validationRecordInfo" class="validation-info"></div>                    
+
+                                    <label class="validation-option invalid-option" onclick="selectValidation('invalid')">
+
+                <div class="validation-options">                        <input type="radio" name="validationStatus" value="invalid">
+
+                    <label class="validation-option valid-option" onclick="selectValidation('valid')">                        <span class="validation-icon"><i class="fas fa-times-circle"></i></span>
+
+                        <input type="radio" name="validationStatus" value="valid">                        <span class="validation-text">
+
+                        <span class="validation-icon"><i class="fas fa-check-circle"></i></span>                            <strong>Invalid</strong>
+
+                        <span class="validation-text">                            <small>Ada ketidaksesuaian</small>
+
+                            <strong>Valid</strong>                        </span>
+
+                            <small>Data sudah sesuai</small>                    </label>
+
+                        </span>                </div>
+
+                    </label>                
+
+                                    <div id="invalidReasonContainer" class="invalid-reason-container">
+
+                    <label class="validation-option invalid-option" onclick="selectValidation('invalid')">                    <label for="invalidReason" class="form-label">
+
+                        <input type="radio" name="validationStatus" value="invalid">                        <i class="fas fa-comment-dots"></i> Keterangan Invalid
+
+                        <span class="validation-icon"><i class="fas fa-times-circle"></i></span>                    </label>
+
+                        <span class="validation-text">                    <textarea id="invalidReason" rows="3" placeholder="Jelaskan alasan data tidak valid..." class="form-textarea"></textarea>
+
+                            <strong>Invalid</strong>                </div>
+
+                            <small>Ada ketidaksesuaian</small>                
+
+                        </span>                <input type="hidden" id="validationRecordId">
+
+                    </label>                
+
+                </div>                <button type="button" class="btn-primary btn-submit-validation" onclick="submitValidation()">
+
+                                    <i class="fas fa-save"></i> Simpan Validasi
+
+                <div id="invalidReasonContainer" class="invalid-reason-container">                </button>
+
+                    <label for="invalidReason" class="form-label">            </div>
+
+                        <i class="fas fa-comment-dots"></i> Keterangan Invalid        </div>
+
+                    </label>    </div>
+
                     <textarea id="invalidReason" rows="3" placeholder="Jelaskan alasan data tidak valid..." class="form-textarea"></textarea>
-                </div>
-                
-                <input type="hidden" id="validationRecordId">
-                
-                <button type="button" class="btn-primary btn-submit-validation" onclick="submitValidation()">
-                    <i class="fas fa-save"></i> Simpan Validasi
-                </button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Google Drive Connection Popup -->
-    <div id="driveConnectionPopup" class="popup-overlay hidden">
-        <div class="popup-content" style="max-width: 400px;">
-            <div class="popup-header">
-                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>
-            </div>
-            <div class="popup-body" style="text-align: center; padding: 20px;">
-                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">
-                    <i class="fab fa-google-drive"></i>
-                </div>
+                </div>    <!-- Google Drive Connection Popup -->
+
+                    <div id="driveConnectionPopup" class="popup-overlay hidden">
+
+                <input type="hidden" id="validationRecordId">        <div class="popup-content" style="max-width: 400px;">
+
+                            <div class="popup-header">
+
+                <button type="button" class="btn-primary btn-submit-validation" onclick="submitValidation()">                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>
+
+                    <i class="fas fa-save"></i> Simpan Validasi            </div>
+
+                </button>            <div class="popup-body" style="text-align: center; padding: 20px;">
+
+            </div>                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">
+
+        </div>                    <i class="fab fa-google-drive"></i>
+
+    </div>                </div>
+
                 <p style="margin-bottom: 15px; color: #333;">
-                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.
-                </p>
-                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.
-                </p>
-                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">
-                </div>
-                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px; margin-bottom: 10px;">
+
+    <!-- Google Drive Connection Popup -->                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.
+
+    <div id="driveConnectionPopup" class="popup-overlay hidden">                </p>
+
+        <div class="popup-content" style="max-width: 400px;">                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+
+            <div class="popup-header">                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.
+
+                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>                </p>
+
+            </div>                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">
+
+            <div class="popup-body" style="text-align: center; padding: 20px;">                </div>
+
+                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px; margin-bottom: 10px;">
+
+                    <i class="fab fa-google-drive"></i>                    <i class="fas fa-link"></i> Hubungkan
+
+                </div>                </button>
+
+                <p style="margin-bottom: 15px; color: #333;">                <button class="btn-danger" id="btnDisconnectDrivePopup" onclick="disconnectGoogleDriveFromPopup()" style="width: 100%; padding: 12px; margin-bottom: 10px; display: none;">
+
+                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.                    <i class="fas fa-unlink"></i> Putuskan
+
+                </p>                </button>
+
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px;">
+
+                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.                    <i class="fas fa-forward"></i> Lewati (Simpan Lokal)
+
+                </p>                </button>
+
+                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">            </div>
+
+                </div>        </div>
+
+                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px; margin-bottom: 10px;">    </div>
+
                     <i class="fas fa-link"></i> Hubungkan
-                </button>
-                <button class="btn-danger" id="btnDisconnectDrivePopup" onclick="disconnectGoogleDriveFromPopup()" style="width: 100%; padding: 12px; margin-bottom: 10px; display: none;">
-                    <i class="fas fa-unlink"></i> Putuskan
-                </button>
-                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px;">
+
+                </button>    <!-- Loading Overlay -->
+
+                <button class="btn-danger" id="btnDisconnectDrivePopup" onclick="disconnectGoogleDriveFromPopup()" style="width: 100%; padding: 12px; margin-bottom: 10px; display: none;">    <div id="loadingOverlay" class="loading-overlay hidden">
+
+                    <i class="fas fa-unlink"></i> Putuskan        <div class="spinner"></div>
+
+                </button>        <p id="loadingText">Memproses...</p>
+
+                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px;">    </div>
+
                     <i class="fas fa-forward"></i> Lewati (Simpan Lokal)
-                </button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <p id="loadingText">Memproses...</p>
-    </div>
+                </button>    <!-- App Footer -->
 
-    <!-- App Footer -->
-    <footer class="app-footer">
-        <p>
-            <span>&copy; <span id="footerYear"></span></span>
+            </div>    <footer class="app-footer">
+
+        </div>        <p>
+
+    </div>            <span>&copy; <span id="footerYear"></span></span>
+
             <span class="footer-version">ver.1.0.1</span>
-            <span>by <span class="footer-brand">DuoBingo</span> for <span class="footer-company">Indofood</span></span>
-        </p>
-    </footer>
 
-    <script src="../js/config.js"></script>
+    <!-- Loading Overlay -->            <span>by <span class="footer-brand">DuoBingo</span> for <span class="footer-company">Indofood</span></span>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">        </p>
+
+        <div class="spinner"></div>    </footer>
+
+        <p id="loadingText">Memproses...</p>
+
+    </div>    <script src="../js/config.js"></script>
+
     <script src="../js/auth.js"></script>
-    <script src="../js/sheets-db.js"></script>
-    <script src="../js/storage.js"></script>
-    <script src="../js/test-data.js"></script>
-    <script src="../js/records.js"></script>
-    <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
-    
-    <!-- Service Worker Registration for PWA -->
+
+    <!-- App Footer -->    <script src="../js/sheets-db.js"></script>
+
+    <footer class="app-footer">    <script src="../js/storage.js"></script>
+
+        <p>    <script src="../js/test-data.js"></script>
+
+            <span>&copy; <span id="footerYear"></span></span>    <script src="../js/records.js"></script>
+
+            <span class="footer-version">ver.1.0.1</span>    <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
+
+            <span>by <span class="footer-brand">DuoBingo</span> for <span class="footer-company">Indofood</span></span>    
+
+        </p>    <!-- Service Worker Registration for PWA -->
+
+    </footer>    <script>
+
+        if ('serviceWorker' in navigator) {
+
+    <script src="../js/config.js"></script>            navigator.serviceWorker.register('../sw.js').then(reg => {
+
+    <script src="../js/auth.js"></script>                console.log('Service Worker registered:', reg);
+
+    <script src="../js/sheets-db.js"></script>            }).catch(err => {
+
+    <script src="../js/storage.js"></script>                console.log('Service Worker registration failed:', err);
+
+    <script src="../js/test-data.js"></script>            });
+
+    <script src="../js/records.js"></script>        }
+
+    <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>    </script>
+
+    </body>
+
+    <!-- Service Worker Registration for PWA --></html>
+
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('../sw.js').then(reg => {

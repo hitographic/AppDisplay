@@ -1,15 +1,15 @@
 // MDS Track - Service Worker
-// Version 1.3.0 - Added Master Data page support
+// Version 1.4.0 - Folder-based URLs (no .html extensions)
 
-const CACHE_NAME = 'mds-track-v1.3.0';
+const CACHE_NAME = 'mds-track-v1.4.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
   '/AppDisplay/index.html',
   '/AppDisplay/records/',
   '/AppDisplay/records/index.html',
-  '/AppDisplay/records.html',
-  '/AppDisplay/master.html',
+  '/AppDisplay/master/',
+  '/AppDisplay/master/index.html',
   '/AppDisplay/create-display/',
   '/AppDisplay/create-display/index.html',
   '/AppDisplay/users/',
@@ -24,6 +24,8 @@ const URLS_TO_CACHE = [
   '/AppDisplay/js/create-display.js',
   '/AppDisplay/js/master.js',
   '/AppDisplay/js/test-data.js',
+  '/AppDisplay/js/users.js',
+  '/AppDisplay/js/users-pagination.js',
   '/AppDisplay/assets/Favicon MDS.png',
   '/AppDisplay/assets/App MDS.png',
   '/AppDisplay/assets/Login MDS.png',

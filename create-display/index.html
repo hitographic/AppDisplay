@@ -1,393 +1,933 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#e31e24">
-    <meta name="description" content="Material Display System - Product Display Management">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="MDS Track">
-    
-    <title>Create Display - MDS Track</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="../assets/Favicon MDS.png">
-    <link rel="apple-touch-icon" href="../assets/App MDS.png">
-    
-    <!-- Manifest for PWA -->
-    <link rel="manifest" href="../manifest.json">
-    
-    <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <img src="../assets/Navigation MDS.png" alt="MDS" class="nav-logo">
-        </div>
-        <div class="nav-actions">
-            <button class="btn-back" onclick="goBack()">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </button>
-        </div>
-    </nav>
+<!DOCTYPE html><!DOCTYPE html>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Header Section -->
-        <div class="page-header">
-            <h1><i class="fas fa-camera"></i> Create Display</h1>
-            <div id="displayInfo" class="display-info">
-                <span class="info-item" id="flavorItem">
-                    <i class="fas fa-tag"></i> <span id="infoFlavor">-</span>
-                    <button class="btn-edit-inline" id="btnEditFlavor" onclick="editFlavorNegara()" style="display:none;">
-                        <i class="fas fa-pencil-alt"></i>
+<html lang="id"><html lang="id">
+
+<head><head>
+
+    <meta charset="UTF-8">    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta name="theme-color" content="#e31e24">    <meta name="theme-color" content="#e31e24">
+
+    <meta name="description" content="Material Display System - Product Display Management">    <meta name="description" content="Material Display System - Product Display Management">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <meta name="apple-mobile-web-app-title" content="MDS Track">    <meta name="apple-mobile-web-app-title" content="MDS Track">
+
+        
+
+    <title>Create Display - MDS Track</title>    <title>Create Display - MDS Track</title>
+
+        
+
+    <!-- Favicon -->    <!-- Favicon -->
+
+    <link rel="icon" type="image/png" href="../assets/Favicon MDS.png">    <link rel="icon" type="image/png" href="../assets/Favicon MDS.png">
+
+    <link rel="apple-touch-icon" href="../assets/App MDS.png">    <link rel="apple-touch-icon" href="../assets/App MDS.png">
+
+        
+
+    <!-- Manifest for PWA -->    <!-- Manifest for PWA -->
+
+    <link rel="manifest" href="../manifest.json">    <link rel="manifest" href="../manifest.json">
+
+        
+
+    <link rel="stylesheet" href="../css/style.css">    <link rel="stylesheet" href="../css/style.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head></head>
+
+<body><body>
+
+    <!-- Navigation -->    <!-- Navigation -->
+
+    <nav class="navbar">    <nav class="navbar">
+
+        <div class="nav-brand">        <div class="nav-brand">
+
+            <img src="../assets/Navigation MDS.png" alt="MDS" class="nav-logo">            <img src="../assets/Navigation MDS.png" alt="MDS" class="nav-logo">
+
+        </div>        </div>
+
+        <div class="nav-actions">        <div class="nav-actions">
+
+            <button class="btn-back" onclick="goBack()">            <button class="btn-back" onclick="goBack()">
+
+                <i class="fas fa-arrow-left"></i> Kembali                <i class="fas fa-arrow-left"></i> Kembali
+
+            </button>            </button>
+
+        </div>        </div>
+
+    </nav>    </nav>
+
+
+
+    <!-- Main Content -->    <!-- Main Content -->
+
+    <main class="main-content">    <main class="main-content">
+
+        <!-- Header Section -->        <!-- Header Section -->
+
+        <div class="page-header">        <div class="page-header">
+
+            <h1><i class="fas fa-camera"></i> Create Display</h1>            <h1><i class="fas fa-camera"></i> Create Display</h1>
+
+            <div id="displayInfo" class="display-info">            <div id="displayInfo" class="display-info">
+
+                <span class="info-item" id="flavorItem">                <span class="info-item" id="flavorItem">
+
+                    <i class="fas fa-tag"></i> <span id="infoFlavor">-</span>                    <i class="fas fa-tag"></i> <span id="infoFlavor">-</span>
+
+                    <button class="btn-edit-inline" id="btnEditFlavor" onclick="editFlavorNegara()" style="display:none;">                    <button class="btn-edit-inline" id="btnEditFlavor" onclick="editFlavorNegara()" style="display:none;">
+
+                        <i class="fas fa-pencil-alt"></i>                        <i class="fas fa-pencil-alt"></i>
+
+                    </button>                    </button>
+
+                </span>                </span>
+
+                <span class="info-item" id="nomorMaterialItem">                <span class="info-item" id="nomorMaterialItem">
+
+                    <i class="fas fa-barcode"></i> <span id="infoNomorMaterial">-</span>                    <i class="fas fa-barcode"></i> <span id="infoNomorMaterial">-</span>
+
+                </span>                </span>
+
+                <span class="info-item" id="negaraItem">                <span class="info-item" id="negaraItem">
+
+                    <i class="fas fa-globe"></i> <span id="infoNegara">-</span>                    <i class="fas fa-globe"></i> <span id="infoNegara">-</span>
+
+                </span>                </span>
+
+                <span class="info-item"><i class="fas fa-calendar"></i> <span id="infoTanggal">-</span></span>                <span class="info-item"><i class="fas fa-calendar"></i> <span id="infoTanggal">-</span></span>
+
+            </div>            </div>
+
+        </div>        </div>
+
+
+
+        <!-- Google Drive Connection Status -->        <!-- Google Drive Connection Status -->
+
+        <div class="drive-status-container" id="driveStatusContainer">        <div class="drive-status-container" id="driveStatusContainer">
+
+            <div class="drive-status disconnected" id="driveStatus">            <div class="drive-status disconnected" id="driveStatus">
+
+                <i class="fab fa-google-drive"></i>                <i class="fab fa-google-drive"></i>
+
+                <span id="driveStatusText">Google Drive: Tidak Terkoneksi</span>                <span id="driveStatusText">Google Drive: Tidak Terkoneksi</span>
+
+                <button class="btn-connect-drive" id="btnConnectDrive" onclick="connectGoogleDrive()">                <button class="btn-connect-drive" id="btnConnectDrive" onclick="connectGoogleDrive()">
+
+                    <i class="fas fa-link"></i> Koneksikan                    <i class="fas fa-link"></i> Koneksikan
+
+                </button>                </button>
+
+            </div>            </div>
+
+        </div>        </div>
+
+
+
+        <!-- Photo Upload Section -->        <!-- Photo Upload Section -->
+
+        <section class="upload-section">        <section class="upload-section">
+
+            <h2><i class="fas fa-images"></i> Upload / Ambil Foto</h2>            <h2><i class="fas fa-images"></i> Upload / Ambil Foto</h2>
+
+                        
+
+            <div class="upload-grid">            <div class="upload-grid">
+
+                <!-- Bumbu -->                <!-- Bumbu -->
+
+                <div class="upload-card" data-type="bumbu">                <div class="upload-card" data-type="bumbu">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>Bumbu</h3>                        <h3>Bumbu</h3>
+
+                        <span class="upload-status" id="status-bumbu">                        <span class="upload-status" id="status-bumbu">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-bumbu">                    <div class="upload-preview" id="preview-bumbu">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-bumbu" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-bumbu" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('bumbu')">                        <button class="btn-upload" onclick="triggerUpload('bumbu')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('bumbu')">                        <button class="btn-camera" onclick="openCamera('bumbu')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('bumbu')" id="btn-preview-bumbu" disabled>                        <button class="btn-preview" onclick="previewPhoto('bumbu')" id="btn-preview-bumbu" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+
+
+                <!-- M. Bumbu -->                <!-- M. Bumbu -->
+
+                <div class="upload-card" data-type="m-bumbu">                <div class="upload-card" data-type="m-bumbu">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>M. Bumbu</h3>                        <h3>M. Bumbu</h3>
+
+                        <span class="upload-status" id="status-m-bumbu">                        <span class="upload-status" id="status-m-bumbu">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-m-bumbu">                    <div class="upload-preview" id="preview-m-bumbu">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-m-bumbu" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-m-bumbu" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('m-bumbu')">                        <button class="btn-upload" onclick="triggerUpload('m-bumbu')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('m-bumbu')">                        <button class="btn-camera" onclick="openCamera('m-bumbu')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('m-bumbu')" id="btn-preview-m-bumbu" disabled>                        <button class="btn-preview" onclick="previewPhoto('m-bumbu')" id="btn-preview-m-bumbu" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+
+
+                <!-- SI -->                <!-- SI -->
+
+                <div class="upload-card" data-type="si">                <div class="upload-card" data-type="si">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>SI</h3>                        <h3>SI</h3>
+
+                        <span class="upload-status" id="status-si">                        <span class="upload-status" id="status-si">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-si">                    <div class="upload-preview" id="preview-si">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-si" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-si" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('si')">                        <button class="btn-upload" onclick="triggerUpload('si')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('si')">                        <button class="btn-camera" onclick="openCamera('si')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('si')" id="btn-preview-si" disabled>                        <button class="btn-preview" onclick="previewPhoto('si')" id="btn-preview-si" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+
+
+                <!-- Karton -->                <!-- Karton -->
+
+                <div class="upload-card" data-type="karton">                <div class="upload-card" data-type="karton">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>Karton</h3>                        <h3>Karton</h3>
+
+                        <span class="upload-status" id="status-karton">                        <span class="upload-status" id="status-karton">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-karton">                    <div class="upload-preview" id="preview-karton">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-karton" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-karton" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('karton')">                        <button class="btn-upload" onclick="triggerUpload('karton')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('karton')">                        <button class="btn-camera" onclick="openCamera('karton')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('karton')" id="btn-preview-karton" disabled>                        <button class="btn-preview" onclick="previewPhoto('karton')" id="btn-preview-karton" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+
+
+                <!-- Etiket -->                <!-- Etiket -->
+
+                <div class="upload-card" data-type="etiket">                <div class="upload-card" data-type="etiket">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>Etiket</h3>                        <h3>Etiket</h3>
+
+                        <span class="upload-status" id="status-etiket">                        <span class="upload-status" id="status-etiket">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-etiket">                    <div class="upload-preview" id="preview-etiket">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-etiket" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-etiket" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('etiket')">                        <button class="btn-upload" onclick="triggerUpload('etiket')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('etiket')">                        <button class="btn-camera" onclick="openCamera('etiket')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('etiket')" id="btn-preview-etiket" disabled>                        <button class="btn-preview" onclick="previewPhoto('etiket')" id="btn-preview-etiket" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+
+
+                <!-- Etiket Banded -->                <!-- Etiket Banded -->
+
+                <div class="upload-card" data-type="etiket-banded">                <div class="upload-card" data-type="etiket-banded">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>Etiket Banded</h3>                        <h3>Etiket Banded</h3>
+
+                        <span class="upload-status" id="status-etiket-banded">                        <span class="upload-status" id="status-etiket-banded">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-etiket-banded">                    <div class="upload-preview" id="preview-etiket-banded">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-etiket-banded" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-etiket-banded" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('etiket-banded')">                        <button class="btn-upload" onclick="triggerUpload('etiket-banded')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('etiket-banded')">                        <button class="btn-camera" onclick="openCamera('etiket-banded')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('etiket-banded')" id="btn-preview-etiket-banded" disabled>                        <button class="btn-preview" onclick="previewPhoto('etiket-banded')" id="btn-preview-etiket-banded" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+
+
+                <!-- Plakban -->                <!-- Plakban -->
+
+                <div class="upload-card" data-type="plakban">                <div class="upload-card" data-type="plakban">
+
+                    <div class="upload-header">                    <div class="upload-header">
+
+                        <h3>Plakban</h3>                        <h3>Plakban</h3>
+
+                        <span class="upload-status" id="status-plakban">                        <span class="upload-status" id="status-plakban">
+
+                            <i class="fas fa-clock"></i> Belum upload                            <i class="fas fa-clock"></i> Belum upload
+
+                        </span>                        </span>
+
+                    </div>                    </div>
+
+                    <div class="upload-preview" id="preview-plakban">                    <div class="upload-preview" id="preview-plakban">
+
+                        <i class="fas fa-image"></i>                        <i class="fas fa-image"></i>
+
+                        <p>Belum ada foto</p>                        <p>Belum ada foto</p>
+
+                    </div>                    </div>
+
+                    <div class="upload-actions">                    <div class="upload-actions">
+
+                        <input type="file" id="file-plakban" accept="image/*" capture="environment" hidden>                        <input type="file" id="file-plakban" accept="image/*" capture="environment" hidden>
+
+                        <button class="btn-upload" onclick="triggerUpload('plakban')">                        <button class="btn-upload" onclick="triggerUpload('plakban')">
+
+                            <i class="fas fa-upload"></i> Upload                            <i class="fas fa-upload"></i> Upload
+
+                        </button>                        </button>
+
+                        <button class="btn-camera" onclick="openCamera('plakban')">                        <button class="btn-camera" onclick="openCamera('plakban')">
+
+                            <i class="fas fa-camera"></i> Kamera                            <i class="fas fa-camera"></i> Kamera
+
+                        </button>                        </button>
+
+                        <button class="btn-preview" onclick="previewPhoto('plakban')" id="btn-preview-plakban" disabled>                        <button class="btn-preview" onclick="previewPhoto('plakban')" id="btn-preview-plakban" disabled>
+
+                            <i class="fas fa-eye"></i> Preview                            <i class="fas fa-eye"></i> Preview
+
+                        </button>                        </button>
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+            </div>            </div>
+
+        </section>        </section>
+
+
+
+        <!-- Kode Produksi Section -->        <!-- Kode Produksi Section -->
+
+        <section class="kode-section">        <section class="kode-section">
+
+            <h2><i class="fas fa-barcode"></i> Kode Produksi</h2>            <h2><i class="fas fa-barcode"></i> Kode Produksi</h2>
+
+            <div class="kode-grid">            <div class="kode-grid">
+
+                <div class="kode-row">                <div class="kode-row">
+
+                    <div class="kode-input">                    <div class="kode-input">
+
+                        <label>Kode 1</label>                        <label>Kode 1</label>
+
+                        <input type="text" id="kode1" placeholder="Masukkan kode produksi 1">                        <input type="text" id="kode1" placeholder="Masukkan kode produksi 1">
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+                <div class="kode-row">                <div class="kode-row">
+
+                    <div class="kode-input">                    <div class="kode-input">
+
+                        <label>Kode 2</label>                        <label>Kode 2</label>
+
+                        <input type="text" id="kode2" placeholder="Masukkan kode produksi 2">                        <input type="text" id="kode2" placeholder="Masukkan kode produksi 2">
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+                <div class="kode-row">                <div class="kode-row">
+
+                    <div class="kode-input">                    <div class="kode-input">
+
+                        <label>Kode 3</label>                        <label>Kode 3</label>
+
+                        <input type="text" id="kode3" placeholder="Masukkan kode produksi 3">                        <input type="text" id="kode3" placeholder="Masukkan kode produksi 3">
+
+                    </div>                    </div>
+
+                </div>                </div>
+
+            </div>            </div>
+
+        </section>        </section>
+
+
+
+        <!-- Action Buttons -->        <!-- Action Buttons -->
+
+        <div class="form-actions">        <div class="form-actions">
+
+            <button class="btn-secondary btn-large" onclick="simpanSementara()">            <button class="btn-secondary btn-large" onclick="simpanSementara()">
+
+                <i class="fas fa-save"></i> Simpan Sementara                <i class="fas fa-save"></i> Simpan Sementara
+
+            </button>            </button>
+
+            <button class="btn-primary btn-large" onclick="simpanSemua()">            <button class="btn-primary btn-large" onclick="simpanSemua()">
+
+                <i class="fas fa-check-circle"></i> Simpan Semua                <i class="fas fa-check-circle"></i> Simpan Semua
+
+            </button>            </button>
+
+        </div>        </div>
+
+    </main>    </main>
+
+
+
+    <!-- Camera Modal -->    <!-- Camera Modal -->
+
+    <div id="cameraModal" class="popup-overlay hidden">    <div id="cameraModal" class="popup-overlay hidden">
+
+        <div class="popup-content camera-popup">        <div class="popup-content camera-popup">
+
+            <div class="popup-header">            <div class="popup-header">
+
+                <h2><i class="fas fa-camera"></i> Ambil Foto</h2>                <h2><i class="fas fa-camera"></i> Ambil Foto</h2>
+
+                <button class="btn-close" onclick="closeCamera()">                <button class="btn-close" onclick="closeCamera()">
+
+                    <i class="fas fa-times"></i>                    <i class="fas fa-times"></i>
+
+                </button>                </button>
+
+            </div>            </div>
+
+            <div class="camera-container">            <div class="camera-container">
+
+                <video id="cameraVideo" autoplay playsinline></video>                <video id="cameraVideo" autoplay playsinline></video>
+
+                <canvas id="cameraCanvas" hidden></canvas>                <canvas id="cameraCanvas" hidden></canvas>
+
+            </div>            </div>
+
+            <div class="camera-actions">            <div class="camera-actions">
+
+                <button class="btn-capture" onclick="capturePhoto()">                <button class="btn-capture" onclick="capturePhoto()">
+
+                    <i class="fas fa-circle"></i>                    <i class="fas fa-circle"></i>
+
+                </button>                </button>
+
+            </div>            </div>
+
+        </div>        </div>
+
+    </div>    </div>
+
+
+
+    <!-- Google Drive Connection Popup (Modal) -->    <!-- Google Drive Connection Popup (Modal) -->
+
+    <div id="driveConnectPopup" class="popup-overlay hidden">    <div id="driveConnectPopup" class="popup-overlay hidden">
+
+        <div class="popup-content" style="max-width: 400px;">        <div class="popup-content" style="max-width: 400px;">
+
+            <div class="popup-header">            <div class="popup-header">
+
+                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>
+
+            </div>            </div>
+
+            <div class="popup-body" style="text-align: center; padding: 20px;">            <div class="popup-body" style="text-align: center; padding: 20px;">
+
+                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">
+
+                    <i class="fab fa-google-drive"></i>                    <i class="fab fa-google-drive"></i>
+
+                </div>                </div>
+
+                <p style="margin-bottom: 15px; color: #333;">                <p style="margin-bottom: 15px; color: #333;">
+
+                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.
+
+                </p>                </p>
+
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+
+                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.
+
+                </p>                </p>
+
+                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">
+
+                </div>                </div>
+
+                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px;">                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px;">
+
+                    <i class="fas fa-link"></i> Hubungkan Google Drive                    <i class="fas fa-link"></i> Hubungkan Google Drive
+
+                </button>                </button>
+
+                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px; margin-top: 10px;">                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px; margin-top: 10px;">
+
+                    <i class="fas fa-forward"></i> Lewati (Simpan Lokal)                    <i class="fas fa-forward"></i> Lewati (Simpan Lokal)
+
+                </button>                </button>
+
+            </div>            </div>
+
+        </div>        </div>
+
+    </div>    </div>
+
+
+
+    <!-- Edit Flavor & Negara Popup -->    <!-- Edit Flavor & Negara Popup -->
+
+    <div id="editFlavorNegaraPopup" class="popup-overlay hidden">    <div id="editFlavorNegaraPopup" class="popup-overlay hidden">
+
+        <div class="popup-content edit-flavor-popup-content">        <div class="popup-content edit-flavor-popup-content">
+
+            <div class="popup-header">            <div class="popup-header">
+
+                <h2><i class="fas fa-edit"></i> Pilih Master Data</h2>                <h2><i class="fas fa-edit"></i> Edit Flavor & Negara</h2>
+
+                <button class="btn-close" onclick="closeEditFlavorNegaraPopup()">                <button class="btn-close" onclick="closeEditFlavorNegaraPopup()">
+
+                    <i class="fas fa-times"></i>                    <i class="fas fa-times"></i>
+
+                </button>                </button>
+
+            </div>            </div>
+
+            <div class="popup-body">            <div class="popup-body">
+
+                <form id="editFlavorNegaraForm" onsubmit="saveFlavorNegara(event)">                <form id="editFlavorNegaraForm" onsubmit="saveFlavorNegara(event)">
+
+                    <div class="form-group">                    <div class="form-group">
+
+                        <label for="editMasterSelect"><i class="fas fa-clipboard-list"></i> Pilih dari Master</label>                        <label for="editFlavor"><i class="fas fa-tag"></i> Flavor</label>
+
+                        <select id="editMasterSelect" onchange="onMasterSelected()">                        <input type="text" id="editFlavor" placeholder="Masukkan flavor" required>
+
+                            <option value="">-- Pilih Master Data --</option>                    </div>
+
+                            <!-- Options akan diisi dari Master Data -->                    <div class="form-group">
+
+                        </select>                        <label for="editNegara"><i class="fas fa-globe"></i> Negara</label>
+
+                        <button type="button" class="btn-add-inline" onclick="openQuickMasterPopup()">                        <select id="editNegara" required>
+
+                            <i class="fas fa-plus"></i> Buat Master Baru                            <option value="">Pilih Negara</option>
+
+                        </button>                            <option value="Indonesia">Indonesia</option>
+
+                    </div>                            <option value="Malaysia">Malaysia</option>
+
+                                                <option value="China">China</option>
+
+                    <div class="form-divider"><span>atau Input Manual</span></div>                            <option value="Filipina">Filipina</option>
+
+                                                <option value="Timor Leste">Timor Leste</option>
+
+                    <div class="form-group">                            <option value="Thailand">Thailand</option>
+
+                        <label for="editFlavor"><i class="fas fa-tag"></i> Flavor</label>                            <option value="Japan">Japan</option>
+
+                        <input type="text" id="editFlavor" placeholder="Masukkan flavor">                            <option value="Korea">Korea</option>
+
+                    </div>                            <option value="Vietnam">Vietnam</option>
+
+                    <div class="form-group">                            <option value="Saudi Arabia">Saudi Arabia</option>
+
+                        <label for="editNegara"><i class="fas fa-globe"></i> Negara</label>                            <option value="Turkey">Turkey</option>
+
+                        <select id="editNegara">                            <option value="Egypt">Egypt</option>
+
+                            <option value="">Pilih Negara</option>                            <option value="Nigeria">Nigeria</option>
+
+                            <option value="Indonesia">Indonesia</option>                            <option value="USA">USA</option>
+
+                            <option value="Malaysia">Malaysia</option>                            <option value="Australia">Australia</option>
+
+                            <option value="China">China</option>                            <option value="Lainnya">Lainnya</option>
+
+                            <option value="Filipina">Filipina</option>                        </select>
+
+                            <option value="Timor Leste">Timor Leste</option>                    </div>
+
+                            <option value="Thailand">Thailand</option>                    <div class="form-actions">
+
+                            <option value="Japan">Japan</option>                        <button type="button" class="btn-secondary" onclick="closeEditFlavorNegaraPopup()">
+
+                            <option value="Korea">Korea</option>                            <i class="fas fa-times"></i> Batal
+
+                            <option value="Vietnam">Vietnam</option>                        </button>
+
+                            <option value="Saudi Arabia">Saudi Arabia</option>                        <button type="submit" class="btn-primary">
+
+                            <option value="Turkey">Turkey</option>                            <i class="fas fa-save"></i> Simpan
+
+                            <option value="Egypt">Egypt</option>                        </button>
+
+                            <option value="Nigeria">Nigeria</option>                    </div>
+
+                            <option value="USA">USA</option>                </form>
+
+                            <option value="Australia">Australia</option>            </div>
+
+                            <option value="Lainnya">Lainnya</option>        </div>
+
+                        </select>    </div>
+
+                    </div>
+
+                    <div class="form-actions">    <!-- Photo Preview Popup -->
+
+                        <button type="button" class="btn-secondary" onclick="closeEditFlavorNegaraPopup()">    <div id="photoPreviewPopup" class="popup-overlay hidden">
+
+                            <i class="fas fa-times"></i> Batal        <div class="popup-content photo-preview-popup-content">
+
+                        </button>            <div class="popup-header">
+
+                        <button type="submit" class="btn-primary">                <h2><i class="fas fa-image"></i> Preview Foto <span id="previewPhotoType"></span></h2>
+
+                            <i class="fas fa-save"></i> Simpan                <button class="btn-close" onclick="closePhotoPreview()">
+
+                        </button>                    <i class="fas fa-times"></i>
+
+                    </div>                </button>
+
+                </form>            </div>
+
+            </div>            <div class="popup-body">
+
+        </div>                <div class="photo-preview-container">
+
+    </div>                    <img id="photoPreviewImage" src="" alt="Preview">
+
+                </div>
+
+    <!-- Quick Add Master Popup -->                <div class="photo-preview-actions">
+
+    <div id="quickMasterPopup" class="popup-overlay hidden">                    <button type="button" class="btn-danger" onclick="deletePhotoFromPreview()">
+
+        <div class="popup-content popup-large">                        <i class="fas fa-trash"></i> Hapus Foto
+
+            <div class="popup-header">                    </button>
+
+                <h2><i class="fas fa-plus-circle"></i> Buat Master Data Baru</h2>                    <button type="button" class="btn-secondary" onclick="closePhotoPreview()">
+
+                <button class="btn-close" onclick="closeQuickMasterPopup()">                        <i class="fas fa-times"></i> Tutup
+
+                    <i class="fas fa-times"></i>                    </button>
+
+                </button>                </div>
+
+            </div>            </div>
+
+            <form id="quickMasterForm" class="popup-form" onsubmit="saveQuickMaster(event)">        </div>
+
+                <div class="form-row">    </div>
+
+                    <div class="form-group">
+
+                        <label><i class="fas fa-globe"></i> Negara <span class="required">*</span></label>    <!-- Loading Overlay -->
+
+                        <input type="text" id="quickMasterNegara" required placeholder="Masukkan negara">    <div id="loadingOverlay" class="loading-overlay">
+
+                    </div>        <div class="loading-content">
+
+                    <div class="form-group">            <div class="spinner"></div>
+
+                        <label><i class="fas fa-tag"></i> Flavor <span class="required">*</span></label>            <p class="loading-title" id="loadingTitle">Memproses...</p>
+
+                        <input type="text" id="quickMasterFlavor" required placeholder="Masukkan flavor">            <p class="loading-message" id="loadingMessage">Mohon tunggu sebentar</p>
+
+                    </div>            <div class="loading-progress">
+
+                </div>                <div class="loading-progress-bar" id="loadingProgressBar"></div>
+
+                            </div>
+
+                <div class="form-row">            <p class="loading-hint" id="loadingHint">Jangan tutup halaman ini</p>
+
+                    <div class="form-group">        </div>
+
+                        <label><i class="fas fa-info-circle"></i> Keterangan</label>    </div>
+
+                        <input type="text" id="quickMasterKeterangan" placeholder="Masukkan keterangan">
+
+                    </div>    <!-- App Footer -->
+
+                    <div class="form-group">    <footer class="app-footer">
+
+                        <label><i class="fas fa-truck"></i> Distributor</label>        <p>
+
+                        <input type="text" id="quickMasterDistributor" placeholder="Masukkan distributor">            <span>&copy; <span id="footerYear"></span></span>
+
+                    </div>            <span class="footer-version">ver.1.0.1</span>
+
+                </div>            <span>by <span class="footer-brand">DuoBingo</span> for <span class="footer-company">Indofood</span></span>
+
+                        </p>
+
+                <div class="form-divider"><span>Informasi Kemasan (Opsional)</span></div>    </footer>
+
+                
+
+                <div class="form-row">    <script src="../js/config.js"></script>
+
+                    <div class="form-group">    <script src="../js/auth.js"></script>
+
+                        <label><i class="fas fa-box"></i> Bumbu</label>    <script src="../js/sheets-db.js"></script>
+
+                        <input type="text" id="quickMasterBumbu" placeholder="Kode/nama bumbu">    <script src="../js/storage.js"></script>
+
+                    </div>    <script src="../js/create-display.js"></script>
+
+                    <div class="form-group">    <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
+
+                        <label><i class="fas fa-oil-can"></i> Minyak Bumbu</label>    
+
+                        <input type="text" id="quickMasterMinyakBumbu" placeholder="Kode/nama minyak bumbu">    <!-- Service Worker Registration for PWA -->
+
+                    </div>    <script>
+
+                </div>        if ('serviceWorker' in navigator) {
+
+                            navigator.serviceWorker.register('../sw.js').then(reg => {
+
+                <div class="form-row">                console.log('Service Worker registered:', reg);
+
+                    <div class="form-group">            }).catch(err => {
+
+                        <label><i class="fas fa-barcode"></i> Kode SI</label>                console.log('Service Worker registration failed:', err);
+
+                        <input type="text" id="quickMasterKodeSI" placeholder="Kode SI">            });
+
+                    </div>        }
+
+                    <div class="form-group">    </script>
+
+                        <label><i class="fas fa-ticket-alt"></i> Kode Etiket</label></body>
+
+                        <input type="text" id="quickMasterKodeEtiket" placeholder="Kode etiket"></html>
+
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeQuickMasterPopup()">
+                        <i class="fas fa-times"></i> Batal
                     </button>
-                </span>
-                <span class="info-item" id="nomorMaterialItem">
-                    <i class="fas fa-barcode"></i> <span id="infoNomorMaterial">-</span>
-                </span>
-                <span class="info-item" id="negaraItem">
-                    <i class="fas fa-globe"></i> <span id="infoNegara">-</span>
-                </span>
-                <span class="info-item"><i class="fas fa-calendar"></i> <span id="infoTanggal">-</span></span>
-            </div>
-        </div>
-
-        <!-- Google Drive Connection Status -->
-        <div class="drive-status-container" id="driveStatusContainer">
-            <div class="drive-status disconnected" id="driveStatus">
-                <i class="fab fa-google-drive"></i>
-                <span id="driveStatusText">Google Drive: Tidak Terkoneksi</span>
-                <button class="btn-connect-drive" id="btnConnectDrive" onclick="connectGoogleDrive()">
-                    <i class="fas fa-link"></i> Koneksikan
-                </button>
-            </div>
-        </div>
-
-        <!-- Photo Upload Section -->
-        <section class="upload-section">
-            <h2><i class="fas fa-images"></i> Upload / Ambil Foto</h2>
-            
-            <div class="upload-grid">
-                <!-- Bumbu -->
-                <div class="upload-card" data-type="bumbu">
-                    <div class="upload-header">
-                        <h3>Bumbu</h3>
-                        <span class="upload-status" id="status-bumbu">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-bumbu">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-bumbu" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('bumbu')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('bumbu')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('bumbu')" id="btn-preview-bumbu" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Simpan Master & Gunakan
+                    </button>
                 </div>
-
-                <!-- M. Bumbu -->
-                <div class="upload-card" data-type="m-bumbu">
-                    <div class="upload-header">
-                        <h3>M. Bumbu</h3>
-                        <span class="upload-status" id="status-m-bumbu">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-m-bumbu">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-m-bumbu" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('m-bumbu')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('m-bumbu')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('m-bumbu')" id="btn-preview-m-bumbu" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
-                </div>
-
-                <!-- SI -->
-                <div class="upload-card" data-type="si">
-                    <div class="upload-header">
-                        <h3>SI</h3>
-                        <span class="upload-status" id="status-si">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-si">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-si" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('si')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('si')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('si')" id="btn-preview-si" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Karton -->
-                <div class="upload-card" data-type="karton">
-                    <div class="upload-header">
-                        <h3>Karton</h3>
-                        <span class="upload-status" id="status-karton">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-karton">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-karton" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('karton')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('karton')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('karton')" id="btn-preview-karton" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Etiket -->
-                <div class="upload-card" data-type="etiket">
-                    <div class="upload-header">
-                        <h3>Etiket</h3>
-                        <span class="upload-status" id="status-etiket">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-etiket">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-etiket" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('etiket')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('etiket')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('etiket')" id="btn-preview-etiket" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Etiket Banded -->
-                <div class="upload-card" data-type="etiket-banded">
-                    <div class="upload-header">
-                        <h3>Etiket Banded</h3>
-                        <span class="upload-status" id="status-etiket-banded">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-etiket-banded">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-etiket-banded" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('etiket-banded')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('etiket-banded')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('etiket-banded')" id="btn-preview-etiket-banded" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Plakban -->
-                <div class="upload-card" data-type="plakban">
-                    <div class="upload-header">
-                        <h3>Plakban</h3>
-                        <span class="upload-status" id="status-plakban">
-                            <i class="fas fa-clock"></i> Belum upload
-                        </span>
-                    </div>
-                    <div class="upload-preview" id="preview-plakban">
-                        <i class="fas fa-image"></i>
-                        <p>Belum ada foto</p>
-                    </div>
-                    <div class="upload-actions">
-                        <input type="file" id="file-plakban" accept="image/*" capture="environment" hidden>
-                        <button class="btn-upload" onclick="triggerUpload('plakban')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                        <button class="btn-camera" onclick="openCamera('plakban')">
-                            <i class="fas fa-camera"></i> Kamera
-                        </button>
-                        <button class="btn-preview" onclick="previewPhoto('plakban')" id="btn-preview-plakban" disabled>
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Kode Produksi Section -->
-        <section class="kode-section">
-            <h2><i class="fas fa-barcode"></i> Kode Produksi</h2>
-            <div class="kode-grid">
-                <div class="kode-row">
-                    <div class="kode-input">
-                        <label>Kode 1</label>
-                        <input type="text" id="kode1" placeholder="Masukkan kode produksi 1">
-                    </div>
-                </div>
-                <div class="kode-row">
-                    <div class="kode-input">
-                        <label>Kode 2</label>
-                        <input type="text" id="kode2" placeholder="Masukkan kode produksi 2">
-                    </div>
-                </div>
-                <div class="kode-row">
-                    <div class="kode-input">
-                        <label>Kode 3</label>
-                        <input type="text" id="kode3" placeholder="Masukkan kode produksi 3">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Action Buttons -->
-        <div class="form-actions">
-            <button class="btn-secondary btn-large" onclick="simpanSementara()">
-                <i class="fas fa-save"></i> Simpan Sementara
-            </button>
-            <button class="btn-primary btn-large" onclick="simpanSemua()">
-                <i class="fas fa-check-circle"></i> Simpan Semua
-            </button>
-        </div>
-    </main>
-
-    <!-- Camera Modal -->
-    <div id="cameraModal" class="popup-overlay hidden">
-        <div class="popup-content camera-popup">
-            <div class="popup-header">
-                <h2><i class="fas fa-camera"></i> Ambil Foto</h2>
-                <button class="btn-close" onclick="closeCamera()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="camera-container">
-                <video id="cameraVideo" autoplay playsinline></video>
-                <canvas id="cameraCanvas" hidden></canvas>
-            </div>
-            <div class="camera-actions">
-                <button class="btn-capture" onclick="capturePhoto()">
-                    <i class="fas fa-circle"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Google Drive Connection Popup (Modal) -->
-    <div id="driveConnectPopup" class="popup-overlay hidden">
-        <div class="popup-content" style="max-width: 400px;">
-            <div class="popup-header">
-                <h2><i class="fab fa-google-drive"></i> Koneksi Google Drive</h2>
-            </div>
-            <div class="popup-body" style="text-align: center; padding: 20px;">
-                <div style="font-size: 48px; color: #4285f4; margin-bottom: 20px;">
-                    <i class="fab fa-google-drive"></i>
-                </div>
-                <p style="margin-bottom: 15px; color: #333;">
-                    Untuk menyimpan foto secara permanen, Anda perlu menghubungkan akun Google Drive.
-                </p>
-                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                    Foto akan disimpan di Google Drive dan dapat diakses kapan saja.
-                </p>
-                <div id="driveConnectStatus" style="margin-bottom: 20px; padding: 10px; border-radius: 8px; display: none;">
-                </div>
-                <button class="btn-primary" id="btnConnectDrivePopup" onclick="connectGoogleDriveFromPopup()" style="width: 100%; padding: 12px;">
-                    <i class="fas fa-link"></i> Hubungkan Google Drive
-                </button>
-                <button class="btn-secondary" id="btnSkipDrive" onclick="skipGoogleDriveConnection()" style="width: 100%; padding: 12px; margin-top: 10px;">
-                    <i class="fas fa-forward"></i> Lewati (Simpan Lokal)
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Flavor & Negara Popup -->
-    <div id="editFlavorNegaraPopup" class="popup-overlay hidden">
-        <div class="popup-content edit-flavor-popup-content">
-            <div class="popup-header">
-                <h2><i class="fas fa-edit"></i> Edit Flavor & Negara</h2>
-                <button class="btn-close" onclick="closeEditFlavorNegaraPopup()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="popup-body">
-                <form id="editFlavorNegaraForm" onsubmit="saveFlavorNegara(event)">
-                    <div class="form-group">
-                        <label for="editFlavor"><i class="fas fa-tag"></i> Flavor</label>
-                        <input type="text" id="editFlavor" placeholder="Masukkan flavor" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editNegara"><i class="fas fa-globe"></i> Negara</label>
-                        <select id="editNegara" required>
-                            <option value="">Pilih Negara</option>
-                            <option value="Indonesia">Indonesia</option>
-                            <option value="Malaysia">Malaysia</option>
-                            <option value="China">China</option>
-                            <option value="Filipina">Filipina</option>
-                            <option value="Timor Leste">Timor Leste</option>
-                            <option value="Thailand">Thailand</option>
-                            <option value="Japan">Japan</option>
-                            <option value="Korea">Korea</option>
-                            <option value="Vietnam">Vietnam</option>
-                            <option value="Saudi Arabia">Saudi Arabia</option>
-                            <option value="Turkey">Turkey</option>
-                            <option value="Egypt">Egypt</option>
-                            <option value="Nigeria">Nigeria</option>
-                            <option value="USA">USA</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Lainnya">Lainnya</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="closeEditFlavorNegaraPopup()">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                        <button type="submit" class="btn-primary">
-                            <i class="fas fa-save"></i> Simpan
-                        </button>
-                    </div>
-                </form>
-            </div>
+            </form>
         </div>
     </div>
 

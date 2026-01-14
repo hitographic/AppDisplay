@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check authentication
     if (!auth.isLoggedIn()) {
-        window.location.href = 'index.html';
+        const basePath = window.location.pathname.includes('/AppDisplay') ? '/AppDisplay/' : '/';
+        window.location.href = basePath;
         return;
     }
 
@@ -44,7 +45,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentUser = auth.getUser();
     if (!hasPermission('user_admin')) {
         alert('Anda tidak memiliki akses ke halaman ini');
-        window.location.href = 'records.html';
+        const basePath = window.location.pathname.includes('/AppDisplay') ? '/AppDisplay/' : '/';
+        window.location.href = basePath + 'records/';
         return;
     }
 
