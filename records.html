@@ -98,11 +98,17 @@
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-tag"></i> Flavor</label>
-                    <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)" autocomplete="off">
+                        <div id="flavorDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-globe"></i> Negara</label>
-                    <input type="text" id="searchNegara" placeholder="Cari negara...">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="searchNegara" placeholder="Cari negara..." autocomplete="off">
+                        <div id="negaraDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-calendar"></i> Tanggal</label>

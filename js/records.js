@@ -459,8 +459,170 @@ function toggleAdvancedSearch() {
         if (searchResultsList) {
             searchResultsList.classList.add('hidden');
         }
+    } else {
+        // Initialize autocomplete when panel opens
+        initAutocomplete();
     }
 }
+
+// ==================== AUTOCOMPLETE FUNCTIONS ====================
+
+let autocompleteActiveIndex = -1;
+
+function initAutocomplete() {
+    const flavorInput = document.getElementById('searchFlavor');
+    const negaraInput = document.getElementById('searchNegara');
+    const flavorDropdown = document.getElementById('flavorDropdown');
+    const negaraDropdown = document.getElementById('negaraDropdown');
+    
+    // Remove existing listeners to prevent duplicates
+    flavorInput.removeEventListener('input', handleFlavorInput);
+    flavorInput.removeEventListener('keydown', handleFlavorKeydown);
+    flavorInput.removeEventListener('blur', handleFlavorBlur);
+    
+    negaraInput.removeEventListener('input', handleNegaraInput);
+    negaraInput.removeEventListener('keydown', handleNegaraKeydown);
+    negaraInput.removeEventListener('blur', handleNegaraBlur);
+    
+    // Add new listeners
+    flavorInput.addEventListener('input', handleFlavorInput);
+    flavorInput.addEventListener('keydown', handleFlavorKeydown);
+    flavorInput.addEventListener('blur', handleFlavorBlur);
+    
+    negaraInput.addEventListener('input', handleNegaraInput);
+    negaraInput.addEventListener('keydown', handleNegaraKeydown);
+    negaraInput.addEventListener('blur', handleNegaraBlur);
+}
+
+function handleFlavorInput(e) {
+    const query = e.target.value.toLowerCase().trim();
+    const dropdown = document.getElementById('flavorDropdown');
+    
+    if (query.length < 1) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+    
+    // Get unique flavors from allRecords
+    const flavors = [...new Set(allRecords.map(r => r.flavor))].filter(f => f);
+    const matches = flavors.filter(f => f.toLowerCase().includes(query));
+    
+    renderAutocompleteDropdown(dropdown, matches, query, 'searchFlavor');
+}
+
+function handleNegaraInput(e) {
+    const query = e.target.value.toLowerCase().trim();
+    const dropdown = document.getElementById('negaraDropdown');
+    
+    if (query.length < 1) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+    
+    // Get unique countries from allRecords
+    const countries = [...new Set(allRecords.map(r => r.negara))].filter(n => n);
+    const matches = countries.filter(n => n.toLowerCase().includes(query));
+    
+    renderAutocompleteDropdown(dropdown, matches, query, 'searchNegara');
+}
+
+function renderAutocompleteDropdown(dropdown, matches, query, inputId) {
+    autocompleteActiveIndex = -1;
+    
+    if (matches.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-no-results">Tidak ditemukan</div>';
+        dropdown.classList.remove('hidden');
+        return;
+    }
+    
+    // Limit to 10 results
+    const limitedMatches = matches.slice(0, 10);
+    
+    dropdown.innerHTML = limitedMatches.map((item, index) => {
+        // Highlight matching part
+        const lowerItem = item.toLowerCase();
+        const matchIndex = lowerItem.indexOf(query);
+        let displayHtml = escapeHtml(item);
+        
+        if (matchIndex !== -1) {
+            const before = item.substring(0, matchIndex);
+            const match = item.substring(matchIndex, matchIndex + query.length);
+            const after = item.substring(matchIndex + query.length);
+            displayHtml = `${escapeHtml(before)}<span class="match">${escapeHtml(match)}</span>${escapeHtml(after)}`;
+        }
+        
+        return `<div class="autocomplete-item" data-value="${escapeHtml(item)}" data-index="${index}">${displayHtml}</div>`;
+    }).join('');
+    
+    dropdown.classList.remove('hidden');
+    
+    // Add click handlers
+    dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            document.getElementById(inputId).value = item.dataset.value;
+            dropdown.classList.add('hidden');
+        });
+    });
+}
+
+function handleFlavorKeydown(e) {
+    handleAutocompleteKeydown(e, 'flavorDropdown', 'searchFlavor');
+}
+
+function handleNegaraKeydown(e) {
+    handleAutocompleteKeydown(e, 'negaraDropdown', 'searchNegara');
+}
+
+function handleAutocompleteKeydown(e, dropdownId, inputId) {
+    const dropdown = document.getElementById(dropdownId);
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    
+    if (dropdown.classList.contains('hidden') || items.length === 0) return;
+    
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        autocompleteActiveIndex = Math.min(autocompleteActiveIndex + 1, items.length - 1);
+        updateActiveItem(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        autocompleteActiveIndex = Math.max(autocompleteActiveIndex - 1, 0);
+        updateActiveItem(items);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (autocompleteActiveIndex >= 0 && items[autocompleteActiveIndex]) {
+            document.getElementById(inputId).value = items[autocompleteActiveIndex].dataset.value;
+            dropdown.classList.add('hidden');
+        }
+    } else if (e.key === 'Escape') {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function updateActiveItem(items) {
+    items.forEach((item, index) => {
+        if (index === autocompleteActiveIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+function handleFlavorBlur() {
+    setTimeout(() => {
+        document.getElementById('flavorDropdown').classList.add('hidden');
+    }, 150);
+}
+
+function handleNegaraBlur() {
+    setTimeout(() => {
+        document.getElementById('negaraDropdown').classList.add('hidden');
+    }, 150);
+}
+
+// ==================== SEARCH FUNCTIONS ====================
 
 function applySearch() {
     const nomorMaterial = document.getElementById('searchNomorMaterial').value.trim();
