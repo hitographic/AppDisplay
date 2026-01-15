@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
 // Version 2.3.0 - Added Master Data page support
 
-const CACHE_NAME = 'mds-track-v2.9.0';
+const CACHE_NAME = 'mds-track-v2.10.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

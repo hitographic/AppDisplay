@@ -35,6 +35,11 @@ const PHOTO_FOLDER_MAP = {
     'plakban': 'Plakban'
 };
 
+// Helper function to check Google Drive connection
+function isGoogleDriveConnected() {
+    return window.gapiLoaded && window.gapi && window.gapi.client && window.gapi.client.getToken && window.gapi.client.getToken() !== null;
+}
+
 // Make goBack available globally immediately
 window.goBack = function() {
     if (confirm('Data yang belum disimpan akan hilang. Lanjutkan?')) {
