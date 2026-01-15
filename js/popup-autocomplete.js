@@ -43,7 +43,7 @@ function initPopupAutocomplete() {
     
     newNegaraInput.addEventListener('blur', () => {
         setTimeout(() => {
-            const dd = document.getElementById('negaraDropdown');
+            const dd = document.getElementById('popupNegaraDropdown');
             if (dd) dd.classList.add('hidden');
         }, 200);
     });
@@ -64,7 +64,7 @@ function initPopupAutocomplete() {
     
     newFlavorInput.addEventListener('blur', () => {
         setTimeout(() => {
-            const dd = document.getElementById('flavorDropdown');
+            const dd = document.getElementById('popupFlavorDropdown');
             if (dd) dd.classList.add('hidden');
         }, 200);
     });
@@ -72,7 +72,7 @@ function initPopupAutocomplete() {
 
 // Handle Negara autocomplete
 function handleNegaraAutocomplete(query) {
-    const dropdown = document.getElementById('negaraDropdown');
+    const dropdown = document.getElementById('popupNegaraDropdown');
     if (!dropdown) return;
     
     const negaraList = [...new Set(masterDataForPopup.map(m => m.negara).filter(Boolean))];
@@ -122,7 +122,7 @@ function handleNegaraAutocomplete(query) {
 
 // Handle Flavor autocomplete
 function handleFlavorAutocomplete(query) {
-    const dropdown = document.getElementById('flavorDropdown');
+    const dropdown = document.getElementById('popupFlavorDropdown');
     if (!dropdown) return;
     
     if (!selectedNegaraForPopup) {
@@ -209,8 +209,8 @@ window.closeAddDataPopup = function() {
     var flavorInput = document.getElementById('inputFlavor');
     if (flavorInput) flavorInput.placeholder = 'Pilih negara dulu, lalu ketik flavor...';
     
-    var negaraDropdown = document.getElementById('negaraDropdown');
-    var flavorDropdown = document.getElementById('flavorDropdown');
+    var negaraDropdown = document.getElementById('popupNegaraDropdown');
+    var flavorDropdown = document.getElementById('popupFlavorDropdown');
     if (negaraDropdown) negaraDropdown.classList.add('hidden');
     if (flavorDropdown) flavorDropdown.classList.add('hidden');
 };
