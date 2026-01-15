@@ -6,7 +6,7 @@
 async function loadMasterDataForPopup() {
     try {
         console.log('📋 Loading master data for popup...');
-        const response = await fetch(`${CONFIG.WEB_APP_URL}?action=getMaster`);
+        const response = await fetch(`${CONFIG.GOOGLE_SHEETS_WEBAPP_URL}?action=getMaster`);
         const result = await response.json();
         
         if (result.success && result.data) {
