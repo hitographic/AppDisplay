@@ -1176,23 +1176,18 @@ function deletePhotoFromPreview() {
 
 async function loadMasterDataForAutocomplete() {
     try {
-        console.log('📋 Loading Master data for autocomplete...');
-        console.log('📋 Current negara:', currentData?.negara);
+        console.log('📋 Loading Master data for autocomplete (all countries)...');
         
         const response = await fetch(`${CONFIG.GOOGLE_SHEETS_WEBAPP_URL}?action=getMaster`);
         const result = await response.json();
         
         if (result.success && result.data) {
-            // Filter by negara if available
-            if (currentData && currentData.negara) {
-                masterDataList = result.data.filter(m => 
-                    m.id && m.id.toLowerCase() === currentData.negara.toLowerCase()
-                );
-                console.log('✅ Filtered by negara:', currentData.negara, '- Found', masterDataList.length, 'records');
-            } else {
-                masterDataList = result.data;
-            }
-            console.log('✅ Total master records loaded:', result.data.length);
+            // Load ALL master data without filtering by negara
+            masterDataList = result.data;
+            console.log('✅ Master records loaded:', masterDataList.length);
+            
+            // Initialize autocomplete after data loaded
+            initMasterAutocomplete();
         }
     } catch (error) {
         console.error('❌ Failed to load master data:', error);
