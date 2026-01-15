@@ -612,8 +612,14 @@ function applySearch() {
 
     currentPage = 1; // Reset to first page when searching
     
-    // Update main grid with filtered results
-    renderRecords();
+    // Render search results in list view (tanpa gambar)
+    renderSearchResultsList(filteredRecords);
+    
+    // Hide the card grid when showing search results
+    const recordsContainer = document.querySelector('.records-container');
+    if (recordsContainer) {
+        recordsContainer.style.display = 'none';
+    }
     
     showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
 }
@@ -699,6 +705,12 @@ function resetSearch() {
     const searchResultsList = document.getElementById('searchResultsList');
     if (searchResultsList) {
         searchResultsList.classList.add('hidden');
+    }
+    
+    // Show the card grid again
+    const recordsContainer = document.querySelector('.records-container');
+    if (recordsContainer) {
+        recordsContainer.style.display = 'block';
     }
     
     renderRecords();
