@@ -257,82 +257,13 @@ function renderRecords() {
     const grid = document.getElementById('recordsGrid');
     const emptyState = document.getElementById('emptyState');
 
-    if (filteredRecords.length === 0) {
-        console.log('⚠️ renderRecords: No records to display, showing empty state');
-        grid.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        hidePagination();
-        return;
-    }
-
+    // Tidak render list di halaman utama - list hanya muncul dari Advanced Search
+    // Kosongkan grid dan sembunyikan empty state (data ada tapi tidak ditampilkan sampai search)
+    grid.innerHTML = '';
     emptyState.classList.add('hidden');
-
-    // Calculate pagination
-    const totalRecords = filteredRecords.length;
-    const totalPages = Math.ceil(totalRecords / recordsPerPage);
+    hidePagination();
     
-    // Ensure current page is valid
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
-    if (currentPage < 1) {
-        currentPage = 1;
-    }
-    
-    // Get records for current page
-    const startIndex = (currentPage - 1) * recordsPerPage;
-    const endIndex = startIndex + recordsPerPage;
-    const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
-
-    const userCanEdit = canEdit();
-    const userCanValidate = canValidate();
-
-    grid.innerHTML = paginatedRecords.map(record => {
-        // Determine validation status indicator
-        let validationClass = 'pending';
-        let validationText = 'Belum Validasi';
-        if (record.validationStatus === 'valid') {
-            validationClass = 'valid';
-            validationText = 'Valid';
-        } else if (record.validationStatus === 'invalid') {
-            validationClass = 'invalid';
-            validationText = 'Invalid';
-        }
-        
-        return `
-            <div class="record-list-item">
-                <div class="record-list-info">
-                    <span class="validation-indicator ${validationClass}" title="${validationText}"></span>
-                    <span class="record-flavor">${escapeHtml(record.flavor)}</span>
-                    <span class="record-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
-                </div>
-                <div class="record-list-actions">
-                    <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    ${userCanEdit ? `
-                    <button class="btn-action edit" onclick="editRecord('${record.id}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-action delete" onclick="deleteRecord('${record.id}')" title="Hapus">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                    <button class="btn-action info" onclick="showValidationInfo('${record.id}')" title="Info">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
-                    ` : ''}
-                    ${userCanValidate ? `
-                    <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
-                        <i class="fas fa-check-double"></i>
-                    </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    // Render pagination
-    renderPagination(totalPages, totalRecords);
+    console.log('📋 Records loaded:', filteredRecords.length, '- Use Advanced Search to view');
 }
 
 // ==================== PAGINATION FUNCTIONS ====================
@@ -662,8 +593,6 @@ function resetSearch() {
     if (searchResultsList) {
         searchResultsList.classList.add('hidden');
     }
-    
-    renderRecords();
     
     showToast('Filter direset', 'info');
 }
