@@ -11,6 +11,7 @@ let cameraStream = null;
 let masterDataList = [];
 let currentNewMasterType = null;
 let newMasterPhotoData = null;
+let newMasterPendingData = []; // Store pending new master data to save on "Simpan Semua"
 
 // Photo type to Master field mapping
 const PHOTO_FIELD_MAP = {
@@ -34,6 +35,14 @@ const PHOTO_FOLDER_MAP = {
     'plakban': 'Plakban'
 };
 
+// Make goBack available globally immediately
+window.goBack = function() {
+    if (confirm('Data yang belum disimpan akan hilang. Lanjutkan?')) {
+        storage.clearTempData();
+        window.location.href = 'records.html';
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Protect page
     if (!protectPage()) return;
@@ -52,42 +61,51 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function initCreateDisplayPage() {
-    // Load temp data
-    currentData = storage.getTempData();
-    
-    if (!currentData) {
-        showToast('Data tidak ditemukan. Kembali ke halaman sebelumnya.', 'error');
-        setTimeout(() => {
-            window.location.href = 'records.html';
-        }, 1500);
-        return;
+    try {
+        // Load temp data
+        currentData = storage.getTempData();
+        
+        if (!currentData) {
+            showToast('Data tidak ditemukan. Kembali ke halaman sebelumnya.', 'error');
+            setTimeout(() => {
+                window.location.href = 'records.html';
+            }, 1500);
+            return;
+        }
+
+        console.log('📋 Current data loaded:', currentData);
+
+        // Display info
+        displayInfo();
+
+        // Load existing photos if editing
+        if (currentData.photos) {
+            uploadedPhotos = { ...currentData.photos };
+            loadExistingPhotos();
+        }
+
+        // Load existing kode produksi
+        if (currentData.kodeProduksi) {
+            loadExistingKodeProduksi();
+        }
+
+        // Initialize file inputs
+        initFileInputs();
+
+        // Initialize Google API for uploads
+        await initGoogleAPI();
+        
+        // Load Master data for autocomplete (filtered by negara)
+        await loadMasterDataForAutocomplete();
+        
+        // Initialize autocomplete for master inputs
+        initMasterAutocomplete();
+        
+        console.log('✅ Create Display page initialized');
+    } catch (error) {
+        console.error('❌ Error initializing page:', error);
+        showToast('Terjadi kesalahan saat memuat halaman', 'error');
     }
-
-    // Display info
-    displayInfo();
-
-    // Load existing photos if editing
-    if (currentData.photos) {
-        uploadedPhotos = { ...currentData.photos };
-        loadExistingPhotos();
-    }
-
-    // Load existing kode produksi
-    if (currentData.kodeProduksi) {
-        loadExistingKodeProduksi();
-    }
-
-    // Initialize file inputs
-    initFileInputs();
-
-    // Initialize Google API for uploads
-    await initGoogleAPI();
-    
-    // Load Master data for autocomplete
-    await loadMasterDataForAutocomplete();
-    
-    // Initialize autocomplete for master inputs
-    initMasterAutocomplete();
 }
 
 function displayInfo() {
@@ -789,6 +807,12 @@ async function simpanSemua() {
     showLoading('Menyimpan semua data...');
 
     try {
+        // First, save pending master data (new master photos)
+        if (newMasterPendingData.length > 0) {
+            showLoading('Menyimpan Master Data baru...');
+            await savePendingMasterData();
+        }
+        
         // Upload photos to Google Drive if connected
         if (auth.hasGoogleToken() && checkConfig()) {
             showLoading('Mengupload foto ke Google Drive...');
@@ -922,13 +946,7 @@ function collectKodeProduksi() {
 }
 
 // ==================== NAVIGATION ====================
-
-function goBack() {
-    if (confirm('Data yang belum disimpan akan hilang. Lanjutkan?')) {
-        storage.clearTempData();
-        window.location.href = 'records.html';
-    }
-}
+// goBack is defined at the top of the file as window.goBack
 
 // ==================== UTILITIES ====================
 
@@ -1155,12 +1173,22 @@ function deletePhotoFromPreview() {
 async function loadMasterDataForAutocomplete() {
     try {
         console.log('📋 Loading Master data for autocomplete...');
+        console.log('📋 Current negara:', currentData?.negara);
+        
         const response = await fetch(`${CONFIG.WEB_APP_URL}?action=getMaster`);
         const result = await response.json();
         
         if (result.success && result.data) {
-            masterDataList = result.data;
-            console.log('✅ Loaded', masterDataList.length, 'master records');
+            // Filter by negara if available
+            if (currentData && currentData.negara) {
+                masterDataList = result.data.filter(m => 
+                    m.negara && m.negara.toLowerCase() === currentData.negara.toLowerCase()
+                );
+                console.log('✅ Filtered by negara:', currentData.negara, '- Found', masterDataList.length, 'records');
+            } else {
+                masterDataList = result.data;
+            }
+            console.log('✅ Total master records loaded:', result.data.length);
         }
     } catch (error) {
         console.error('❌ Failed to load master data:', error);
@@ -1188,7 +1216,8 @@ function initMasterAutocomplete() {
         // Blur event - hide dropdown
         input.addEventListener('blur', () => {
             setTimeout(() => {
-                document.getElementById(dropdownId).classList.add('hidden');
+                const dd = document.getElementById(dropdownId);
+                if (dd) dd.classList.add('hidden');
             }, 200);
         });
         
@@ -1203,7 +1232,7 @@ function handleMasterInputChange(query, field, dropdownId, type) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown) return;
     
-    // Get unique values for this field from master data
+    // Get unique values for this field from master data (already filtered by negara)
     let options = [];
     masterDataList.forEach(master => {
         const value = master[field];
@@ -1211,6 +1240,8 @@ function handleMasterInputChange(query, field, dropdownId, type) {
             options.push(value);
         }
     });
+    
+    console.log(`🔍 Field: ${field}, Options found: ${options.length}`);
     
     // Filter based on query
     const lowerQuery = query.toLowerCase().trim();
@@ -1220,10 +1251,13 @@ function handleMasterInputChange(query, field, dropdownId, type) {
     }
     
     // Render dropdown
-    if (filtered.length === 0 && lowerQuery.length > 0) {
-        dropdown.innerHTML = '<div class="master-dropdown-empty">Tidak ditemukan - gunakan "Buat Master Data"</div>';
+    if (filtered.length === 0) {
+        const msg = options.length === 0 
+            ? `Tidak ada data untuk ${currentData?.negara || 'negara ini'} - gunakan "Buat Master Data"`
+            : 'Tidak ditemukan - gunakan "Buat Master Data"';
+        dropdown.innerHTML = `<div class="master-dropdown-empty">${msg}</div>`;
         dropdown.classList.remove('hidden');
-    } else if (filtered.length > 0) {
+    } else {
         dropdown.innerHTML = filtered.slice(0, 10).map((item, index) => {
             // Highlight matching part
             let displayHtml = escapeHtml(item);
@@ -1249,12 +1283,10 @@ function handleMasterInputChange(query, field, dropdownId, type) {
                 inputEl.value = item.dataset.value;
                 dropdown.classList.add('hidden');
                 
-                // Auto-load photo if exists
+                // Auto-load photo if exists from Google Drive
                 loadPhotoFromMaster(type, item.dataset.value);
             });
         });
-    } else {
-        dropdown.classList.add('hidden');
     }
 }
 
@@ -1309,17 +1341,63 @@ async function loadPhotoFromMaster(type, kodeValue) {
     const field = PHOTO_FIELD_MAP[type];
     const matchingMaster = masterDataList.find(m => m[field] === kodeValue);
     
-    if (!matchingMaster) {
-        console.log('No matching master found for:', kodeValue);
-        return;
-    }
+    console.log(`🔍 Looking for photo: type=${type}, kode=${kodeValue}`);
     
     // Try to load existing photo from Google Drive
     const folderName = PHOTO_FOLDER_MAP[type];
-    console.log(`🔍 Looking for photo in folder: ${folderName} with kode: ${kodeValue}`);
     
-    // For now, just show a toast that photo was selected
-    showToast(`Kode "${kodeValue}" dipilih`, 'success');
+    try {
+        // Search for file in Google Drive folder
+        if (isGoogleDriveConnected() && window.driveFilesCache) {
+            const folderFiles = window.driveFilesCache[folderName] || [];
+            
+            // Find file matching the kode (filename contains the kode)
+            const matchingFile = folderFiles.find(f => {
+                const fileName = f.name.toLowerCase().replace(/\.(jpg|jpeg|png|gif)$/i, '');
+                return fileName === kodeValue.toLowerCase() || 
+                       fileName.includes(kodeValue.toLowerCase());
+            });
+            
+            if (matchingFile) {
+                console.log('✅ Found matching photo:', matchingFile.name);
+                
+                // Get thumbnail URL
+                const thumbnailUrl = `https://drive.google.com/thumbnail?id=${matchingFile.id}&sz=w400`;
+                
+                // Update preview
+                const previewContainer = document.getElementById(`preview-${type}`);
+                if (previewContainer) {
+                    previewContainer.innerHTML = `<img src="${thumbnailUrl}" alt="${kodeValue}" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-image\\'></i><p>Gagal memuat foto</p>'">`;
+                }
+                
+                // Update status
+                const statusEl = document.getElementById(`status-${type}`);
+                if (statusEl) {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Terupload';
+                    statusEl.classList.add('uploaded');
+                }
+                
+                // Enable preview button
+                const previewBtn = document.getElementById(`btn-preview-${type}`);
+                if (previewBtn) {
+                    previewBtn.disabled = false;
+                }
+                
+                // Store photo URL
+                uploadedPhotos[type] = matchingFile.webViewLink || thumbnailUrl;
+                
+                showToast(`Foto "${kodeValue}" ditemukan`, 'success');
+                return;
+            }
+        }
+        
+        // If no photo found, just show message
+        showToast(`Kode "${kodeValue}" dipilih (belum ada foto)`, 'info');
+        
+    } catch (error) {
+        console.error('Error loading photo from master:', error);
+        showToast(`Kode "${kodeValue}" dipilih`, 'success');
+    }
 }
 
 // =====================================================
@@ -1444,73 +1522,112 @@ async function saveNewMasterPhoto() {
         return;
     }
     
-    try {
-        showLoading('Menyimpan Master Data...');
-        
-        const field = PHOTO_FIELD_MAP[currentNewMasterType];
-        const folderName = PHOTO_FOLDER_MAP[currentNewMasterType];
-        
-        // Upload photo to Google Drive
-        let photoUrl = null;
-        if (isGoogleDriveConnected()) {
-            try {
-                photoUrl = await uploadToGoogleDrive(
-                    newMasterPhotoData,
-                    `${kode}_${Date.now()}.jpg`,
-                    folderName
-                );
-            } catch (uploadError) {
-                console.error('Drive upload failed:', uploadError);
-            }
-        }
-        
-        // Save to Master sheet
-        const masterData = {
-            negara: currentData.negara || '',
-            flavor: currentData.flavor || '',
-            keterangan: kode,
-            [field]: kode
-        };
-        
-        const response = await fetch(CONFIG.WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'addMaster',
-                master: masterData
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Add to local master list
-            masterDataList.push({ ...masterData, id: result.id });
-            
-            // Set the kode to the input field
-            const inputEl = document.getElementById(`master-${currentNewMasterType}`);
-            if (inputEl) {
-                inputEl.value = kode;
-            }
-            
-            // Also set the photo preview
-            if (newMasterPhotoData) {
-                uploadedPhotos[currentNewMasterType] = photoUrl || newMasterPhotoData;
-                updatePhotoPreview(currentNewMasterType, newMasterPhotoData);
-            }
-            
-            closeNewMasterPopup();
-            hideLoading();
-            showToast('Master data berhasil disimpan', 'success');
-        } else {
-            hideLoading();
-            showToast('Gagal menyimpan master data: ' + result.message, 'error');
-        }
-    } catch (error) {
-        hideLoading();
-        console.error('Save master error:', error);
-        showToast('Terjadi kesalahan saat menyimpan', 'error');
+    const field = PHOTO_FIELD_MAP[currentNewMasterType];
+    const folderName = PHOTO_FOLDER_MAP[currentNewMasterType];
+    const kode = document.getElementById('newMasterKode').value.trim();
+    
+    // Store pending master data (will be saved on "Simpan Semua")
+    newMasterPendingData.push({
+        type: currentNewMasterType,
+        field: field,
+        folderName: folderName,
+        kode: kode,
+        photoData: newMasterPhotoData,
+        negara: currentData.negara || '',
+        flavor: currentData.flavor || ''
+    });
+    
+    console.log('📋 Pending master data added:', kode, 'for', currentNewMasterType);
+    
+    // Set the kode to the input field
+    const inputEl = document.getElementById(`master-${currentNewMasterType}`);
+    if (inputEl) {
+        inputEl.value = kode;
     }
+    
+    // Update photo preview in the card
+    if (newMasterPhotoData) {
+        uploadedPhotos[currentNewMasterType] = newMasterPhotoData;
+        updatePhotoPreview(currentNewMasterType, newMasterPhotoData);
+    }
+    
+    // Update status to show pending
+    const statusEl = document.getElementById(`status-${currentNewMasterType}`);
+    if (statusEl) {
+        statusEl.innerHTML = '<i class="fas fa-clock"></i> Tersimpan (Pending)';
+        statusEl.classList.add('uploaded');
+        statusEl.style.color = 'var(--warning-color)';
+    }
+    
+    closeNewMasterPopup();
+    showToast(`Master data "${kode}" tersimpan sementara. Klik "Simpan Semua" untuk menyimpan ke server.`, 'success');
+}
+
+// Function to save all pending master data (called from simpanSemua)
+async function savePendingMasterData() {
+    if (newMasterPendingData.length === 0) {
+        console.log('📋 No pending master data to save');
+        return { success: true };
+    }
+    
+    console.log(`📋 Saving ${newMasterPendingData.length} pending master data...`);
+    
+    for (const pending of newMasterPendingData) {
+        try {
+            // Upload photo to Google Drive with proper name
+            let photoUrl = null;
+            if (isGoogleDriveConnected() && pending.photoData) {
+                try {
+                    // Use kode as filename (e.g., "GSS MF O TPK.jpg")
+                    const fileName = `${pending.kode}.jpg`;
+                    photoUrl = await uploadToGoogleDrive(
+                        pending.photoData,
+                        fileName,
+                        pending.folderName
+                    );
+                    console.log(`✅ Photo uploaded to ${pending.folderName}/${fileName}`);
+                } catch (uploadError) {
+                    console.error('Drive upload failed:', uploadError);
+                }
+            }
+            
+            // Save to Master sheet
+            const masterData = {
+                negara: pending.negara,
+                flavor: pending.flavor,
+                keterangan: pending.kode,
+                [pending.field]: pending.kode
+            };
+            
+            const response = await fetch(CONFIG.WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'addMaster',
+                    master: masterData
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log(`✅ Master data saved: ${pending.kode}`);
+                
+                // Update uploadedPhotos with the Drive URL
+                if (photoUrl) {
+                    uploadedPhotos[pending.type] = photoUrl;
+                }
+            } else {
+                console.error(`❌ Failed to save master: ${pending.kode}`, result.message);
+            }
+        } catch (error) {
+            console.error(`❌ Error saving master data ${pending.kode}:`, error);
+        }
+    }
+    
+    // Clear pending data
+    newMasterPendingData = [];
+    return { success: true };
 }
 
 function escapeHtml(text) {
