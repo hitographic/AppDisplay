@@ -1,12 +1,13 @@
 // =====================================================
 // Popup Autocomplete for Add Data Form
+// Fixed: id = negara, negara = flavor in Master sheet
 // =====================================================
 
 // Load master data for popup autocomplete
 async function loadMasterDataForPopup() {
     try {
         console.log('📋 Loading master data for popup...');
-        const response = await fetch(`${CONFIG.GOOGLE_SHEETS_WEBAPP_URL}?action=getMaster`);
+        const response = await fetch(CONFIG.GOOGLE_SHEETS_WEBAPP_URL + '?action=getMaster');
         const result = await response.json();
         
         if (result.success && result.data) {
@@ -21,39 +22,39 @@ async function loadMasterDataForPopup() {
 
 // Initialize autocomplete for Add Data popup
 function initPopupAutocomplete() {
-    const negaraInput = document.getElementById('inputNegara');
-    const flavorInput = document.getElementById('inputFlavor');
+    var negaraInput = document.getElementById('inputNegara');
+    var flavorInput = document.getElementById('inputFlavor');
     
     if (!negaraInput || !flavorInput) return;
     
     // Remove existing listeners by cloning
-    const newNegaraInput = negaraInput.cloneNode(true);
-    const newFlavorInput = flavorInput.cloneNode(true);
+    var newNegaraInput = negaraInput.cloneNode(true);
+    var newFlavorInput = flavorInput.cloneNode(true);
     negaraInput.parentNode.replaceChild(newNegaraInput, negaraInput);
     flavorInput.parentNode.replaceChild(newFlavorInput, flavorInput);
     
     // Negara autocomplete
-    newNegaraInput.addEventListener('input', (e) => {
+    newNegaraInput.addEventListener('input', function(e) {
         handleNegaraAutocomplete(e.target.value);
     });
     
-    newNegaraInput.addEventListener('focus', (e) => {
+    newNegaraInput.addEventListener('focus', function(e) {
         handleNegaraAutocomplete(e.target.value);
     });
     
-    newNegaraInput.addEventListener('blur', () => {
-        setTimeout(() => {
-            const dd = document.getElementById('popupNegaraDropdown');
+    newNegaraInput.addEventListener('blur', function() {
+        setTimeout(function() {
+            var dd = document.getElementById('popupNegaraDropdown');
             if (dd) dd.classList.add('hidden');
         }, 200);
     });
     
     // Flavor autocomplete
-    newFlavorInput.addEventListener('input', (e) => {
+    newFlavorInput.addEventListener('input', function(e) {
         handleFlavorAutocomplete(e.target.value);
     });
     
-    newFlavorInput.addEventListener('focus', (e) => {
+    newFlavorInput.addEventListener('focus', function(e) {
         if (!selectedNegaraForPopup) {
             showToast('Pilih negara terlebih dahulu', 'warning');
             document.getElementById('inputNegara').focus();
@@ -62,34 +63,41 @@ function initPopupAutocomplete() {
         handleFlavorAutocomplete(e.target.value);
     });
     
-    newFlavorInput.addEventListener('blur', () => {
-        setTimeout(() => {
-            const dd = document.getElementById('popupFlavorDropdown');
+    newFlavorInput.addEventListener('blur', function() {
+        setTimeout(function() {
+            var dd = document.getElementById('popupFlavorDropdown');
             if (dd) dd.classList.add('hidden');
         }, 200);
     });
 }
 
-// Handle Negara autocomplete
+// Handle Negara autocomplete - USE 'id' FIELD (which contains country names)
 function handleNegaraAutocomplete(query) {
-    const dropdown = document.getElementById('popupNegaraDropdown');
+    var dropdown = document.getElementById('popupNegaraDropdown');
     if (!dropdown) return;
     
-    const negaraList = [...new Set(masterDataForPopup.map(m => m.negara).filter(Boolean))];
+    // Get unique NEGARA values from 'id' field (data structure is swapped)
+    var negaraSet = {};
+    masterDataForPopup.forEach(function(m) {
+        if (m.id) negaraSet[m.id] = true;
+    });
+    var negaraList = Object.keys(negaraSet);
     
-    const lowerQuery = query.toLowerCase().trim();
-    let filtered = negaraList;
+    var lowerQuery = query.toLowerCase().trim();
+    var filtered = negaraList;
     if (lowerQuery.length > 0) {
-        filtered = negaraList.filter(n => n.toLowerCase().includes(lowerQuery));
+        filtered = negaraList.filter(function(n) {
+            return n.toLowerCase().indexOf(lowerQuery) !== -1;
+        });
     }
     
     if (filtered.length === 0) {
         dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--gray-500); font-style: italic;">Tidak ditemukan</div>';
     } else {
-        dropdown.innerHTML = filtered.slice(0, 10).map(negara => {
-            let displayHtml = escapeHtmlPopup(negara);
+        dropdown.innerHTML = filtered.slice(0, 10).map(function(negara) {
+            var displayHtml = escapeHtmlPopup(negara);
             if (lowerQuery.length > 0) {
-                const idx = negara.toLowerCase().indexOf(lowerQuery);
+                var idx = negara.toLowerCase().indexOf(lowerQuery);
                 if (idx !== -1) {
                     displayHtml = escapeHtmlPopup(negara.substring(0, idx)) + 
                         '<span class="match">' + escapeHtmlPopup(negara.substring(idx, idx + lowerQuery.length)) + '</span>' +
@@ -102,15 +110,15 @@ function handleNegaraAutocomplete(query) {
     
     dropdown.classList.remove('hidden');
     
-    dropdown.querySelectorAll('.autocomplete-item[data-value]').forEach(item => {
-        item.addEventListener('mousedown', (e) => {
+    dropdown.querySelectorAll('.autocomplete-item[data-value]').forEach(function(item) {
+        item.addEventListener('mousedown', function(e) {
             e.preventDefault();
-            const value = item.dataset.value;
+            var value = item.dataset.value;
             document.getElementById('inputNegara').value = value;
             selectedNegaraForPopup = value;
             dropdown.classList.add('hidden');
             
-            const flavorInput = document.getElementById('inputFlavor');
+            var flavorInput = document.getElementById('inputFlavor');
             flavorInput.value = '';
             flavorInput.placeholder = 'Ketik flavor untuk ' + value + '...';
             flavorInput.focus();
@@ -120,9 +128,9 @@ function handleNegaraAutocomplete(query) {
     });
 }
 
-// Handle Flavor autocomplete
+// Handle Flavor autocomplete - USE 'negara' FIELD (which contains flavor/product names)
 function handleFlavorAutocomplete(query) {
-    const dropdown = document.getElementById('popupFlavorDropdown');
+    var dropdown = document.getElementById('popupFlavorDropdown');
     if (!dropdown) return;
     
     if (!selectedNegaraForPopup) {
@@ -131,27 +139,39 @@ function handleFlavorAutocomplete(query) {
         return;
     }
     
-    const flavorsForNegara = masterDataForPopup
-        .filter(m => m.negara && m.negara.toLowerCase() === selectedNegaraForPopup.toLowerCase())
-        .map(m => m.flavor)
+    // Get flavors for selected negara (use 'id' field to match negara, 'negara' field for flavor)
+    var flavorsForNegara = masterDataForPopup
+        .filter(function(m) {
+            return m.id && m.id.toLowerCase() === selectedNegaraForPopup.toLowerCase();
+        })
+        .map(function(m) {
+            return m.negara; // 'negara' field contains the flavor/product type
+        })
         .filter(Boolean);
     
-    const uniqueFlavors = [...new Set(flavorsForNegara)];
+    // Remove duplicates
+    var flavorSet = {};
+    flavorsForNegara.forEach(function(f) {
+        flavorSet[f] = true;
+    });
+    var uniqueFlavors = Object.keys(flavorSet);
     
-    const lowerQuery = query.toLowerCase().trim();
-    let filtered = uniqueFlavors;
+    var lowerQuery = query.toLowerCase().trim();
+    var filtered = uniqueFlavors;
     if (lowerQuery.length > 0) {
-        filtered = uniqueFlavors.filter(f => f.toLowerCase().includes(lowerQuery));
+        filtered = uniqueFlavors.filter(function(f) {
+            return f.toLowerCase().indexOf(lowerQuery) !== -1;
+        });
     }
     
     if (filtered.length === 0) {
-        const msg = uniqueFlavors.length === 0 ? 'Tidak ada flavor untuk ' + selectedNegaraForPopup : 'Tidak ditemukan';
+        var msg = uniqueFlavors.length === 0 ? 'Tidak ada flavor untuk ' + selectedNegaraForPopup : 'Tidak ditemukan';
         dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--gray-500); font-style: italic;">' + msg + '</div>';
     } else {
-        dropdown.innerHTML = filtered.slice(0, 10).map(flavor => {
-            let displayHtml = escapeHtmlPopup(flavor);
+        dropdown.innerHTML = filtered.slice(0, 10).map(function(flavor) {
+            var displayHtml = escapeHtmlPopup(flavor);
             if (lowerQuery.length > 0) {
-                const idx = flavor.toLowerCase().indexOf(lowerQuery);
+                var idx = flavor.toLowerCase().indexOf(lowerQuery);
                 if (idx !== -1) {
                     displayHtml = escapeHtmlPopup(flavor.substring(0, idx)) + 
                         '<span class="match">' + escapeHtmlPopup(flavor.substring(idx, idx + lowerQuery.length)) + '</span>' +
@@ -164,8 +184,8 @@ function handleFlavorAutocomplete(query) {
     
     dropdown.classList.remove('hidden');
     
-    dropdown.querySelectorAll('.autocomplete-item[data-value]').forEach(item => {
-        item.addEventListener('mousedown', (e) => {
+    dropdown.querySelectorAll('.autocomplete-item[data-value]').forEach(function(item) {
+        item.addEventListener('mousedown', function(e) {
             e.preventDefault();
             document.getElementById('inputFlavor').value = item.dataset.value;
             dropdown.classList.add('hidden');
@@ -215,4 +235,4 @@ window.closeAddDataPopup = function() {
     if (flavorDropdown) flavorDropdown.classList.add('hidden');
 };
 
-console.log('✅ Popup autocomplete module loaded');
+console.log('✅ Popup autocomplete module loaded (v2.6 - fixed field mapping)');
