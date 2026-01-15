@@ -909,22 +909,21 @@ function getAllMasterData() {
     var row = data[i];
     if (row[0]) {  // Check if id exists
       masters.push({
-        id: String(row[0]),
-        negara: row[1] || '',
-        flavor: row[2] || '',
-        keterangan: row[3] || '',
-        distributor: row[4] || '',
-        bumbu: row[5] || '',
-        minyakBumbu: row[6] || '',
-        kodeSI: row[7] || '',
-        kodeEtiket: row[8] || '',
-        kodeKarton: row[9] || '',
-        fiveOrSixInOne: row[10] || '',
-        plakban: row[11] || '',
-        createdAt: row[12] || '',
-        updatedAt: row[13] || '',
-        createdBy: row[14] || '',
-        updatedBy: row[15] || ''
+        negara: String(row[0]),       // A = Negara
+        flavor: row[1] || '',          // B = Flavor
+        keterangan: row[2] || '',      // C = Keterangan
+        distributor: row[3] || '',     // D = Distributor
+        bumbu: row[4] || '',           // E = Bumbu
+        minyakBumbu: row[5] || '',     // F = Minyak Bumbu
+        kodeSI: row[6] || '',          // G = Kode SI
+        kodeEtiket: row[7] || '',      // H = Kode Etiket
+        kodeKarton: row[8] || '',      // I = Kode Karton
+        fiveOrSixInOne: row[9] || '',  // J = Five or Six in One
+        plakban: row[10] || '',        // K = Plakban
+        createdAt: row[11] || '',
+        updatedAt: row[12] || '',
+        createdBy: row[13] || '',
+        updatedBy: row[14] || ''
       });
     }
   }
