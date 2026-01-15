@@ -569,18 +569,122 @@ body {
 }
 
 /* =====================================================
-   RECORDS GRID
+   RECORDS GRID (LIST VIEW)
    ===================================================== */
 .records-container {
     min-height: 400px;
 }
 
 .records-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
+/* Record List Item - List View tanpa gambar */
+.record-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.record-list-item:hover {
+    background: var(--gray-100);
+    box-shadow: var(--shadow-md);
+}
+
+.record-list-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.record-list-info .validation-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.record-list-info .validation-indicator.valid {
+    background-color: var(--success-color);
+}
+
+.record-list-info .validation-indicator.invalid {
+    background-color: var(--danger-color);
+}
+
+.record-list-info .validation-indicator.pending {
+    background-color: var(--warning-color);
+}
+
+.record-list-info .record-flavor {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 1rem;
+}
+
+.record-list-info .record-meta {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.record-list-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.record-list-actions .btn-action {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.record-list-actions .btn-action.view {
+    background: var(--accent-color);
+    color: white;
+}
+
+.record-list-actions .btn-action.edit {
+    background: var(--warning-color);
+    color: white;
+}
+
+.record-list-actions .btn-action.delete {
+    background: var(--danger-color);
+    color: white;
+}
+
+.record-list-actions .btn-action.info {
+    background: var(--gray-500);
+    color: white;
+}
+
+.record-list-actions .btn-action.validate {
+    background: var(--success-color);
+    color: white;
+}
+
+.record-list-actions .btn-action:hover {
+    transform: scale(1.1);
+    opacity: 0.9;
+}
+
+/* Old card styles - kept for reference but not used */
 .record-card {
     background: var(--white);
     border-radius: var(--border-radius-lg);

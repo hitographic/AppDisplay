@@ -288,85 +288,47 @@ function renderRecords() {
     const userCanValidate = canValidate();
 
     grid.innerHTML = paginatedRecords.map(record => {
-        // Get first available photo for card preview
-        const previewPhoto = record.photos?.bumbu || record.photos?.karton || record.photos?.si || 
-                            record.photos?.etiket || record.photos?.['m-bumbu'] || 
-                            record.photos?.['etiket-banded'] || record.photos?.plakban;
-        
-        // Use Google thumbnail URL if photo has ID
-        let previewSrc = '';
-        if (previewPhoto?.id) {
-            previewSrc = `https://lh3.googleusercontent.com/d/${previewPhoto.id}`;
-        } else if (previewPhoto?.directLink) {
-            previewSrc = previewPhoto.directLink;
-        } else if (previewPhoto?.base64) {
-            previewSrc = previewPhoto.base64;
-        }
-        
-        // Validation badge
-        let validationBadge = '';
+        // Determine validation status indicator
+        let validationClass = 'pending';
+        let validationText = 'Belum Validasi';
         if (record.validationStatus === 'valid') {
-            validationBadge = `<div class="validation-badge valid"><i class="fas fa-check-circle"></i> Valid</div>`;
+            validationClass = 'valid';
+            validationText = 'Valid';
         } else if (record.validationStatus === 'invalid') {
-            validationBadge = `<div class="validation-badge invalid" title="${escapeHtml(record.validationReason || '')}"><i class="fas fa-times-circle"></i> Invalid</div>`;
-        } else if (userCanValidate) {
-            validationBadge = `<div class="validation-badge pending"><i class="fas fa-clock"></i> Belum Validasi</div>`;
+            validationClass = 'invalid';
+            validationText = 'Invalid';
         }
         
         return `
-        <div class="record-card" onclick="openPreview('${record.id}')" style="position: relative;">
-            ${validationBadge}
-            <div class="card-preview">
-                ${previewSrc 
-                    ? `<img src="${previewSrc}" alt="${record.flavor}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                       <div class="no-image" style="display:none;">
-                           <i class="fas fa-image"></i>
-                           <p>No Preview</p>
-                       </div>`
-                    : `<div class="no-image">
-                        <i class="fas fa-image"></i>
-                        <p>No Preview</p>
-                    </div>`
-                }
-            </div>
-            <div class="card-content">
-                <h3 class="card-title">${escapeHtml(record.flavor)}</h3>
-                ${record.nomorMaterial ? `<div class="card-meta"><span><i class="fas fa-barcode"></i> ${escapeHtml(record.nomorMaterial)}</span></div>` : ''}
-                <div class="card-meta">
-                    <span><i class="fas fa-globe"></i> ${escapeHtml(record.negara)}</span>
-                    <span><i class="fas fa-calendar-plus"></i> ${formatDate(record.tanggal)}</span>
+            <div class="record-list-item">
+                <div class="record-list-info">
+                    <span class="validation-indicator ${validationClass}" title="${validationText}"></span>
+                    <span class="record-flavor">${escapeHtml(record.flavor)}</span>
+                    <span class="record-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
                 </div>
-                <div class="card-meta">
-                    <span title="Dibuat"><i class="fas fa-plus-circle"></i> ${formatDateTime(record.createdAt)}${record.createdBy ? ` oleh ${escapeHtml(record.createdBy)}` : ''}</span>
+                <div class="record-list-actions">
+                    <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${userCanEdit ? `
+                    <button class="btn-action edit" onclick="editRecord('${record.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action delete" onclick="deleteRecord('${record.id}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn-action info" onclick="showValidationInfo('${record.id}')" title="Info">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                    ` : ''}
+                    ${userCanValidate ? `
+                    <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
+                        <i class="fas fa-check-double"></i>
+                    </button>
+                    ` : ''}
                 </div>
-                <div class="card-meta">
-                    <span title="Diupdate"><i class="fas fa-sync-alt"></i> ${formatDateTime(record.updatedAt || record.createdAt)}${record.updatedBy ? ` oleh ${escapeHtml(record.updatedBy)}` : ''}</span>
-                </div>
-                <span class="card-badge">${escapeHtml(record.negara)}</span>
             </div>
-            <div class="card-actions" onclick="event.stopPropagation()">
-                <button class="btn-view" onclick="openPreview('${record.id}')">
-                    <i class="fas fa-eye"></i> Lihat
-                </button>
-                ${userCanEdit ? `
-                <button class="btn-edit" onclick="editRecord('${record.id}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn-delete" onclick="deleteRecord('${record.id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-                <button class="btn-info" onclick="showValidationInfo('${record.id}')" title="Info Validasi">
-                    <i class="fas fa-info-circle"></i>
-                </button>
-                ` : ''}
-                ${userCanValidate ? `
-                <button class="btn-validate" onclick="openValidationPopup('${record.id}')">
-                    <i class="fas fa-check-double"></i>
-                </button>
-                ` : ''}
-            </div>
-        </div>
-    `;
+        `;
     }).join('');
     
     // Render pagination
@@ -615,12 +577,6 @@ function applySearch() {
     // Render search results in list view (tanpa gambar)
     renderSearchResultsList(filteredRecords);
     
-    // Hide the card grid when showing search results
-    const recordsContainer = document.querySelector('.records-container');
-    if (recordsContainer) {
-        recordsContainer.style.display = 'none';
-    }
-    
     showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
 }
 
@@ -705,12 +661,6 @@ function resetSearch() {
     const searchResultsList = document.getElementById('searchResultsList');
     if (searchResultsList) {
         searchResultsList.classList.add('hidden');
-    }
-    
-    // Show the card grid again
-    const recordsContainer = document.querySelector('.records-container');
-    if (recordsContainer) {
-        recordsContainer.style.display = 'block';
     }
     
     renderRecords();
