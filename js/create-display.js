@@ -255,8 +255,7 @@ function skipGoogleDriveConnection() {
 
 // ==================== EDIT FLAVOR & NEGARA WITH MASTER DATA ====================
 
-// Store master data for dropdown
-let masterDataList = [];
+// selectedMaster for edit popup
 let selectedMaster = null;
 
 async function loadMasterDataForDropdown() {
@@ -1524,7 +1523,6 @@ async function saveNewMasterPhoto() {
     
     const field = PHOTO_FIELD_MAP[currentNewMasterType];
     const folderName = PHOTO_FOLDER_MAP[currentNewMasterType];
-    const kode = document.getElementById('newMasterKode').value.trim();
     
     // Store pending master data (will be saved on "Simpan Semua")
     newMasterPendingData.push({
