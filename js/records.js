@@ -612,10 +612,7 @@ function applySearch() {
 
     currentPage = 1; // Reset to first page when searching
     
-    // Render search results in list view
-    renderSearchResultsList(filteredRecords);
-    
-    // Also update main grid if needed
+    // Update main grid with filtered results
     renderRecords();
     
     showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
@@ -856,7 +853,7 @@ async function proceedToCreateDisplay() {
     storage.saveTempData(tempData);
 
     // Navigate to create display page
-    window.location.href = '../create-display/';
+    window.location.href = 'create-display.html';
 }
 
 // ==================== PREVIEW POPUP ====================
@@ -1061,7 +1058,7 @@ function editRecord(recordId) {
     storage.saveTempData({ ...record, isEdit: true });
     
     // Navigate to create display page
-    window.location.href = '../create-display/';
+    window.location.href = 'create-display.html';
 }
 
 async function deleteRecord(recordId) {
