@@ -1174,14 +1174,14 @@ async function loadMasterDataForAutocomplete() {
         console.log('📋 Loading Master data for autocomplete...');
         console.log('📋 Current negara:', currentData?.negara);
         
-        const response = await fetch(`${CONFIG.WEB_APP_URL}?action=getMaster`);
+        const response = await fetch(`${CONFIG.GOOGLE_SHEETS_WEBAPP_URL}?action=getMaster`);
         const result = await response.json();
         
         if (result.success && result.data) {
             // Filter by negara if available
             if (currentData && currentData.negara) {
                 masterDataList = result.data.filter(m => 
-                    m.negara && m.negara.toLowerCase() === currentData.negara.toLowerCase()
+                    m.id && m.id.toLowerCase() === currentData.negara.toLowerCase()
                 );
                 console.log('✅ Filtered by negara:', currentData.negara, '- Found', masterDataList.length, 'records');
             } else {
@@ -1597,7 +1597,7 @@ async function savePendingMasterData() {
                 [pending.field]: pending.kode
             };
             
-            const response = await fetch(CONFIG.WEB_APP_URL, {
+            const response = await fetch(CONFIG.GOOGLE_SHEETS_WEBAPP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
