@@ -13,6 +13,10 @@ let currentPage = 1;
 let recordsPerPage = 12; // Default 12 records per page (3x4 grid)
 const recordsPerPageOptions = [8, 12, 16, 24, 48];
 
+// Master data for autocomplete in Add Data popup
+let masterDataForPopup = [];
+let selectedNegaraForPopup = '';
+
 // Permission functions are now in auth.js (hasPermission, canEdit, canValidate, canView)
 
 document.addEventListener('DOMContentLoaded', function() {
