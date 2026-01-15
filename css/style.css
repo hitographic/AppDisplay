@@ -1314,6 +1314,207 @@ body {
     opacity: 0.9;
 }
 
+/* Photo Selector Styles */
+.photo-selector {
+    padding: 12px 15px;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.selector-option {
+    margin-bottom: 8px;
+}
+
+.selector-option:last-child {
+    margin-bottom: 0;
+}
+
+.selector-option label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.selector-option label i {
+    margin-right: 4px;
+    color: var(--primary-color);
+}
+
+.selector-option .autocomplete-wrapper {
+    position: relative;
+}
+
+.selector-option .master-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.selector-option .master-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(227, 30, 36, 0.1);
+}
+
+.master-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-top: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.master-dropdown.hidden {
+    display: none;
+}
+
+.master-dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--gray-700);
+    transition: var(--transition);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.master-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.master-dropdown-item:hover,
+.master-dropdown-item.active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.master-dropdown-item .match {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.master-dropdown-empty {
+    padding: 8px 12px;
+    color: var(--gray-500);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.selector-divider {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    color: var(--gray-500);
+    font-size: 0.75rem;
+}
+
+.selector-divider::before,
+.selector-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-300);
+}
+
+.selector-divider span {
+    padding: 0 10px;
+    font-weight: 500;
+}
+
+.btn-new-master {
+    width: 100%;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-new-master:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* New Master Photo Popup Styles */
+.popup-medium {
+    max-width: 450px;
+    width: 95%;
+}
+
+.new-master-photo-preview {
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: var(--gray-200);
+    color: var(--gray-500);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+.new-master-photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.new-master-photo-preview i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.new-master-photo-preview p {
+    font-size: 0.9rem;
+}
+
+.new-master-photo-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.new-master-photo-actions .btn-upload,
+.new-master-photo-actions .btn-camera {
+    flex: none;
+    padding: 10px 20px;
+}
+
+.popup-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 15px;
+    border-top: 1px solid var(--gray-200);
+    margin-top: 15px;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
 /* =====================================================
    KODE PRODUKSI
    ===================================================== */

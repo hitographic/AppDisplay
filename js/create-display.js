@@ -7,6 +7,33 @@ let uploadedPhotos = {};
 let currentCameraType = null;
 let cameraStream = null;
 
+// Master data for autocomplete
+let masterDataList = [];
+let currentNewMasterType = null;
+let newMasterPhotoData = null;
+
+// Photo type to Master field mapping
+const PHOTO_FIELD_MAP = {
+    'bumbu': 'bumbu',
+    'm-bumbu': 'minyakBumbu',
+    'si': 'kodeSI',
+    'karton': 'kodeKarton',
+    'etiket': 'kodeEtiket',
+    'etiket-banded': 'fiveOrSixInOne',
+    'plakban': 'plakban'
+};
+
+// Photo type to Drive folder mapping
+const PHOTO_FOLDER_MAP = {
+    'bumbu': 'Bumbu',
+    'm-bumbu': 'Minyak Bumbu',
+    'si': 'Kode SI',
+    'karton': 'Kode Karton',
+    'etiket': 'Kode Etiket',
+    'etiket-banded': 'Five or Six in One',
+    'plakban': 'Plakban'
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Protect page
     if (!protectPage()) return;
@@ -15,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!hasPermission('records_editor')) {
         showToast('Anda tidak memiliki akses ke halaman ini', 'error');
         setTimeout(() => {
-            window.location.href = '../records/';
+            window.location.href = 'records.html';
         }, 1500);
         return;
     }
@@ -31,7 +58,7 @@ async function initCreateDisplayPage() {
     if (!currentData) {
         showToast('Data tidak ditemukan. Kembali ke halaman sebelumnya.', 'error');
         setTimeout(() => {
-            window.location.href = '../records/';
+            window.location.href = 'records.html';
         }, 1500);
         return;
     }
@@ -55,6 +82,12 @@ async function initCreateDisplayPage() {
 
     // Initialize Google API for uploads
     await initGoogleAPI();
+    
+    // Load Master data for autocomplete
+    await loadMasterDataForAutocomplete();
+    
+    // Initialize autocomplete for master inputs
+    initMasterAutocomplete();
 }
 
 function displayInfo() {
@@ -893,7 +926,7 @@ function collectKodeProduksi() {
 function goBack() {
     if (confirm('Data yang belum disimpan akan hilang. Lanjutkan?')) {
         storage.clearTempData();
-        window.location.href = '../records/';
+        window.location.href = 'records.html';
     }
 }
 
@@ -1114,4 +1147,377 @@ function deletePhotoFromPreview() {
         showNotification('Foto berhasil dihapus', 'success');
     }
 }
+
+// =====================================================
+// MASTER DATA AUTOCOMPLETE FUNCTIONS
+// =====================================================
+
+async function loadMasterDataForAutocomplete() {
+    try {
+        console.log('📋 Loading Master data for autocomplete...');
+        const response = await fetch(`${CONFIG.WEB_APP_URL}?action=getMaster`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            masterDataList = result.data;
+            console.log('✅ Loaded', masterDataList.length, 'master records');
+        }
+    } catch (error) {
+        console.error('❌ Failed to load master data:', error);
+    }
+}
+
+function initMasterAutocomplete() {
+    const masterInputs = document.querySelectorAll('.master-input');
+    
+    masterInputs.forEach(input => {
+        const type = input.dataset.type;
+        const field = input.dataset.field;
+        const dropdownId = `dropdown-${type}`;
+        
+        // Input event for autocomplete
+        input.addEventListener('input', (e) => {
+            handleMasterInputChange(e.target.value, field, dropdownId, type);
+        });
+        
+        // Focus event - show all options
+        input.addEventListener('focus', (e) => {
+            handleMasterInputChange(e.target.value, field, dropdownId, type);
+        });
+        
+        // Blur event - hide dropdown
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                document.getElementById(dropdownId).classList.add('hidden');
+            }, 200);
+        });
+        
+        // Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+            handleMasterKeydown(e, dropdownId, input.id);
+        });
+    });
+}
+
+function handleMasterInputChange(query, field, dropdownId, type) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    // Get unique values for this field from master data
+    let options = [];
+    masterDataList.forEach(master => {
+        const value = master[field];
+        if (value && !options.includes(value)) {
+            options.push(value);
+        }
+    });
+    
+    // Filter based on query
+    const lowerQuery = query.toLowerCase().trim();
+    let filtered = options;
+    if (lowerQuery.length > 0) {
+        filtered = options.filter(opt => opt.toLowerCase().includes(lowerQuery));
+    }
+    
+    // Render dropdown
+    if (filtered.length === 0 && lowerQuery.length > 0) {
+        dropdown.innerHTML = '<div class="master-dropdown-empty">Tidak ditemukan - gunakan "Buat Master Data"</div>';
+        dropdown.classList.remove('hidden');
+    } else if (filtered.length > 0) {
+        dropdown.innerHTML = filtered.slice(0, 10).map((item, index) => {
+            // Highlight matching part
+            let displayHtml = escapeHtml(item);
+            if (lowerQuery.length > 0) {
+                const lowerItem = item.toLowerCase();
+                const matchIndex = lowerItem.indexOf(lowerQuery);
+                if (matchIndex !== -1) {
+                    const before = item.substring(0, matchIndex);
+                    const match = item.substring(matchIndex, matchIndex + lowerQuery.length);
+                    const after = item.substring(matchIndex + lowerQuery.length);
+                    displayHtml = `${escapeHtml(before)}<span class="match">${escapeHtml(match)}</span>${escapeHtml(after)}`;
+                }
+            }
+            return `<div class="master-dropdown-item" data-value="${escapeHtml(item)}" data-index="${index}">${displayHtml}</div>`;
+        }).join('');
+        dropdown.classList.remove('hidden');
+        
+        // Add click handlers
+        dropdown.querySelectorAll('.master-dropdown-item').forEach(item => {
+            item.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const inputEl = document.getElementById(`master-${type}`);
+                inputEl.value = item.dataset.value;
+                dropdown.classList.add('hidden');
+                
+                // Auto-load photo if exists
+                loadPhotoFromMaster(type, item.dataset.value);
+            });
+        });
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function handleMasterKeydown(e, dropdownId, inputId) {
+    const dropdown = document.getElementById(dropdownId);
+    const items = dropdown.querySelectorAll('.master-dropdown-item');
+    
+    if (dropdown.classList.contains('hidden') || items.length === 0) return;
+    
+    let activeIndex = -1;
+    items.forEach((item, i) => {
+        if (item.classList.contains('active')) activeIndex = i;
+    });
+    
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, items.length - 1);
+        updateActiveDropdownItem(items, activeIndex);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        updateActiveDropdownItem(items, activeIndex);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIndex >= 0 && items[activeIndex]) {
+            const inputEl = document.getElementById(inputId);
+            inputEl.value = items[activeIndex].dataset.value;
+            dropdown.classList.add('hidden');
+            
+            // Extract type from inputId (master-bumbu -> bumbu)
+            const type = inputId.replace('master-', '');
+            loadPhotoFromMaster(type, items[activeIndex].dataset.value);
+        }
+    } else if (e.key === 'Escape') {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function updateActiveDropdownItem(items, activeIndex) {
+    items.forEach((item, index) => {
+        if (index === activeIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+async function loadPhotoFromMaster(type, kodeValue) {
+    // Find matching master record
+    const field = PHOTO_FIELD_MAP[type];
+    const matchingMaster = masterDataList.find(m => m[field] === kodeValue);
+    
+    if (!matchingMaster) {
+        console.log('No matching master found for:', kodeValue);
+        return;
+    }
+    
+    // Try to load existing photo from Google Drive
+    const folderName = PHOTO_FOLDER_MAP[type];
+    console.log(`🔍 Looking for photo in folder: ${folderName} with kode: ${kodeValue}`);
+    
+    // For now, just show a toast that photo was selected
+    showToast(`Kode "${kodeValue}" dipilih`, 'success');
+}
+
+// =====================================================
+// NEW MASTER POPUP FUNCTIONS
+// =====================================================
+
+function openNewMasterPopup(type) {
+    currentNewMasterType = type;
+    newMasterPhotoData = null;
+    
+    // Set popup title
+    const typeNames = {
+        'bumbu': 'Bumbu',
+        'm-bumbu': 'Minyak Bumbu',
+        'si': 'Kode SI',
+        'karton': 'Kode Karton',
+        'etiket': 'Kode Etiket',
+        'etiket-banded': 'Five/Six in One',
+        'plakban': 'Plakban'
+    };
+    document.getElementById('newMasterPhotoType').textContent = typeNames[type] || type;
+    
+    // Reset form
+    document.getElementById('newMasterKode').value = '';
+    document.getElementById('newMasterPhotoPreview').innerHTML = `
+        <i class="fas fa-image"></i>
+        <p>Belum ada foto</p>
+    `;
+    
+    // Setup file input
+    const fileInput = document.getElementById('newMasterFileInput');
+    fileInput.onchange = (e) => handleNewMasterFileSelect(e);
+    
+    // Show popup
+    document.getElementById('newMasterPhotoPopup').classList.remove('hidden');
+}
+
+function closeNewMasterPopup() {
+    document.getElementById('newMasterPhotoPopup').classList.add('hidden');
+    currentNewMasterType = null;
+    newMasterPhotoData = null;
+}
+
+function triggerNewMasterUpload() {
+    document.getElementById('newMasterFileInput').click();
+}
+
+function handleNewMasterFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        newMasterPhotoData = event.target.result;
+        
+        // Update preview
+        document.getElementById('newMasterPhotoPreview').innerHTML = `
+            <img src="${newMasterPhotoData}" alt="Preview">
+        `;
+    };
+    reader.readAsDataURL(file);
+}
+
+function openNewMasterCamera() {
+    // Reuse existing camera functionality
+    if (currentNewMasterType) {
+        // Temporarily set camera type to capture
+        openCameraForNewMaster();
+    }
+}
+
+async function openCameraForNewMaster() {
+    const modal = document.getElementById('cameraModal');
+    const video = document.getElementById('cameraVideo');
+    
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+        });
+        video.srcObject = cameraStream;
+        modal.classList.remove('hidden');
+        
+        // Override capture button
+        const captureBtn = document.querySelector('#cameraModal .btn-capture');
+        if (captureBtn) {
+            captureBtn.onclick = () => captureForNewMaster();
+        }
+    } catch (err) {
+        console.error('Camera error:', err);
+        showToast('Tidak dapat mengakses kamera', 'error');
+    }
+}
+
+function captureForNewMaster() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    newMasterPhotoData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Update preview
+    document.getElementById('newMasterPhotoPreview').innerHTML = `
+        <img src="${newMasterPhotoData}" alt="Preview">
+    `;
+    
+    // Close camera modal
+    closeCamera();
+}
+
+async function saveNewMasterPhoto() {
+    const kode = document.getElementById('newMasterKode').value.trim();
+    
+    if (!kode) {
+        showToast('Masukkan keterangan/kode', 'error');
+        return;
+    }
+    
+    if (!newMasterPhotoData) {
+        showToast('Upload atau ambil foto terlebih dahulu', 'error');
+        return;
+    }
+    
+    try {
+        showLoading('Menyimpan Master Data...');
+        
+        const field = PHOTO_FIELD_MAP[currentNewMasterType];
+        const folderName = PHOTO_FOLDER_MAP[currentNewMasterType];
+        
+        // Upload photo to Google Drive
+        let photoUrl = null;
+        if (isGoogleDriveConnected()) {
+            try {
+                photoUrl = await uploadToGoogleDrive(
+                    newMasterPhotoData,
+                    `${kode}_${Date.now()}.jpg`,
+                    folderName
+                );
+            } catch (uploadError) {
+                console.error('Drive upload failed:', uploadError);
+            }
+        }
+        
+        // Save to Master sheet
+        const masterData = {
+            negara: currentData.negara || '',
+            flavor: currentData.flavor || '',
+            keterangan: kode,
+            [field]: kode
+        };
+        
+        const response = await fetch(CONFIG.WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'addMaster',
+                master: masterData
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Add to local master list
+            masterDataList.push({ ...masterData, id: result.id });
+            
+            // Set the kode to the input field
+            const inputEl = document.getElementById(`master-${currentNewMasterType}`);
+            if (inputEl) {
+                inputEl.value = kode;
+            }
+            
+            // Also set the photo preview
+            if (newMasterPhotoData) {
+                uploadedPhotos[currentNewMasterType] = photoUrl || newMasterPhotoData;
+                updatePhotoPreview(currentNewMasterType, newMasterPhotoData);
+            }
+            
+            closeNewMasterPopup();
+            hideLoading();
+            showToast('Master data berhasil disimpan', 'success');
+        } else {
+            hideLoading();
+            showToast('Gagal menyimpan master data: ' + result.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Save master error:', error);
+        showToast('Terjadi kesalahan saat menyimpan', 'error');
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 
