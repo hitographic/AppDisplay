@@ -1,4 +1,4 @@
-// =====================================================
+// VALID DISPLAY - Create Display Page Script v2.1
 // VALID DISPLAY - Create Display Page Script
 // =====================================================
 
