@@ -78,9 +78,14 @@
 
         <!-- Action Bar -->
         <div class="action-bar">
-            <button class="btn-primary" onclick="openAddDataPopup()">
-                <i class="fas fa-plus"></i> Tambah Data
-            </button>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn-primary" onclick="openAddDataPopup()">
+                    <i class="fas fa-plus"></i> Tambah Data
+                </button>
+                <a href="edit-master.html" class="btn-secondary" style="text-decoration: none;">
+                    <i class="fas fa-folder-open"></i> Edit Master Data
+                </a>
+            </div>
             
             <div class="search-section">
                 <button class="btn-secondary" onclick="toggleAdvancedSearch()">

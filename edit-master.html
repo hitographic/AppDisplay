@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Edit Master Data - MDS Track</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        .folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .folder-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .folder-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border-color: #c0392b;
+        }
+        
+        .folder-card.active {
+            border-color: #c0392b;
+            background: #fef5f5;
+        }
+        
+        .folder-card i {
+            font-size: 48px;
+            color: #c0392b;
+            margin-bottom: 10px;
+        }
+        
+        .folder-card h3 {
+            font-size: 14px;
+            color: #333;
+            margin: 0;
+        }
+        
+        .folder-card .file-count {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Files List */
+        .files-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .files-section.active {
+            display: block;
+        }
+        
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .files-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-box input {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: 250px;
+        }
+        
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        
+        .file-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .file-card .thumbnail {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .file-card .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .file-card .file-info {
+            padding: 10px;
+        }
+        
+        .file-card .file-name {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 8px;
+        }
+        
+        .file-card .file-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .file-card .file-actions button {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        
+        .btn-view {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-view:hover { background: #2980b9; }
+        .btn-edit:hover { background: #d68910; }
+        .btn-delete:hover { background: #c0392b; }
+        
+        /* Add Button */
+        .btn-add-file {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-add-file:hover {
+            background: #219a52;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .preview-area {
+            width: 100%;
+            height: 200px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+            background: #f9f9f9;
+        }
+        
+        .preview-area:hover {
+            border-color: #c0392b;
+            background: #fef5f5;
+        }
+        
+        .preview-area img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .preview-area i {
+            font-size: 48px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .preview-area p {
+            color: #999;
+            margin: 0;
+        }
+        
+        .upload-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .upload-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .btn-upload {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-camera {
+            background: #9b59b6;
+            color: white;
+        }
+        
+        .btn-save {
+            background: #27ae60;
+            color: white;
+            padding: 10px 25px;
+        }
+        
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+            padding: 10px 25px;
+        }
+        
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+        }
+        
+        .loading-spinner i {
+            font-size: 48px;
+            color: #c0392b;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Back button */
+        .btn-back {
+            background: #c0392b;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .btn-back:hover {
+            background: #a93226;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        /* Image preview modal */
+        .image-modal {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        
+        .image-modal img {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">MDS <span>Track</span></div>
+            <div class="header-actions">
+                <span id="userName">Admin User</span>
+                <a href="master.html" class="btn btn-sm btn-master"><i class="fas fa-database"></i> Master</a>
+                <a href="users.html" class="btn btn-sm btn-users"><i class="fas fa-users"></i> Users</a>
+                <button class="btn btn-sm btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <a href="records.html" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </a>
+        
+        <h1><i class="fas fa-folder-open"></i> Edit Master Data</h1>
+        <p style="color: #666; margin-bottom: 20px;">Kelola foto-foto master data di Google Drive</p>
+        
+        <!-- Google Drive Status -->
+        <div id="driveStatus" class="drive-status disconnected">
+            <div class="drive-info">
+                <i class="fas fa-cloud"></i>
+                <div>
+                    <strong>Google Drive: <span id="driveStatusText">Belum Terhubung</span></strong>
+                    <p id="driveStatusDesc">Hubungkan untuk mengelola foto</p>
+                </div>
+            </div>
+            <button id="connectDriveBtn" class="btn btn-drive" onclick="connectGoogleDrive()">
+                <i class="fas fa-plug"></i> Hubungkan
+            </button>
+        </div>
+        
+        <!-- Folder Grid -->
+        <h2 style="margin-top: 30px;">Pilih Kategori Folder</h2>
+        <div class="folder-grid" id="folderGrid">
+            <!-- Folders will be loaded here -->
+        </div>
+        
+        <!-- Files Section -->
+        <div class="files-section" id="filesSection">
+            <div class="files-header">
+                <h2><i class="fas fa-folder-open"></i> <span id="currentFolderName">Folder</span></h2>
+                <div class="search-box">
+                    <input type="text" id="searchFiles" placeholder="Cari file..." oninput="filterFiles()">
+                    <button class="btn-add-file" onclick="openAddModal()">
+                        <i class="fas fa-plus"></i> Tambah File
+                    </button>
+                </div>
+            </div>
+            <div class="files-grid" id="filesGrid">
+                <!-- Files will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Tambah File Baru</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="fileName">Nama File (tanpa ekstensi)</label>
+                    <input type="text" id="fileName" placeholder="Contoh: GSS-MF-O TPK">
+                </div>
+                <div class="form-group">
+                    <label>Foto</label>
+                    <div class="preview-area" id="previewArea" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Klik untuk upload atau ambil foto</p>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none" onchange="handleFileSelect(event)">
+                    <div class="upload-buttons">
+                        <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn-camera" onclick="openCamera()">
+                            <i class="fas fa-camera"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Batal</button>
+                <button class="btn-save" onclick="saveFile()">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Image Modal -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal-content image-modal">
+            <div class="modal-header">
+                <h3 id="viewModalTitle">Preview</h3>
+                <button class="modal-close" onclick="closeViewModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <img id="viewModalImage" src="" alt="Preview">
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Konfirmasi Hapus</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus file <strong id="deleteFileName"></strong>?</p>
+                <p style="color: #e74c3c; font-size: 14px;">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Batal</button>
+                <button class="btn-delete" onclick="confirmDelete()" style="padding: 10px 25px;">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner"></i>
+            <p id="loadingText">Memuat...</p>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; <span id="footerYear">2026</span> <span class="version">ver.1.0.1</span> by <a href="#">DuoBingo</a> for <span class="brand">Indofood</span></p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/edit-master.js?v=1.0"></script>
+    <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
+</body>
+</html>
