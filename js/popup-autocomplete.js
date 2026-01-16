@@ -1,7 +1,12 @@
 // =====================================================
 // Popup Autocomplete for Add Data Form
-// Fixed: id = negara, negara = flavor in Master sheet
+// Fixed: Now using correct field names from Code.gs
+// negara = country, flavor = flavor
 // =====================================================
+
+// Global variables
+var masterDataForPopup = [];
+var selectedNegaraForPopup = '';
 
 // Load master data for popup autocomplete
 async function loadMasterDataForPopup() {
@@ -13,6 +18,7 @@ async function loadMasterDataForPopup() {
         if (result.success && result.data) {
             masterDataForPopup = result.data;
             console.log('✅ Loaded', masterDataForPopup.length, 'master records for popup');
+            console.log('📋 Sample data:', masterDataForPopup[0]);
         }
     } catch (error) {
         console.error('❌ Failed to load master data for popup:', error);
@@ -25,7 +31,12 @@ function initPopupAutocomplete() {
     var negaraInput = document.getElementById('inputNegara');
     var flavorInput = document.getElementById('inputFlavor');
     
-    if (!negaraInput || !flavorInput) return;
+    if (!negaraInput || !flavorInput) {
+        console.log('❌ Input elements not found');
+        return;
+    }
+    
+    console.log('🔧 Initializing popup autocomplete...');
     
     // Remove existing listeners by cloning
     var newNegaraInput = negaraInput.cloneNode(true);
@@ -69,19 +80,29 @@ function initPopupAutocomplete() {
             if (dd) dd.classList.add('hidden');
         }, 200);
     });
+    
+    console.log('✅ Popup autocomplete initialized');
 }
 
-// Handle Negara autocomplete - USE 'id' FIELD (which contains country names)
+// Handle Negara autocomplete - USE 'negara' FIELD (correct after Code.gs fix)
 function handleNegaraAutocomplete(query) {
     var dropdown = document.getElementById('popupNegaraDropdown');
-    if (!dropdown) return;
+    if (!dropdown) {
+        console.log('❌ Dropdown popupNegaraDropdown not found');
+        return;
+    }
     
-    // Get unique NEGARA values from 'id' field (data structure is swapped)
+    console.log('🔍 handleNegaraAutocomplete called with:', query);
+    console.log('📋 masterDataForPopup length:', masterDataForPopup.length);
+    
+    // Get unique NEGARA values from 'negara' field
     var negaraSet = {};
     masterDataForPopup.forEach(function(m) {
-        if (m.id) negaraSet[m.id] = true;
+        if (m.negara) negaraSet[m.negara] = true;
     });
-    var negaraList = Object.keys(negaraSet);
+    var negaraList = Object.keys(negaraSet).sort();
+    
+    console.log('📋 Unique negara count:', negaraList.length);
     
     var lowerQuery = query.toLowerCase().trim();
     var filtered = negaraList;
@@ -91,10 +112,12 @@ function handleNegaraAutocomplete(query) {
         });
     }
     
+    console.log('📋 Filtered results:', filtered.length);
+    
     if (filtered.length === 0) {
         dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--gray-500); font-style: italic;">Tidak ditemukan</div>';
     } else {
-        dropdown.innerHTML = filtered.slice(0, 10).map(function(negara) {
+        dropdown.innerHTML = filtered.slice(0, 15).map(function(negara) {
             var displayHtml = escapeHtmlPopup(negara);
             if (lowerQuery.length > 0) {
                 var idx = negara.toLowerCase().indexOf(lowerQuery);
@@ -128,7 +151,7 @@ function handleNegaraAutocomplete(query) {
     });
 }
 
-// Handle Flavor autocomplete - USE 'negara' FIELD (which contains flavor/product names)
+// Handle Flavor autocomplete - USE 'flavor' FIELD (correct after Code.gs fix)
 function handleFlavorAutocomplete(query) {
     var dropdown = document.getElementById('popupFlavorDropdown');
     if (!dropdown) return;
@@ -139,13 +162,13 @@ function handleFlavorAutocomplete(query) {
         return;
     }
     
-    // Get flavors for selected negara (use 'id' field to match negara, 'negara' field for flavor)
+    // Get flavors for selected negara
     var flavorsForNegara = masterDataForPopup
         .filter(function(m) {
-            return m.id && m.id.toLowerCase() === selectedNegaraForPopup.toLowerCase();
+            return m.negara && m.negara.toLowerCase() === selectedNegaraForPopup.toLowerCase();
         })
         .map(function(m) {
-            return m.negara; // 'negara' field contains the flavor/product type
+            return m.flavor;
         })
         .filter(Boolean);
     
@@ -154,7 +177,7 @@ function handleFlavorAutocomplete(query) {
     flavorsForNegara.forEach(function(f) {
         flavorSet[f] = true;
     });
-    var uniqueFlavors = Object.keys(flavorSet);
+    var uniqueFlavors = Object.keys(flavorSet).sort();
     
     var lowerQuery = query.toLowerCase().trim();
     var filtered = uniqueFlavors;
@@ -168,7 +191,7 @@ function handleFlavorAutocomplete(query) {
         var msg = uniqueFlavors.length === 0 ? 'Tidak ada flavor untuk ' + selectedNegaraForPopup : 'Tidak ditemukan';
         dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--gray-500); font-style: italic;">' + msg + '</div>';
     } else {
-        dropdown.innerHTML = filtered.slice(0, 10).map(function(flavor) {
+        dropdown.innerHTML = filtered.slice(0, 15).map(function(flavor) {
             var displayHtml = escapeHtmlPopup(flavor);
             if (lowerQuery.length > 0) {
                 var idx = flavor.toLowerCase().indexOf(lowerQuery);
@@ -235,4 +258,4 @@ window.closeAddDataPopup = function() {
     if (flavorDropdown) flavorDropdown.classList.add('hidden');
 };
 
-console.log('✅ Popup autocomplete module loaded (v2.6 - fixed field mapping)');
+console.log('✅ Popup autocomplete module loaded (v2.7 - using correct field names)');
