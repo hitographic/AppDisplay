@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.9.0 - Changed file cards to list without images for faster loading
+// Version 2.10.0 - Simplified create-display page with dropdown selection
 
-const CACHE_NAME = 'mds-track-v2.21.0';
+const CACHE_NAME = 'mds-track-v2.22.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
