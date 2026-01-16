@@ -4,9 +4,11 @@
 // negara = country, flavor = flavor
 // =====================================================
 
-// Global variables
-var masterDataForPopup = [];
-var selectedNegaraForPopup = '';
+// Global popup state (avoid redeclaration across scripts)
+const popupState = window.popupState || (window.popupState = {
+    masterData: [],
+    selectedNegara: ''
+});
 
 // Load master data for popup autocomplete
 async function loadMasterDataForPopup() {
@@ -16,13 +18,13 @@ async function loadMasterDataForPopup() {
         const result = await response.json();
         
         if (result.success && result.data) {
-            masterDataForPopup = result.data;
-            console.log('✅ Loaded', masterDataForPopup.length, 'master records for popup');
-            console.log('📋 Sample data:', masterDataForPopup[0]);
+            popupState.masterData = result.data;
+            console.log('✅ Loaded', popupState.masterData.length, 'master records for popup');
+            console.log('📋 Sample data:', popupState.masterData[0]);
         }
     } catch (error) {
         console.error('❌ Failed to load master data for popup:', error);
-        masterDataForPopup = [];
+        popupState.masterData = [];
     }
 }
 
@@ -66,7 +68,7 @@ function initPopupAutocomplete() {
     });
     
     newFlavorInput.addEventListener('focus', function(e) {
-        if (!selectedNegaraForPopup) {
+        if (!popupState.selectedNegara) {
             showToast('Pilih negara terlebih dahulu', 'warning');
             document.getElementById('inputNegara').focus();
             return;
@@ -93,11 +95,11 @@ function handleNegaraAutocomplete(query) {
     }
     
     console.log('🔍 handleNegaraAutocomplete called with:', query);
-    console.log('📋 masterDataForPopup length:', masterDataForPopup.length);
+    console.log('📋 masterDataForPopup length:', popupState.masterData.length);
     
     // Get unique NEGARA values from 'negara' field
     var negaraSet = {};
-    masterDataForPopup.forEach(function(m) {
+    popupState.masterData.forEach(function(m) {
         if (m.negara) negaraSet[m.negara] = true;
     });
     var negaraList = Object.keys(negaraSet).sort();
@@ -138,7 +140,7 @@ function handleNegaraAutocomplete(query) {
             e.preventDefault();
             var value = item.dataset.value;
             document.getElementById('inputNegara').value = value;
-            selectedNegaraForPopup = value;
+            popupState.selectedNegara = value;
             dropdown.classList.add('hidden');
             
             var flavorInput = document.getElementById('inputFlavor');
@@ -156,16 +158,16 @@ function handleFlavorAutocomplete(query) {
     var dropdown = document.getElementById('popupFlavorDropdown');
     if (!dropdown) return;
     
-    if (!selectedNegaraForPopup) {
+    if (!popupState.selectedNegara) {
         dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--warning-color); font-style: italic;">Pilih negara terlebih dahulu</div>';
         dropdown.classList.remove('hidden');
         return;
     }
     
     // Get flavors for selected negara
-    var flavorsForNegara = masterDataForPopup
+    var flavorsForNegara = popupState.masterData
         .filter(function(m) {
-            return m.negara && m.negara.toLowerCase() === selectedNegaraForPopup.toLowerCase();
+            return m.negara && m.negara.toLowerCase() === popupState.selectedNegara.toLowerCase();
         })
         .map(function(m) {
             return m.flavor;
@@ -188,7 +190,7 @@ function handleFlavorAutocomplete(query) {
     }
     
     if (filtered.length === 0) {
-        var msg = uniqueFlavors.length === 0 ? 'Tidak ada flavor untuk ' + selectedNegaraForPopup : 'Tidak ditemukan';
+    var msg = uniqueFlavors.length === 0 ? 'Tidak ada flavor untuk ' + popupState.selectedNegara : 'Tidak ditemukan';
         dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--gray-500); font-style: italic;">' + msg + '</div>';
     } else {
         dropdown.innerHTML = filtered.slice(0, 15).map(function(flavor) {
@@ -234,7 +236,7 @@ window.openAddDataPopup = async function() {
     popup.classList.remove('hidden');
     document.getElementById('inputTanggal').value = new Date().toISOString().split('T')[0];
     
-    selectedNegaraForPopup = '';
+    popupState.selectedNegara = '';
     var flavorInput = document.getElementById('inputFlavor');
     if (flavorInput) flavorInput.placeholder = 'Pilih negara dulu, lalu ketik flavor...';
     
@@ -248,7 +250,7 @@ window.closeAddDataPopup = function() {
     popup.classList.add('hidden');
     document.getElementById('addDataForm').reset();
     
-    selectedNegaraForPopup = '';
+    popupState.selectedNegara = '';
     var flavorInput = document.getElementById('inputFlavor');
     if (flavorInput) flavorInput.placeholder = 'Pilih negara dulu, lalu ketik flavor...';
     
