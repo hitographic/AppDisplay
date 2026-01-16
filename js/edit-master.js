@@ -321,7 +321,7 @@ function renderFiles() {
     
     if (filteredFiles.length === 0) {
         grid.innerHTML = `
-            <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="empty-state">
                 <i class="fas fa-folder-open"></i>
                 <h3>${searchTerm ? 'Tidak ada file yang cocok' : 'Folder kosong'}</h3>
                 <p>${searchTerm ? 'Coba kata kunci lain' : 'Klik "Tambah File" untuk menambahkan foto'}</p>
@@ -331,28 +331,26 @@ function renderFiles() {
     }
     
     grid.innerHTML = filteredFiles.map(file => {
-        const thumbnailUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w300`;
         const fileName = file.name.replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '');
         
         return `
             <div class="file-card">
-                <div class="file-thumbnail">
-                    <img src="${thumbnailUrl}" alt="${file.name}" 
-                         onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\'fas fa-image\\'></i>';">
+                <div class="file-icon">
+                    <i class="fas fa-file-image"></i>
                 </div>
                 <div class="file-info">
                     <div class="file-name" title="${file.name}">${fileName}</div>
-                    <div class="file-actions">
-                        <button class="btn-view" onclick="viewFile('${file.id}', '${file.name}')" title="Lihat">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-edit" onclick="editFile('${file.id}', '${file.name}')" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-delete" onclick="deleteFile('${file.id}', '${file.name}')" title="Hapus">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                </div>
+                <div class="file-actions">
+                    <button class="btn-view" onclick="viewFile('${file.id}', '${file.name}')" title="Lihat">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-edit" onclick="editFile('${file.id}', '${file.name}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-delete" onclick="deleteFile('${file.id}', '${file.name}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `;

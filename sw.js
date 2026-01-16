@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.8.0 - Auto-connect Google Drive and fixed footer in edit-master
+// Version 2.9.0 - Changed file cards to list without images for faster loading
 
-const CACHE_NAME = 'mds-track-v2.20.0';
+const CACHE_NAME = 'mds-track-v2.21.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
