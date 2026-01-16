@@ -30,8 +30,8 @@ function normalizeFileName(name) {
     return name.toLowerCase()
         .replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '')  // Remove extension
         .replace(/[\/\\]+/g, ' ')                         // Replace / and \ with space
-        .replace(/[\-_]+/g, '-')                          // Normalize dashes
-        .replace(/\s+/g, ' ')                             // Collapse multiple spaces
+        .replace(/\s+/g, '')                              // Remove ALL spaces
+        .replace(/[\-_]+/g, '')                           // Remove dashes and underscores
         .trim();
 }
 
@@ -73,14 +73,6 @@ async function searchFileInDriveFolder(folderName, fileName) {
                 // Try different matching strategies
                 if (normalizedFileName === normalizedSearch) {
                     console.log(`✅ Exact match: "${file.name}"`);
-                    return file;
-                }
-                
-                // Also try without dashes (in case GSS-MF-O vs GSSMFO)
-                const searchNoDash = normalizedSearch.replace(/[\-\s]/g, '');
-                const fileNoDash = normalizedFileName.replace(/[\-\s]/g, '');
-                if (fileNoDash === searchNoDash) {
-                    console.log(`✅ Match (no dashes): "${file.name}"`);
                     return file;
                 }
                 
@@ -162,4 +154,4 @@ window.loadPhotoFromMaster = async function(type, kodeValue) {
     }
 };
 
-console.log('✅ Photo search module loaded (v1.1)');
+console.log('✅ Photo search module loaded (v1.2)');
