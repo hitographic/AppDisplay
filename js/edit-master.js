@@ -33,7 +33,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Check authentication
 function checkAuth() {
-    const user = JSON.parse(localStorage.getItem('mds_user') || sessionStorage.getItem('mds_user') || 'null');
+    // Use CONFIG storage key if available, otherwise try common keys
+    const storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
+        ? CONFIG.STORAGE_KEYS.USER 
+        : 'validDisplay_user';
+    
+    const user = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (!user) {
         window.location.href = 'index.html';
         return;
@@ -43,8 +48,10 @@ function checkAuth() {
 
 // Logout
 function logout() {
-    localStorage.removeItem('mds_user');
-    sessionStorage.removeItem('mds_user');
+    const storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
+        ? CONFIG.STORAGE_KEYS.USER 
+        : 'validDisplay_user';
+    localStorage.removeItem(storageKey);
     window.location.href = 'index.html';
 }
 

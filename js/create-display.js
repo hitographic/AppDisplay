@@ -40,11 +40,20 @@ function isGoogleDriveConnected() {
     return window.gapiLoaded && window.gapi && window.gapi.client && window.gapi.client.getToken && window.gapi.client.getToken() !== null;
 }
 
+// Get base path for navigation
+function getBasePath() {
+    const path = window.location.pathname;
+    if (path.includes('/AppDisplay/')) {
+        return '/AppDisplay/';
+    }
+    return './';
+}
+
 // Make goBack available globally immediately
 window.goBack = function() {
     if (confirm('Data yang belum disimpan akan hilang. Lanjutkan?')) {
         storage.clearTempData();
-        window.location.href = 'records.html';
+        window.location.href = getBasePath() + 'records.html';
     }
 };
 
@@ -56,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!hasPermission('records_editor')) {
         showToast('Anda tidak memiliki akses ke halaman ini', 'error');
         setTimeout(() => {
-            window.location.href = 'records.html';
+            window.location.href = getBasePath() + 'records.html';
         }, 1500);
         return;
     }
@@ -73,7 +82,7 @@ async function initCreateDisplayPage() {
         if (!currentData) {
             showToast('Data tidak ditemukan. Kembali ke halaman sebelumnya.', 'error');
             setTimeout(() => {
-                window.location.href = 'records.html';
+                window.location.href = getBasePath() + 'records.html';
             }, 1500);
             return;
         }
@@ -897,7 +906,7 @@ async function simpanSemua() {
         
         // Navigate back to records
         console.log('↩️ Redirecting to records...');
-        window.location.href = '../records/';
+        window.location.href = getBasePath() + 'records.html';
     } catch (error) {
         hideLoading();
         console.error('Error saving:', error);
