@@ -896,6 +896,9 @@ function fixMasterStructure() {
 }
 
 // Get all Master Data
+// MASTER_HEADERS: id(0), negara(1), flavor(2), keterangan(3), distributor(4),
+//                 bumbu(5), minyakBumbu(6), kodeSI(7), kodeEtiket(8), kodeKarton(9),
+//                 fiveOrSixInOne(10), plakban(11), createdAt(12), updatedAt(13), createdBy(14), updatedBy(15)
 function getAllMasterData() {
   var sheet = getMasterSheet();
   var data = sheet.getDataRange().getValues();
@@ -909,21 +912,22 @@ function getAllMasterData() {
     var row = data[i];
     if (row[0]) {  // Check if id exists
       masters.push({
-        negara: String(row[0]),       // A = Negara
-        flavor: row[1] || '',          // B = Flavor
-        keterangan: row[2] || '',      // C = Keterangan
-        distributor: row[3] || '',     // D = Distributor
-        bumbu: row[4] || '',           // E = Bumbu
-        minyakBumbu: row[5] || '',     // F = Minyak Bumbu
-        kodeSI: row[6] || '',          // G = Kode SI
-        kodeEtiket: row[7] || '',      // H = Kode Etiket
-        kodeKarton: row[8] || '',      // I = Kode Karton
-        fiveOrSixInOne: row[9] || '',  // J = Five or Six in One
-        plakban: row[10] || '',        // K = Plakban
-        createdAt: row[11] || '',
-        updatedAt: row[12] || '',
-        createdBy: row[13] || '',
-        updatedBy: row[14] || ''
+        id: String(row[0]),            // A = id (index 0)
+        negara: row[1] || '',          // B = negara (index 1)
+        flavor: row[2] || '',          // C = flavor (index 2)
+        keterangan: row[3] || '',      // D = keterangan (index 3)
+        distributor: row[4] || '',     // E = distributor (index 4)
+        bumbu: row[5] || '',           // F = bumbu (index 5)
+        minyakBumbu: row[6] || '',     // G = minyakBumbu (index 6)
+        kodeSI: row[7] || '',          // H = kodeSI (index 7)
+        kodeEtiket: row[8] || '',      // I = kodeEtiket (index 8)
+        kodeKarton: row[9] || '',      // J = kodeKarton (index 9)
+        fiveOrSixInOne: row[10] || '', // K = fiveOrSixInOne (index 10)
+        plakban: row[11] || '',        // L = plakban (index 11)
+        createdAt: row[12] || '',      // M = createdAt (index 12)
+        updatedAt: row[13] || '',      // N = updatedAt (index 13)
+        createdBy: row[14] || '',      // O = createdBy (index 14)
+        updatedBy: row[15] || ''       // P = updatedBy (index 15)
       });
     }
   }
