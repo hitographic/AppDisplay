@@ -895,6 +895,67 @@ function fixMasterStructure() {
   return { success: true, message: 'Header Master diperbaiki' };
 }
 
+// Normalize header names (lowercase, remove non-alphanum)
+function normalizeMasterHeader(header) {
+  return String(header || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// Resolve master column indexes by header name with fallbacks
+function getMasterColumnIndexes(sheet) {
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
+  var headerMap = {};
+  for (var i = 0; i < headerRow.length; i++) {
+    var key = normalizeMasterHeader(headerRow[i]);
+    if (key) headerMap[key] = i;
+  }
+
+  // Legacy fallback indexes (without id column)
+  var legacy = {
+    negara: 0,
+    flavor: 1,
+    keterangan: 2,
+    distributor: 3,
+    bumbu: 4,
+    minyakbumbu: 5,
+    kodesi: 6,
+    kodeetiket: 7,
+    kodekarton: 8,
+    fiveorsixinone: 9,
+    plakban: 10,
+    createdat: 11,
+    updatedat: 12,
+    createdby: 13,
+    updatedby: 14
+  };
+
+  function pickIndex(nameKey) {
+    if (headerMap[nameKey] !== undefined) return headerMap[nameKey];
+    if (legacy[nameKey] !== undefined) return legacy[nameKey];
+    return -1;
+  }
+
+  return {
+    id: pickIndex('id'),
+    negara: pickIndex('negara'),
+    flavor: pickIndex('flavor'),
+    keterangan: pickIndex('keterangan'),
+    distributor: pickIndex('distributor'),
+    bumbu: pickIndex('bumbu'),
+    minyakBumbu: pickIndex('minyakbumbu'),
+    kodeSI: pickIndex('kodesi'),
+    kodeEtiket: pickIndex('kodeetiket'),
+    kodeKarton: pickIndex('kodekarton'),
+    fiveOrSixInOne: pickIndex('fiveorsixinone'),
+    plakban: pickIndex('plakban'),
+    createdAt: pickIndex('createdat'),
+    updatedAt: pickIndex('updatedat'),
+    createdBy: pickIndex('createdby'),
+    updatedBy: pickIndex('updatedby')
+  };
+}
+
 // Get all Master Data
 // MASTER_HEADERS: id(0), negara(1), flavor(2), keterangan(3), distributor(4),
 //                 bumbu(5), minyakBumbu(6), kodeSI(7), kodeEtiket(8), kodeKarton(9),
@@ -906,28 +967,31 @@ function getAllMasterData() {
   if (data.length <= 1) {
     return { success: true, data: [] };
   }
-  
+
+  var idx = getMasterColumnIndexes(sheet);
   var masters = [];
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    if (row[0]) {  // Check if id exists
+    var negaraValue = idx.negara >= 0 ? row[idx.negara] : '';
+    if (negaraValue) {
+      var idValue = idx.id >= 0 ? row[idx.id] : (i + '');
       masters.push({
-        id: String(row[0]),            // A = id (index 0)
-        negara: row[1] || '',          // B = negara (index 1)
-        flavor: row[2] || '',          // C = flavor (index 2)
-        keterangan: row[3] || '',      // D = keterangan (index 3)
-        distributor: row[4] || '',     // E = distributor (index 4)
-        bumbu: row[5] || '',           // F = bumbu (index 5)
-        minyakBumbu: row[6] || '',     // G = minyakBumbu (index 6)
-        kodeSI: row[7] || '',          // H = kodeSI (index 7)
-        kodeEtiket: row[8] || '',      // I = kodeEtiket (index 8)
-        kodeKarton: row[9] || '',      // J = kodeKarton (index 9)
-        fiveOrSixInOne: row[10] || '', // K = fiveOrSixInOne (index 10)
-        plakban: row[11] || '',        // L = plakban (index 11)
-        createdAt: row[12] || '',      // M = createdAt (index 12)
-        updatedAt: row[13] || '',      // N = updatedAt (index 13)
-        createdBy: row[14] || '',      // O = createdBy (index 14)
-        updatedBy: row[15] || ''       // P = updatedBy (index 15)
+        id: String(idValue || ''),
+        negara: row[idx.negara] || '',
+        flavor: idx.flavor >= 0 ? (row[idx.flavor] || '') : '',
+        keterangan: idx.keterangan >= 0 ? (row[idx.keterangan] || '') : '',
+        distributor: idx.distributor >= 0 ? (row[idx.distributor] || '') : '',
+        bumbu: idx.bumbu >= 0 ? (row[idx.bumbu] || '') : '',
+        minyakBumbu: idx.minyakBumbu >= 0 ? (row[idx.minyakBumbu] || '') : '',
+        kodeSI: idx.kodeSI >= 0 ? (row[idx.kodeSI] || '') : '',
+        kodeEtiket: idx.kodeEtiket >= 0 ? (row[idx.kodeEtiket] || '') : '',
+        kodeKarton: idx.kodeKarton >= 0 ? (row[idx.kodeKarton] || '') : '',
+        fiveOrSixInOne: idx.fiveOrSixInOne >= 0 ? (row[idx.fiveOrSixInOne] || '') : '',
+        plakban: idx.plakban >= 0 ? (row[idx.plakban] || '') : '',
+        createdAt: idx.createdAt >= 0 ? (row[idx.createdAt] || '') : '',
+        updatedAt: idx.updatedAt >= 0 ? (row[idx.updatedAt] || '') : '',
+        createdBy: idx.createdBy >= 0 ? (row[idx.createdBy] || '') : '',
+        updatedBy: idx.updatedBy >= 0 ? (row[idx.updatedBy] || '') : ''
       });
     }
   }
@@ -939,28 +1003,33 @@ function getAllMasterData() {
 function getMasterByFlavor(flavor) {
   var sheet = getMasterSheet();
   var data = sheet.getDataRange().getValues();
+  var idx = getMasterColumnIndexes(sheet);
+  var target = String(flavor || '').toLowerCase();
   
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][2]).toLowerCase() === String(flavor).toLowerCase()) {
+    var row = data[i];
+    var rowFlavor = idx.flavor >= 0 ? String(row[idx.flavor] || '').toLowerCase() : '';
+    if (rowFlavor && rowFlavor === target) {
+      var idValue = idx.id >= 0 ? row[idx.id] : (i + '');
       return {
         success: true,
         master: {
-          id: String(data[i][0]),
-          negara: data[i][1] || '',
-          flavor: data[i][2] || '',
-          keterangan: data[i][3] || '',
-          distributor: data[i][4] || '',
-          bumbu: data[i][5] || '',
-          minyakBumbu: data[i][6] || '',
-          kodeSI: data[i][7] || '',
-          kodeEtiket: data[i][8] || '',
-          kodeKarton: data[i][9] || '',
-          fiveOrSixInOne: data[i][10] || '',
-          plakban: data[i][11] || '',
-          createdAt: data[i][12] || '',
-          updatedAt: data[i][13] || '',
-          createdBy: data[i][14] || '',
-          updatedBy: data[i][15] || ''
+          id: String(idValue || ''),
+          negara: idx.negara >= 0 ? (row[idx.negara] || '') : '',
+          flavor: idx.flavor >= 0 ? (row[idx.flavor] || '') : '',
+          keterangan: idx.keterangan >= 0 ? (row[idx.keterangan] || '') : '',
+          distributor: idx.distributor >= 0 ? (row[idx.distributor] || '') : '',
+          bumbu: idx.bumbu >= 0 ? (row[idx.bumbu] || '') : '',
+          minyakBumbu: idx.minyakBumbu >= 0 ? (row[idx.minyakBumbu] || '') : '',
+          kodeSI: idx.kodeSI >= 0 ? (row[idx.kodeSI] || '') : '',
+          kodeEtiket: idx.kodeEtiket >= 0 ? (row[idx.kodeEtiket] || '') : '',
+          kodeKarton: idx.kodeKarton >= 0 ? (row[idx.kodeKarton] || '') : '',
+          fiveOrSixInOne: idx.fiveOrSixInOne >= 0 ? (row[idx.fiveOrSixInOne] || '') : '',
+          plakban: idx.plakban >= 0 ? (row[idx.plakban] || '') : '',
+          createdAt: idx.createdAt >= 0 ? (row[idx.createdAt] || '') : '',
+          updatedAt: idx.updatedAt >= 0 ? (row[idx.updatedAt] || '') : '',
+          createdBy: idx.createdBy >= 0 ? (row[idx.createdBy] || '') : '',
+          updatedBy: idx.updatedBy >= 0 ? (row[idx.updatedBy] || '') : ''
         }
       };
     }
@@ -1087,11 +1156,13 @@ function deleteMasterData(masterId) {
 function getNegaraList() {
   var sheet = getMasterSheet();
   var data = sheet.getDataRange().getValues();
+  var idx = getMasterColumnIndexes(sheet);
   
   var negaraSet = {};
   for (var i = 1; i < data.length; i++) {
-    if (data[i][1]) {  // negara column
-      negaraSet[data[i][1]] = true;
+    var value = idx.negara >= 0 ? data[i][idx.negara] : '';
+    if (value) {
+      negaraSet[value] = true;
     }
   }
   
@@ -1102,11 +1173,13 @@ function getNegaraList() {
 function getFlavorList() {
   var sheet = getMasterSheet();
   var data = sheet.getDataRange().getValues();
+  var idx = getMasterColumnIndexes(sheet);
   
   var flavorSet = {};
   for (var i = 1; i < data.length; i++) {
-    if (data[i][2]) {  // flavor column
-      flavorSet[data[i][2]] = true;
+    var value = idx.flavor >= 0 ? data[i][idx.flavor] : '';
+    if (value) {
+      flavorSet[value] = true;
     }
   }
   
