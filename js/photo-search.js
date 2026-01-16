@@ -24,6 +24,17 @@ async function getFolderIdByName(folderName) {
     return null;
 }
 
+// Helper: Normalize filename for comparison - remove special chars, extensions, extra spaces
+function normalizeFileName(name) {
+    if (!name) return '';
+    return name.toLowerCase()
+        .replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '')  // Remove extension
+        .replace(/[\/\\]+/g, ' ')                         // Replace / and \ with space
+        .replace(/[\-_]+/g, '-')                          // Normalize dashes
+        .replace(/\s+/g, ' ')                             // Collapse multiple spaces
+        .trim();
+}
+
 // Helper: Search for file in Google Drive folder by name
 async function searchFileInDriveFolder(folderName, fileName) {
     if (!isGoogleDriveConnected() || !fileName) return null;
@@ -41,38 +52,53 @@ async function searchFileInDriveFolder(folderName, fileName) {
         const response = await gapi.client.drive.files.list({
             q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image/')`,
             fields: 'files(id, name, webViewLink, thumbnailLink)',
-            pageSize: 100
+            pageSize: 200
         });
         
         if (response.result.files && response.result.files.length > 0) {
             console.log(`📁 Found ${response.result.files.length} files in folder "${folderName}"`);
             
-            // Normalize search name - handle special chars like /
-            const normalizedSearch = searchName.toLowerCase()
-                .replace(/[\/\\\s]+/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
+            // Normalize search name
+            const normalizedSearch = normalizeFileName(searchName);
+            console.log(`   Normalized search: "${normalizedSearch}"`);
             
             for (const file of response.result.files) {
-                const normalizedFileName = file.name.toLowerCase()
-                    .replace(/\.(jpg|jpeg|png|gif|webp)$/i, '')
-                    .replace(/[\/\\\s]+/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+                const normalizedFileName = normalizeFileName(file.name);
+                
+                // Debug: log first few files for comparison
+                if (response.result.files.indexOf(file) < 5) {
+                    console.log(`   File: "${file.name}" → normalized: "${normalizedFileName}"`);
+                }
                 
                 // Try different matching strategies
-                if (normalizedFileName === normalizedSearch || 
-                    normalizedFileName.includes(normalizedSearch) ||
+                if (normalizedFileName === normalizedSearch) {
+                    console.log(`✅ Exact match: "${file.name}"`);
+                    return file;
+                }
+                
+                // Also try without dashes (in case GSS-MF-O vs GSSMFO)
+                const searchNoDash = normalizedSearch.replace(/[\-\s]/g, '');
+                const fileNoDash = normalizedFileName.replace(/[\-\s]/g, '');
+                if (fileNoDash === searchNoDash) {
+                    console.log(`✅ Match (no dashes): "${file.name}"`);
+                    return file;
+                }
+                
+                // Partial match - search contains file or vice versa
+                if (normalizedFileName.includes(normalizedSearch) ||
                     normalizedSearch.includes(normalizedFileName)) {
-                    console.log(`✅ Found matching file: "${file.name}"`);
+                    console.log(`✅ Partial match: "${file.name}"`);
                     return file;
                 }
             }
             
             console.log(`❌ No matching file found for "${fileName}"`);
-            console.log(`   Searched: "${normalizedSearch}"`);
+            console.log(`   Normalized search was: "${normalizedSearch}"`);
+            // List all files for debugging
+            console.log(`   Available files in folder:`);
+            response.result.files.forEach(f => console.log(`      - ${f.name}`));
         } else {
-            console.log(`📁 Folder "${folderName}" is empty`);
+            console.log(`📁 Folder "${folderName}" is empty or not accessible`);
         }
     } catch (error) {
         console.error('Error searching file in Drive:', error);
@@ -136,4 +162,4 @@ window.loadPhotoFromMaster = async function(type, kodeValue) {
     }
 };
 
-console.log('✅ Photo search module loaded (v1.0)');
+console.log('✅ Photo search module loaded (v1.1)');
