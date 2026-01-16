@@ -65,11 +65,42 @@ function initGoogleAPI() {
                     discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                 });
                 console.log('Google API initialized');
-                checkDriveConnection();
+                
+                // Check for existing token and auto-connect
+                autoConnectGoogleDrive();
             } catch (error) {
                 console.error('Error initializing Google API:', error);
+                updateDriveStatus(false);
             }
         });
+    } else {
+        console.error('Google API not loaded');
+        updateDriveStatus(false);
+    }
+}
+
+// Auto-connect to Google Drive if token exists
+async function autoConnectGoogleDrive() {
+    const token = localStorage.getItem('google_access_token');
+    
+    if (token) {
+        console.log('Found existing token, auto-connecting...');
+        gapi.client.setToken({ access_token: token });
+        
+        // Verify token is still valid by making a simple API call
+        try {
+            await gapi.client.drive.about.get({ fields: 'user' });
+            console.log('Token is valid, connected to Google Drive');
+            updateDriveStatus(true);
+            loadFolderCounts();
+        } catch (error) {
+            console.log('Token expired or invalid, need to re-authenticate');
+            localStorage.removeItem('google_access_token');
+            updateDriveStatus(false);
+        }
+    } else {
+        console.log('No token found');
+        updateDriveStatus(false);
     }
 }
 

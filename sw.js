@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.5.0 - Fixed navigation paths and auth storage keys
+// Version 2.6.0 - Improved Edit Master Data CSS and auto-connect
 
-const CACHE_NAME = 'mds-track-v2.17.0';
+const CACHE_NAME = 'mds-track-v2.18.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
