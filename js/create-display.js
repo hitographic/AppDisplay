@@ -1346,16 +1346,9 @@ async function loadPhotoFromMaster(type, kodeValue) {
     const folderName = PHOTO_FOLDER_MAP[type];
     
     try {
-        // Search for file in Google Drive folder
-        if (isGoogleDriveConnected() && window.driveFilesCache) {
-            const folderFiles = window.driveFilesCache[folderName] || [];
-            
-            // Find file matching the kode (filename contains the kode)
-            const matchingFile = folderFiles.find(f => {
-                const fileName = f.name.toLowerCase().replace(/\.(jpg|jpeg|png|gif)$/i, '');
-                return fileName === kodeValue.toLowerCase() || 
-                       fileName.includes(kodeValue.toLowerCase());
-            });
+        // Search for file in Google Drive folder using direct API
+        if (isGoogleDriveConnected()) {
+            const matchingFile = await searchPhotoInDriveFolder(folderName, kodeValue);
             
             if (matchingFile) {
                 console.log('✅ Found matching photo:', matchingFile.name);
@@ -1382,8 +1375,12 @@ async function loadPhotoFromMaster(type, kodeValue) {
                     previewBtn.disabled = false;
                 }
                 
-                // Store photo URL
-                uploadedPhotos[type] = matchingFile.webViewLink || thumbnailUrl;
+                // Store photo data for saving
+                uploadedPhotos[type] = {
+                    id: matchingFile.id,
+                    name: matchingFile.name,
+                    directLink: `https://lh3.googleusercontent.com/d/${matchingFile.id}`
+                };
                 
                 showToast(`Foto "${kodeValue}" ditemukan`, 'success');
                 return;
@@ -1397,6 +1394,85 @@ async function loadPhotoFromMaster(type, kodeValue) {
         console.error('Error loading photo from master:', error);
         showToast(`Kode "${kodeValue}" dipilih`, 'success');
     }
+}
+
+// Search for photo in Google Drive folder by name
+async function searchPhotoInDriveFolder(folderName, searchName) {
+    if (!isGoogleDriveConnected() || !searchName) return null;
+    
+    try {
+        // Get folder ID first
+        const folderResponse = await gapi.client.drive.files.list({
+            q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id, name)',
+            pageSize: 1
+        });
+        
+        if (!folderResponse.result.files || folderResponse.result.files.length === 0) {
+            console.log(`📁 Folder "${folderName}" not found`);
+            return null;
+        }
+        
+        const folderId = folderResponse.result.files[0].id;
+        console.log(`📁 Found folder "${folderName}" with ID: ${folderId}`);
+        
+        // Get all image files in folder
+        const filesResponse = await gapi.client.drive.files.list({
+            q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image/')`,
+            fields: 'files(id, name, webViewLink, thumbnailLink)',
+            pageSize: 500
+        });
+        
+        if (!filesResponse.result.files || filesResponse.result.files.length === 0) {
+            console.log(`📁 Folder "${folderName}" is empty`);
+            return null;
+        }
+        
+        console.log(`📁 Found ${filesResponse.result.files.length} files in folder "${folderName}"`);
+        
+        // Normalize search name - remove all spaces, dashes, slashes
+        const normalizedSearch = searchName.toLowerCase()
+            .replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '')
+            .replace(/[\/\\]+/g, '')
+            .replace(/[\s\-_]+/g, '')
+            .trim();
+        
+        console.log(`🔍 Searching for: "${searchName}" → normalized: "${normalizedSearch}"`);
+        
+        // Search for matching file
+        for (const file of filesResponse.result.files) {
+            const normalizedFileName = file.name.toLowerCase()
+                .replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '')
+                .replace(/[\/\\]+/g, '')
+                .replace(/[\s\-_]+/g, '')
+                .trim();
+            
+            // Log first 5 files for debugging
+            if (filesResponse.result.files.indexOf(file) < 5) {
+                console.log(`   File: "${file.name}" → normalized: "${normalizedFileName}"`);
+            }
+            
+            // Exact match
+            if (normalizedFileName === normalizedSearch) {
+                console.log(`✅ Exact match: "${file.name}"`);
+                return file;
+            }
+            
+            // Partial match
+            if (normalizedFileName.includes(normalizedSearch) || normalizedSearch.includes(normalizedFileName)) {
+                console.log(`✅ Partial match: "${file.name}"`);
+                return file;
+            }
+        }
+        
+        console.log(`❌ No match found. Available files:`);
+        filesResponse.result.files.slice(0, 10).forEach(f => console.log(`   - ${f.name}`));
+        
+    } catch (error) {
+        console.error('Error searching photo in Drive:', error);
+    }
+    
+    return null;
 }
 
 // =====================================================
