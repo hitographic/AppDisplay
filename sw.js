@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.7.0 - Redesigned Edit Master Data page to match other pages
+// Version 2.8.0 - Auto-connect Google Drive and fixed footer in edit-master
 
-const CACHE_NAME = 'mds-track-v2.19.0';
+const CACHE_NAME = 'mds-track-v2.20.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

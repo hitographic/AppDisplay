@@ -25,10 +25,15 @@ let selectedImageData = null;
 let folderCache = {};
 
 // Initialize
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     checkAuth();
     renderFolderGrid();
-    initGoogleAPI();
+    
+    // Wait for Google API to be ready, then auto-connect
+    await initGoogleAPI();
+    
+    // Check if already connected from records page
+    checkExistingConnection();
 });
 
 // Check authentication
@@ -56,32 +61,60 @@ function logout() {
 }
 
 // Initialize Google API
-function initGoogleAPI() {
-    if (typeof gapi !== 'undefined') {
-        gapi.load('client', async () => {
-            try {
-                await gapi.client.init({
-                    apiKey: CONFIG.GOOGLE_API_KEY,
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-                });
-                console.log('Google API initialized');
-                
-                // Check for existing token and auto-connect
-                autoConnectGoogleDrive();
-            } catch (error) {
-                console.error('Error initializing Google API:', error);
+async function initGoogleAPI() {
+    return new Promise((resolve) => {
+        if (typeof gapi !== 'undefined') {
+            gapi.load('client', async () => {
+                try {
+                    await gapi.client.init({
+                        apiKey: CONFIG.GOOGLE_API_KEY,
+                        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+                    });
+                    console.log('✅ Google API initialized');
+                    resolve(true);
+                } catch (error) {
+                    console.error('❌ Error initializing Google API:', error);
+                    updateDriveStatus(false);
+                    resolve(false);
+                }
+            });
+        } else {
+            console.error('❌ Google API not loaded');
+            updateDriveStatus(false);
+            resolve(false);
+        }
+    });
+}
+
+// Check existing connection from records page
+function checkExistingConnection() {
+    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
+    
+    if (token) {
+        console.log('🔍 Found existing Google token from records page');
+        gapi.client.setToken({ access_token: token });
+        
+        // Verify token is still valid
+        gapi.client.drive.about.get({ fields: 'user' })
+            .then(() => {
+                console.log('✅ Token is valid, auto-connected to Google Drive');
+                updateDriveStatus(true);
+                loadFolderCounts();
+            })
+            .catch((error) => {
+                console.log('❌ Token expired or invalid:', error.message);
+                localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
                 updateDriveStatus(false);
-            }
-        });
+            });
     } else {
-        console.error('Google API not loaded');
+        console.log('ℹ️ No existing Google token found');
         updateDriveStatus(false);
     }
 }
 
 // Auto-connect to Google Drive if token exists
 async function autoConnectGoogleDrive() {
-    const token = localStorage.getItem('google_access_token');
+    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
     
     if (token) {
         console.log('Found existing token, auto-connecting...');
@@ -95,7 +128,7 @@ async function autoConnectGoogleDrive() {
             loadFolderCounts();
         } catch (error) {
             console.log('Token expired or invalid, need to re-authenticate');
-            localStorage.removeItem('google_access_token');
+            localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
             updateDriveStatus(false);
         }
     } else {
@@ -106,7 +139,7 @@ async function autoConnectGoogleDrive() {
 
 // Check Google Drive connection
 function checkDriveConnection() {
-    const token = localStorage.getItem('google_access_token');
+    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
     if (token) {
         gapi.client.setToken({ access_token: token });
         updateDriveStatus(true);
@@ -126,7 +159,7 @@ async function connectGoogleDrive() {
             scope: 'https://www.googleapis.com/auth/drive',
             callback: async (response) => {
                 if (response.access_token) {
-                    localStorage.setItem('google_access_token', response.access_token);
+                    localStorage.setItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN, response.access_token);
                     gapi.client.setToken({ access_token: response.access_token });
                     updateDriveStatus(true);
                     await loadFolderCounts();
