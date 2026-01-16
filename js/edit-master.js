@@ -148,23 +148,15 @@ async function connectGoogleDrive() {
 
 // Update drive status UI
 function updateDriveStatus(connected) {
-    const statusDiv = document.getElementById('driveStatus');
-    const statusText = document.getElementById('driveStatusText');
-    const statusDesc = document.getElementById('driveStatusDesc');
-    const connectBtn = document.getElementById('connectDriveBtn');
+    const alertDiv = document.getElementById('googleDriveAlert');
+    const connectedDiv = document.getElementById('googleDriveConnected');
     
     if (connected) {
-        statusDiv.className = 'drive-status connected';
-        statusText.textContent = 'Terhubung ✓';
-        statusDesc.textContent = 'Siap mengelola foto';
-        connectBtn.innerHTML = '<i class="fas fa-check"></i> Terhubung';
-        connectBtn.disabled = true;
+        alertDiv.style.display = 'none';
+        connectedDiv.style.display = 'flex';
     } else {
-        statusDiv.className = 'drive-status disconnected';
-        statusText.textContent = 'Belum Terhubung';
-        statusDesc.textContent = 'Hubungkan untuk mengelola foto';
-        connectBtn.innerHTML = '<i class="fas fa-plug"></i> Hubungkan';
-        connectBtn.disabled = false;
+        alertDiv.style.display = 'flex';
+        connectedDiv.style.display = 'none';
     }
 }
 
@@ -173,9 +165,9 @@ function renderFolderGrid() {
     const grid = document.getElementById('folderGrid');
     grid.innerHTML = MASTER_FOLDERS.map((folder, index) => `
         <div class="folder-card" onclick="selectFolder('${folder.name}')" id="folder-${index}">
-            <i class="fas ${folder.icon}" style="color: ${folder.color}"></i>
+            <i class="fas ${folder.icon} folder-icon" style="color: ${folder.color}"></i>
             <h3>${folder.name}</h3>
-            <div class="file-count" id="count-${index}">- file</div>
+            <span class="file-count" id="count-${index}">- file</span>
         </div>
     `).join('');
 }
@@ -298,7 +290,8 @@ function renderFiles() {
         grid.innerHTML = `
             <div class="empty-state" style="grid-column: 1/-1;">
                 <i class="fas fa-folder-open"></i>
-                <p>${searchTerm ? 'Tidak ada file yang cocok' : 'Folder kosong'}</p>
+                <h3>${searchTerm ? 'Tidak ada file yang cocok' : 'Folder kosong'}</h3>
+                <p>${searchTerm ? 'Coba kata kunci lain' : 'Klik "Tambah File" untuk menambahkan foto'}</p>
             </div>
         `;
         return;
@@ -310,20 +303,20 @@ function renderFiles() {
         
         return `
             <div class="file-card">
-                <div class="thumbnail">
+                <div class="file-thumbnail">
                     <img src="${thumbnailUrl}" alt="${file.name}" 
-                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23f5f5f5%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2214%22>No Image</text></svg>'">
+                         onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\'fas fa-image\\'></i>';">
                 </div>
                 <div class="file-info">
                     <div class="file-name" title="${file.name}">${fileName}</div>
                     <div class="file-actions">
-                        <button class="btn-view" onclick="viewFile('${file.id}', '${file.name}')">
+                        <button class="btn-view" onclick="viewFile('${file.id}', '${file.name}')" title="Lihat">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn-edit" onclick="editFile('${file.id}', '${file.name}')">
+                        <button class="btn-edit" onclick="editFile('${file.id}', '${file.name}')" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-delete" onclick="deleteFile('${file.id}', '${file.name}')">
+                        <button class="btn-delete" onclick="deleteFile('${file.id}', '${file.name}')" title="Hapus">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

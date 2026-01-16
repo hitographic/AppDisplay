@@ -2,189 +2,193 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#e31e24">
+    <meta name="description" content="Material Display System - Edit Master Data">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MDS Track">
+    
     <title>Edit Master Data - MDS Track</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/Favicon MDS.png">
+    <link rel="apple-touch-icon" href="assets/App MDS.png">
+    
+    <!-- Manifest for PWA -->
+    <link rel="manifest" href="manifest.json">
+    
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="manifest.json">
     <style>
-        /* Page Title */
-        .page-title {
+        /* Edit Master Page Specific Styles */
+        .edit-master-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        /* Google Drive Alert - Same as records.html */
+        .google-drive-alert,
+        .google-drive-connected {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-        
-        .page-title h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #333;
-        }
-        
-        .page-title i {
-            color: #c0392b;
-            font-size: 28px;
-        }
-        
-        .page-subtitle {
-            color: #666;
-            margin: 0 0 25px 0;
-            font-size: 14px;
-        }
-        
-        /* Drive Status - Better styling */
-        .drive-status {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-radius: 12px;
+            padding: 15px 20px;
+            border-radius: var(--border-radius-lg);
             margin-bottom: 25px;
-            transition: all 0.3s ease;
+            gap: 15px;
         }
         
-        .drive-status.connected {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border: 1px solid #28a745;
-        }
-        
-        .drive-status.disconnected {
+        .google-drive-alert {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
             border: 1px solid #ffc107;
         }
         
-        .drive-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        .google-drive-connected {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 1px solid #28a745;
         }
         
-        .drive-info i {
-            font-size: 32px;
+        .alert-icon {
+            font-size: 28px;
         }
         
-        .drive-status.connected .drive-info i {
+        .google-drive-alert .alert-icon {
+            color: #856404;
+        }
+        
+        .google-drive-connected .alert-icon {
             color: #28a745;
         }
         
-        .drive-status.disconnected .drive-info i {
-            color: #ffc107;
+        .alert-content {
+            flex: 1;
         }
         
-        .drive-info strong {
-            display: block;
+        .alert-content h3 {
+            margin: 0 0 4px 0;
             font-size: 15px;
-            color: #333;
+            color: var(--gray-800);
         }
         
-        .drive-info p {
-            margin: 4px 0 0 0;
+        .alert-content p {
+            margin: 0;
             font-size: 13px;
-            color: #666;
+            color: var(--gray-600);
         }
         
-        .btn-drive {
+        .btn-connect-drive,
+        .btn-connected {
             padding: 10px 20px;
-            border-radius: 8px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 14px;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
+            transition: var(--transition);
+            white-space: nowrap;
         }
         
-        .drive-status.connected .btn-drive {
-            background: #28a745;
-            color: white;
-            border: none;
-        }
-        
-        .drive-status.disconnected .btn-drive {
+        .btn-connect-drive {
             background: #ffc107;
             color: #333;
-            border: none;
         }
         
-        #driveStatusText {
-            font-weight: 600;
+        .btn-connect-drive:hover {
+            background: #e0a800;
         }
         
-        .drive-status.connected #driveStatusText {
-            color: #28a745;
+        .btn-connected {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-connected:hover {
+            background: #218838;
         }
         
         /* Section Title */
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 15px 0;
+        .section-header {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--gray-800);
+        }
+        
+        .section-header i {
+            color: var(--primary-color);
         }
         
         /* Folder Grid */
         .folder-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
             margin-bottom: 30px;
         }
         
         .folder-card {
-            background: white;
-            border-radius: 12px;
-            padding: 18px 12px;
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 20px 15px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: var(--shadow-sm);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             border: 2px solid transparent;
         }
         
         .folder-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-            border-color: #c0392b;
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-color);
         }
         
         .folder-card.active {
-            border-color: #c0392b;
+            border-color: var(--primary-color);
             background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
         }
         
-        .folder-card i {
-            font-size: 36px;
-            margin-bottom: 10px;
+        .folder-card .folder-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
             display: block;
         }
         
         .folder-card h3 {
-            font-size: 13px;
-            color: #333;
-            margin: 0 0 6px 0;
+            font-size: 14px;
+            color: var(--gray-800);
+            margin: 0 0 8px 0;
             font-weight: 600;
             line-height: 1.3;
         }
         
         .folder-card .file-count {
-            font-size: 11px;
-            color: #888;
+            font-size: 12px;
+            color: var(--gray-500);
             margin: 0;
+            background: var(--gray-100);
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
         }
         
         /* Files Section */
         .files-section {
-            margin-top: 25px;
             display: none;
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-sm);
         }
         
         .files-section.active {
@@ -196,127 +200,152 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 12px;
             padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         .files-header h2 {
             margin: 0;
-            font-size: 18px;
-            color: #333;
+            font-size: 1.1rem;
+            color: var(--gray-800);
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
         .files-header h2 i {
-            color: #c0392b;
+            color: var(--primary-color);
         }
         
-        .search-box {
+        .files-toolbar {
             display: flex;
             gap: 10px;
             align-items: center;
         }
         
-        .search-box input {
+        .search-input {
             padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            width: 200px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius);
             font-size: 14px;
-            transition: all 0.2s;
+            width: 200px;
+            transition: var(--transition);
         }
         
-        .search-box input:focus {
+        .search-input:focus {
             outline: none;
-            border-color: #c0392b;
-            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(227, 30, 36, 0.1);
         }
         
+        .btn-add {
+            background: var(--success-color);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+        
+        .btn-add:hover {
+            background: #219a52;
+            transform: translateY(-1px);
+        }
+        
+        /* Files Grid */
         .files-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
         }
         
         .file-card {
-            background: #fafafa;
-            border-radius: 12px;
+            background: var(--gray-100);
+            border-radius: var(--border-radius-lg);
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            transition: all 0.3s ease;
-            border: 1px solid #eee;
+            transition: var(--transition);
+            border: 1px solid var(--gray-200);
         }
         
         .file-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-            border-color: #ddd;
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--gray-300);
         }
         
-        .file-card .thumbnail {
+        .file-thumbnail {
             width: 100%;
-            height: 120px;
-            background: #f0f0f0;
+            height: 140px;
+            background: var(--gray-200);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
         }
         
-        .file-card .thumbnail img {
+        .file-thumbnail img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
         
-        .file-card .file-info {
-            padding: 12px;
+        .file-thumbnail i {
+            font-size: 48px;
+            color: var(--gray-400);
         }
         
-        .file-card .file-name {
-            font-size: 12px;
-            color: #333;
+        .file-info {
+            padding: 15px;
+        }
+        
+        .file-name {
+            font-size: 13px;
+            color: var(--gray-800);
             font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
-        .file-card .file-actions {
+        .file-actions {
             display: flex;
-            gap: 6px;
+            gap: 8px;
         }
         
-        .file-card .file-actions button {
+        .file-actions button {
             flex: 1;
-            padding: 8px 4px;
+            padding: 8px;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--border-radius);
             cursor: pointer;
             font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
         
         .btn-view {
-            background: #3498db;
+            background: var(--accent-color);
             color: white;
         }
         
         .btn-edit {
-            background: #f39c12;
+            background: var(--warning-color);
             color: white;
         }
         
         .btn-delete {
-            background: #e74c3c;
+            background: var(--danger-color);
             color: white;
         }
         
@@ -324,32 +353,36 @@
         .btn-edit:hover { background: #d68910; }
         .btn-delete:hover { background: #c0392b; }
         
-        /* Add Button */
-        .btn-add-file {
-            background: #27ae60;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
         }
         
-        .btn-add-file:hover {
-            background: #219a52;
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: var(--gray-300);
         }
         
-        /* Modal */
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            color: var(--gray-600);
+        }
+        
+        .empty-state p {
+            margin: 0;
+        }
+        
+        /* Modal Styles */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             display: none;
             align-items: center;
             justify-content: center;
@@ -363,16 +396,17 @@
         
         .modal-content {
             background: white;
-            border-radius: 15px;
+            border-radius: var(--border-radius-lg);
             width: 100%;
             max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: var(--shadow-lg);
         }
         
         .modal-header {
             padding: 20px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--gray-200);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -380,7 +414,8 @@
         
         .modal-header h3 {
             margin: 0;
-            color: #333;
+            font-size: 1.1rem;
+            color: var(--gray-800);
         }
         
         .modal-close {
@@ -388,7 +423,12 @@
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: #666;
+            color: var(--gray-500);
+            transition: var(--transition);
+        }
+        
+        .modal-close:hover {
+            color: var(--gray-800);
         }
         
         .modal-body {
@@ -397,7 +437,7 @@
         
         .modal-footer {
             padding: 15px 20px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--gray-200);
             display: flex;
             justify-content: flex-end;
             gap: 10px;
@@ -410,36 +450,43 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
-            color: #333;
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 14px;
         }
         
         .form-group input[type="text"] {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            padding: 12px 15px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius);
             font-size: 14px;
-            box-sizing: border-box;
+            transition: var(--transition);
+        }
+        
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(227, 30, 36, 0.1);
         }
         
         .preview-area {
             width: 100%;
             height: 200px;
-            border: 2px dashed #ddd;
-            border-radius: 10px;
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--border-radius-lg);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: var(--transition);
             overflow: hidden;
-            background: #f9f9f9;
+            background: var(--gray-100);
         }
         
         .preview-area:hover {
-            border-color: #c0392b;
+            border-color: var(--primary-color);
             background: #fef5f5;
         }
         
@@ -451,37 +498,44 @@
         
         .preview-area i {
             font-size: 48px;
-            color: #ccc;
+            color: var(--gray-400);
             margin-bottom: 10px;
         }
         
         .preview-area p {
-            color: #999;
+            color: var(--gray-500);
             margin: 0;
+            font-size: 14px;
         }
         
         .upload-buttons {
             display: flex;
             gap: 10px;
-            margin-top: 10px;
+            margin-top: 12px;
         }
         
         .upload-buttons button {
             flex: 1;
             padding: 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--border-radius);
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
+            transition: var(--transition);
         }
         
         .btn-upload {
-            background: #3498db;
+            background: var(--accent-color);
             color: white;
+        }
+        
+        .btn-upload:hover {
+            background: #2980b9;
         }
         
         .btn-camera {
@@ -489,19 +543,54 @@
             color: white;
         }
         
+        .btn-camera:hover {
+            background: #8e44ad;
+        }
+        
         .btn-save {
-            background: #27ae60;
+            background: var(--success-color);
             color: white;
             padding: 10px 25px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-save:hover {
+            background: #219a52;
         }
         
         .btn-cancel {
-            background: #95a5a6;
+            background: var(--gray-500);
             color: white;
             padding: 10px 25px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
         }
         
-        /* Loading */
+        .btn-cancel:hover {
+            background: var(--gray-600);
+        }
+        
+        /* Image Modal */
+        .image-modal {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        
+        .image-modal img {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+        
+        /* Loading Overlay */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -525,101 +614,125 @@
         
         .loading-spinner i {
             font-size: 48px;
-            color: #c0392b;
+            color: var(--primary-color);
             animation: spin 1s linear infinite;
+        }
+        
+        .loading-spinner p {
+            margin-top: 15px;
+            color: var(--gray-600);
+            font-size: 14px;
         }
         
         @keyframes spin {
             100% { transform: rotate(360deg); }
         }
         
-        /* Back button */
-        .btn-back {
-            background: #c0392b;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            margin-bottom: 20px;
-        }
-        
-        .btn-back:hover {
-            background: #a93226;
-        }
-        
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-        
-        .empty-state i {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-        
-        /* Image preview modal */
-        .image-modal {
-            max-width: 90vw;
-            max-height: 90vh;
-        }
-        
-        .image-modal img {
-            max-width: 100%;
-            max-height: 70vh;
-            object-fit: contain;
+        /* Responsive */
+        @media (max-width: 768px) {
+            .edit-master-container {
+                padding: 15px;
+            }
+            
+            .folder-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 10px;
+            }
+            
+            .folder-card {
+                padding: 15px 10px;
+            }
+            
+            .folder-card .folder-icon {
+                font-size: 32px;
+            }
+            
+            .files-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .files-toolbar {
+                flex-direction: column;
+            }
+            
+            .search-input {
+                width: 100%;
+            }
+            
+            .files-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 12px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">MDS <span>Track</span></div>
-            <div class="header-actions">
-                <span id="userName">Admin User</span>
-                <a href="master.html" class="btn btn-sm btn-master"><i class="fas fa-database"></i> Master</a>
-                <a href="users.html" class="btn btn-sm btn-users"><i class="fas fa-users"></i> Users</a>
-                <button class="btn btn-sm btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </div>
+    <!-- Navigation - Same as other pages -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="assets/Navigation MDS.png" alt="MDS" class="nav-logo">
         </div>
-    </header>
+        <div class="nav-user">
+            <span id="userName">User</span>
+            <a href="master.html" id="masterDataLink" class="btn-nav">
+                <i class="fas fa-clipboard-list"></i> Master
+            </a>
+            <a href="users.html" id="userManagementLink" class="btn-nav">
+                <i class="fas fa-users-cog"></i> Users
+            </a>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
 
     <!-- Main Content -->
-    <main class="container">
-        <a href="records.html" class="btn-back">
-            <i class="fas fa-arrow-left"></i> Kembali
-        </a>
-        
-        <div class="page-title">
-            <i class="fas fa-folder-open"></i>
-            <h1>Edit Master Data</h1>
+    <main class="edit-master-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-folder-open"></i> Edit Master Data</h1>
+            <p>Kelola foto-foto master data di Google Drive</p>
         </div>
-        <p class="page-subtitle">Kelola foto-foto master data di Google Drive</p>
         
-        <!-- Google Drive Status -->
-        <div id="driveStatus" class="drive-status disconnected">
-            <div class="drive-info">
-                <i class="fas fa-cloud"></i>
-                <div>
-                    <strong>Google Drive: <span id="driveStatusText">Menghubungkan...</span></strong>
-                    <p id="driveStatusDesc">Memeriksa koneksi</p>
-                </div>
+        <!-- Back Button -->
+        <a href="records.html" class="btn-secondary" style="margin-bottom: 20px; display: inline-flex; text-decoration: none;">
+            <i class="fas fa-arrow-left"></i> Kembali ke Records
+        </a>
+
+        <!-- Google Drive Alert (Not Connected) -->
+        <div id="googleDriveAlert" class="google-drive-alert" style="display: none;">
+            <div class="alert-icon">
+                <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <button id="connectDriveBtn" class="btn btn-drive" onclick="connectGoogleDrive()">
-                <i class="fas fa-spinner fa-spin"></i> Menghubungkan
+            <div class="alert-content">
+                <h3>Google Drive: Tidak Terkoneksi</h3>
+                <p>Hubungkan ke Google Drive untuk mengelola foto master data.</p>
+            </div>
+            <button class="btn-connect-drive" onclick="connectGoogleDrive()">
+                <i class="fas fa-plug"></i> Hubungkan
+            </button>
+        </div>
+
+        <!-- Google Drive Connected Alert -->
+        <div id="googleDriveConnected" class="google-drive-connected" style="display: none;">
+            <div class="alert-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="alert-content">
+                <h3>Google Drive: Terkoneksi <i class="fas fa-check"></i></h3>
+                <p>Siap mengelola foto master data.</p>
+            </div>
+            <button class="btn-connected">
+                <i class="fas fa-cog"></i> Terhubung
             </button>
         </div>
         
-        <!-- Folder Grid -->
-        <h2 class="section-title"><i class="fas fa-folder"></i> Pilih Kategori Folder</h2>
+        <!-- Folder Grid Section -->
+        <div class="section-header">
+            <i class="fas fa-folder"></i>
+            <h2>Pilih Kategori Folder</h2>
+        </div>
         <div class="folder-grid" id="folderGrid">
             <!-- Folders will be loaded here -->
         </div>
@@ -627,10 +740,10 @@
         <!-- Files Section -->
         <div class="files-section" id="filesSection">
             <div class="files-header">
-                <h2><i class="fas fa-folder-open"></i> <span id="currentFolderName">Folder</span></h2>
-                <div class="search-box">
-                    <input type="text" id="searchFiles" placeholder="Cari file..." oninput="filterFiles()">
-                    <button class="btn-add-file" onclick="openAddModal()">
+                <h2><i class="fas fa-images"></i> <span id="currentFolderName">Folder</span></h2>
+                <div class="files-toolbar">
+                    <input type="text" class="search-input" id="searchFiles" placeholder="Cari file..." oninput="filterFiles()">
+                    <button class="btn-add" onclick="openAddModal()">
                         <i class="fas fa-plus"></i> Tambah File
                     </button>
                 </div>
@@ -650,21 +763,21 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="fileName">Nama File (tanpa ekstensi)</label>
+                    <label for="fileName"><i class="fas fa-file"></i> Nama File (tanpa ekstensi)</label>
                     <input type="text" id="fileName" placeholder="Contoh: GSS-MF-O TPK">
                 </div>
                 <div class="form-group">
-                    <label>Foto</label>
+                    <label><i class="fas fa-image"></i> Foto</label>
                     <div class="preview-area" id="previewArea" onclick="document.getElementById('fileInput').click()">
                         <i class="fas fa-cloud-upload-alt"></i>
                         <p>Klik untuk upload atau ambil foto</p>
                     </div>
                     <input type="file" id="fileInput" accept="image/*" style="display: none" onchange="handleFileSelect(event)">
                     <div class="upload-buttons">
-                        <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+                        <button class="btn-upload" type="button" onclick="document.getElementById('fileInput').click()">
                             <i class="fas fa-upload"></i> Upload
                         </button>
-                        <button class="btn-camera" onclick="openCamera()">
+                        <button class="btn-camera" type="button" onclick="openCamera()">
                             <i class="fas fa-camera"></i> Kamera
                         </button>
                     </div>
@@ -696,16 +809,19 @@
     <div class="modal-overlay" id="deleteModal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
-                <h3>Konfirmasi Hapus</h3>
+                <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> Konfirmasi Hapus</h3>
                 <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Apakah Anda yakin ingin menghapus file <strong id="deleteFileName"></strong>?</p>
-                <p style="color: #e74c3c; font-size: 14px;">Tindakan ini tidak dapat dibatalkan.</p>
+                <p>Apakah Anda yakin ingin menghapus file:</p>
+                <p><strong id="deleteFileName" style="color: var(--primary-color);"></strong></p>
+                <p style="color: var(--danger-color); font-size: 13px; margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i> Tindakan ini tidak dapat dibatalkan.
+                </p>
             </div>
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="closeDeleteModal()">Batal</button>
-                <button class="btn-delete" onclick="confirmDelete()" style="padding: 10px 25px;">
+                <button class="btn-delete" onclick="confirmDelete()" style="padding: 10px 25px; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-trash"></i> Hapus
                 </button>
             </div>
@@ -733,7 +849,7 @@
     <script src="https://accounts.google.com/gsi/client"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/edit-master.js?v=1.0"></script>
+    <script src="js/edit-master.js?v=1.1"></script>
     <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
 </body>
 </html>
