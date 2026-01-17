@@ -179,6 +179,16 @@ function doGet(e) {
     
     var result;
     
+    // Parse data parameter if exists (for write operations via JSONP)
+    var data = null;
+    if (e.parameter.data) {
+      try {
+        data = JSON.parse(e.parameter.data);
+      } catch (parseError) {
+        // Ignore parse error, data remains null
+      }
+    }
+    
     // Records actions
     if (action === 'getAll') {
       result = getAllRecordsData();
@@ -188,6 +198,14 @@ function doGet(e) {
     } else if (action === 'fixStructure') {
       // Action untuk memperbaiki struktur
       result = fixRecordsStructure();
+    }
+    // Write operations via JSONP (bypass CORS)
+    else if (action === 'add' && data && data.record) {
+      result = addRecordData(data.record);
+    } else if (action === 'update' && data && data.recordId) {
+      result = updateRecordData(data.recordId, data.record);
+    } else if (action === 'delete' && data && data.recordId) {
+      result = deleteRecordData(data.recordId);
     }
     // User actions
     else if (action === 'getUsers') {
@@ -200,12 +218,28 @@ function doGet(e) {
       const nik = e.parameter.nik;
       result = getUserByNik(nik);
     }
+    // User write operations via JSONP
+    else if (action === 'addUser' && data && data.user) {
+      result = addUserData(data.user);
+    } else if (action === 'updateUser' && data && data.nik) {
+      result = updateUserData(data.nik, data.user);
+    } else if (action === 'deleteUser' && data && data.nik) {
+      result = deleteUserData(data.nik);
+    }
     // Master Data actions
     else if (action === 'getMaster') {
       result = getAllMasterData();
     } else if (action === 'getMasterByFlavor') {
       const flavor = e.parameter.flavor;
       result = getMasterByFlavor(flavor);
+    }
+    // Master write operations via JSONP
+    else if (action === 'addMaster' && data && data.master) {
+      result = addMasterData(data.master);
+    } else if (action === 'updateMaster' && data && data.masterId) {
+      result = updateMasterData(data.masterId, data.master);
+    } else if (action === 'deleteMaster' && data && data.masterId) {
+      result = deleteMasterData(data.masterId);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
