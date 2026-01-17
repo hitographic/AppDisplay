@@ -56,7 +56,20 @@ function prefillForm() {
     if (tempData.flavor) document.getElementById('flavor').value = tempData.flavor;
     if (tempData.nomorMaterial) document.getElementById('nomorMaterial').value = tempData.nomorMaterial;
     if (tempData.negara) document.getElementById('negara').value = tempData.negara;
-    if (tempData.tanggal) document.getElementById('tanggal').value = tempData.tanggal;
+    
+    // Handle tanggal - convert from various formats to YYYY-MM-DD for input[type="date"]
+    if (tempData.tanggal) {
+        let tanggalValue = tempData.tanggal;
+        // If it's an ISO string or contains 'T', extract just the date part
+        if (typeof tanggalValue === 'string' && tanggalValue.includes('T')) {
+            tanggalValue = tanggalValue.split('T')[0];
+        }
+        // If it's a Date object, convert to YYYY-MM-DD
+        if (tanggalValue instanceof Date) {
+            tanggalValue = tanggalValue.toISOString().split('T')[0];
+        }
+        document.getElementById('tanggal').value = tanggalValue;
+    }
     
     // If editing, also load existing photos
     if (tempData.photos && Object.keys(tempData.photos).length > 0) {

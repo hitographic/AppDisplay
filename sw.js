@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.17.0 - Fixed: remove min photo validation, hide extension, store filename only
+// Version 2.18.0 - Fixed date prefill format, prevent delete photos from Drive
 
-const CACHE_NAME = 'mds-track-v2.29.0';
+const CACHE_NAME = 'mds-track-v2.30.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

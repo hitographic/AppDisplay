@@ -1128,22 +1128,7 @@ async function deleteRecord(recordId) {
     showLoading('Menghapus record...');
 
     try {
-        const record = storage.getRecordById(recordId);
-        
-        // Delete photos from Google Drive if available
-        if (record && record.photos && auth.hasGoogleToken()) {
-            for (const key in record.photos) {
-                if (record.photos[key]?.id) {
-                    try {
-                        await storage.deleteFromGoogleDrive(record.photos[key].id);
-                    } catch (e) {
-                        console.error('Error deleting photo:', e);
-                    }
-                }
-            }
-        }
-
-        // Delete from storage (Google Sheets + local)
+        // Delete from storage (Google Sheets + local) - DO NOT delete photos from Drive
         await storage.deleteRecordComplete(recordId);
 
         // Update local array
