@@ -86,21 +86,18 @@ async function initGoogleAPI() {
 // Check existing Google Drive connection from localStorage
 async function checkExistingConnection() {
     try {
-        // Get token from localStorage (same as records.js)
-        const tokenStr = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
+        // Get token from localStorage - it's stored as plain string (access_token only)
+        const accessToken = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
         
-        if (tokenStr) {
-            const token = JSON.parse(tokenStr);
+        if (accessToken) {
+            const isValid = await validateToken(accessToken);
             
-            if (token && token.access_token) {
-                const isValid = await validateToken(token.access_token);
-                
-                if (isValid) {
-                    gapi.client.setToken(token);
-                    updateDriveStatus(true);
-                    await loadAllDropdowns();
-                    return true;
-                }
+            if (isValid) {
+                // Set token as object for gapi.client
+                gapi.client.setToken({ access_token: accessToken });
+                updateDriveStatus(true);
+                await loadAllDropdowns();
+                return true;
             }
         }
         

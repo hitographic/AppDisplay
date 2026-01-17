@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.11.0 - Fixed create-display: auto-connect, back button, edit mode, form prefill
+// Version 2.12.0 - Fixed token parsing (stored as plain string, not JSON)
 
-const CACHE_NAME = 'mds-track-v2.23.0';
+const CACHE_NAME = 'mds-track-v2.24.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
