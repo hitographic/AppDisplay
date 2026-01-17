@@ -1,15 +1,19 @@
 // create-display.js - Simplified version with dropdown selection
-// Version 2.1 - Fixed auto-connect, back button, edit mode, and form prefill
+// Version 2.2 - Fixed folder lookup by name instead of hardcoded IDs
 
+// Mapping dropdown ID ke nama folder di Google Drive
 const PHOTO_FOLDER_MAP = {
-    bumbu: '1GlJq4WxEsLpGCLz6W1Xw0KG7qUiNuCGo',
-    mBumbu: '1f7d9Xk8lAFN8v0kFdMw_0dP-0c28YLFe',
-    si: '1Lr63wNhh-PElCuFG6T3YD63AcdyGQMLX',
-    karton: '1q1CqOsD2Z_0K0XvF2Y5T55_K2fUoHYo7',
-    etiket: '1xbpxXdBDxhqSNuqwBvOEz1wQ3PYWrHWi',
-    etiketBanded: '1BjxZ9YwCl2fTHYQo7OdEAGV0eSqbPZNP',
-    plakban: '1UEm4CQ05sZcT_zW2I2XMFX5JGDwMvOoZ'
+    bumbu: 'Bumbu',
+    mBumbu: 'Minyak Bumbu',
+    si: 'Kode SI',
+    karton: 'Kode Karton',
+    etiket: 'Kode Etiket',
+    etiketBanded: 'Five or Six in One',
+    plakban: 'Plakban'
 };
+
+// Cache folder IDs setelah ditemukan
+let folderIdCache = {};
 
 let selectedPhotos = {};
 let temporarySave = null;
@@ -154,8 +158,8 @@ async function loadAllDropdowns() {
     try {
         await gapi.client.load('drive', 'v3');
         
-        for (const [key, folderId] of Object.entries(PHOTO_FOLDER_MAP)) {
-            await loadDropdown(key, folderId);
+        for (const [key, folderName] of Object.entries(PHOTO_FOLDER_MAP)) {
+            await loadDropdown(key, folderName);
         }
         
         // After loading dropdowns, select existing photos if editing
@@ -171,8 +175,42 @@ async function loadAllDropdowns() {
     }
 }
 
-async function loadDropdown(dropdownId, folderId) {
+// Get folder ID by folder name from main folder
+async function getFolderIdByName(folderName) {
+    // Check cache first
+    if (folderIdCache[folderName]) {
+        return folderIdCache[folderName];
+    }
+    
     try {
+        const response = await gapi.client.drive.files.list({
+            q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id, name)',
+            pageSize: 1
+        });
+        
+        if (response.result.files && response.result.files.length > 0) {
+            const folderId = response.result.files[0].id;
+            folderIdCache[folderName] = folderId;
+            console.log(`📁 Found folder "${folderName}" with ID: ${folderId}`);
+            return folderId;
+        }
+    } catch (error) {
+        console.error(`Error getting folder ID for ${folderName}:`, error);
+    }
+    return null;
+}
+
+async function loadDropdown(dropdownId, folderName) {
+    try {
+        // First, get the folder ID by name
+        const folderId = await getFolderIdByName(folderName);
+        
+        if (!folderId) {
+            console.error(`Folder "${folderName}" not found`);
+            return;
+        }
+        
         const response = await gapi.client.drive.files.list({
             q: `'${folderId}' in parents and trashed=false and mimeType contains 'image/'`,
             fields: 'files(id, name, thumbnailLink, webContentLink)',

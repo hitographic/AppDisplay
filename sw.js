@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.12.0 - Fixed token parsing (stored as plain string, not JSON)
+// Version 2.13.0 - Fixed folder lookup by name instead of hardcoded IDs
 
-const CACHE_NAME = 'mds-track-v2.24.0';
+const CACHE_NAME = 'mds-track-v2.25.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
