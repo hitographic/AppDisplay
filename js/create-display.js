@@ -509,8 +509,8 @@ async function saveAll() {
             createdAt: new Date().toISOString()
         };
         
-        // Use SheetsDB to save (via Google Apps Script)
-        const sheetsDB = new SheetsDB();
+        // Use GoogleSheetsDB to save (via Google Apps Script)
+        const sheetsDB = new GoogleSheetsDB();
         let result;
         
         if (isEditMode) {
