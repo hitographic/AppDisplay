@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.10.0 - Simplified create-display page with dropdown selection
+// Version 2.11.0 - Fixed create-display: auto-connect, back button, edit mode, form prefill
 
-const CACHE_NAME = 'mds-track-v2.22.0';
+const CACHE_NAME = 'mds-track-v2.23.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
