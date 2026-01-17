@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.13.0 - Fixed folder lookup by name instead of hardcoded IDs
+// Version 2.14.0 - Fixed CONFIG.GOOGLE_API_KEY usage in create-display
 
-const CACHE_NAME = 'mds-track-v2.25.0';
+const CACHE_NAME = 'mds-track-v2.26.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

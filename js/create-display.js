@@ -1,5 +1,5 @@
 // create-display.js - Simplified version with dropdown selection
-// Version 2.2 - Fixed folder lookup by name instead of hardcoded IDs
+// Version 2.3 - Fixed CONFIG.GOOGLE_API_KEY usage
 
 // Mapping dropdown ID ke nama folder di Google Drive
 const PHOTO_FOLDER_MAP = {
@@ -72,7 +72,7 @@ async function initGoogleAPI() {
         gapi.load('client', async () => {
             try {
                 await gapi.client.init({
-                    apiKey: CONFIG.API_KEY,
+                    apiKey: CONFIG.GOOGLE_API_KEY,
                     discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                 });
                 console.log('✅ Google API initialized');
