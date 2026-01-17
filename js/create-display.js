@@ -284,6 +284,12 @@ function setupAutocomplete(inputId, files) {
     });
 }
 
+// Helper function to remove file extension
+function removeExtension(filename) {
+    if (!filename) return '';
+    return filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+}
+
 // Show autocomplete dropdown
 function showAutocompleteDropdown(inputId, files, dropdown) {
     dropdown.innerHTML = '';
@@ -294,7 +300,8 @@ function showAutocompleteDropdown(inputId, files, dropdown) {
         files.forEach(file => {
             const item = document.createElement('div');
             item.className = 'autocomplete-item';
-            item.textContent = file.name;
+            // Display name without extension
+            item.textContent = removeExtension(file.name);
             item.dataset.id = file.id;
             item.dataset.name = file.name;
             item.dataset.thumbnailLink = file.thumbnailLink;
@@ -316,7 +323,8 @@ function selectAutocompleteItem(inputId, item) {
     const input = document.getElementById(inputId);
     const dropdown = document.getElementById(inputId + 'Dropdown');
     
-    input.value = item.dataset.name;
+    // Display without extension
+    input.value = removeExtension(item.dataset.name);
     dropdown.classList.add('hidden');
     
     // Store selected photo
@@ -387,10 +395,7 @@ function saveTemporary() {
         return;
     }
     
-    if (Object.keys(selectedPhotos).length === 0) {
-        showToast('Pilih minimal 1 foto', 'error');
-        return;
-    }
+    // Removed validation for minimum 1 photo - allow saving with any photos selected
     
     temporarySave = {
         id: isEditMode ? editRecordId : (tempData?.id || generateId()),
@@ -461,7 +466,13 @@ async function saveAll() {
     showLoading(isEditMode ? 'Mengupdate data...' : 'Menyimpan data...');
     
     try {
-        // Build record object for SheetsDB
+        // Helper to get just the filename without extension
+        const getPhotoName = (photo) => {
+            if (!photo || !photo.name) return '';
+            return removeExtension(photo.name);
+        };
+        
+        // Build record object for SheetsDB - store only filename (no extension, no JSON)
         const record = {
             id: temporarySave.id,
             tanggal: temporarySave.tanggal,
@@ -469,41 +480,13 @@ async function saveAll() {
             flavor: temporarySave.flavor,
             negara: temporarySave.negara,
             photos: {
-                bumbu: temporarySave.photos.bumbu ? {
-                    id: temporarySave.photos.bumbu.id,
-                    name: temporarySave.photos.bumbu.name,
-                    directLink: temporarySave.photos.bumbu.webContentLink
-                } : null,
-                mBumbu: temporarySave.photos.mBumbu ? {
-                    id: temporarySave.photos.mBumbu.id,
-                    name: temporarySave.photos.mBumbu.name,
-                    directLink: temporarySave.photos.mBumbu.webContentLink
-                } : null,
-                si: temporarySave.photos.si ? {
-                    id: temporarySave.photos.si.id,
-                    name: temporarySave.photos.si.name,
-                    directLink: temporarySave.photos.si.webContentLink
-                } : null,
-                karton: temporarySave.photos.karton ? {
-                    id: temporarySave.photos.karton.id,
-                    name: temporarySave.photos.karton.name,
-                    directLink: temporarySave.photos.karton.webContentLink
-                } : null,
-                etiket: temporarySave.photos.etiket ? {
-                    id: temporarySave.photos.etiket.id,
-                    name: temporarySave.photos.etiket.name,
-                    directLink: temporarySave.photos.etiket.webContentLink
-                } : null,
-                etiketBanded: temporarySave.photos.etiketBanded ? {
-                    id: temporarySave.photos.etiketBanded.id,
-                    name: temporarySave.photos.etiketBanded.name,
-                    directLink: temporarySave.photos.etiketBanded.webContentLink
-                } : null,
-                plakban: temporarySave.photos.plakban ? {
-                    id: temporarySave.photos.plakban.id,
-                    name: temporarySave.photos.plakban.name,
-                    directLink: temporarySave.photos.plakban.webContentLink
-                } : null
+                bumbu: getPhotoName(temporarySave.photos.bumbu),
+                mBumbu: getPhotoName(temporarySave.photos.mBumbu),
+                si: getPhotoName(temporarySave.photos.si),
+                karton: getPhotoName(temporarySave.photos.karton),
+                etiket: getPhotoName(temporarySave.photos.etiket),
+                etiketBanded: getPhotoName(temporarySave.photos.etiketBanded),
+                plakban: getPhotoName(temporarySave.photos.plakban)
             },
             createdBy: localStorage.getItem('userName') || 'Unknown',
             createdAt: new Date().toISOString()

@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.16.0 - Fixed save using SheetsDB via Google Apps Script instead of Sheets API
+// Version 2.17.0 - Fixed: remove min photo validation, hide extension, store filename only
 
-const CACHE_NAME = 'mds-track-v2.28.0';
+const CACHE_NAME = 'mds-track-v2.29.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

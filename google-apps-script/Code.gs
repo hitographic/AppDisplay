@@ -717,6 +717,17 @@ function getRecordByIdData(id) {
 function addRecordData(record) {
   const sheet = getRecordsSheet();
   
+  // Helper to get photo name (string only, no JSON)
+  function getPhotoName(photo) {
+    if (!photo) return '';
+    if (typeof photo === 'string') return photo;
+    if (typeof photo === 'object' && photo.name) {
+      // Remove extension if present
+      return photo.name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+    }
+    return '';
+  }
+  
   const row = [
     record.id,
     record.tanggal,
@@ -727,13 +738,13 @@ function addRecordData(record) {
     record.updatedAt || new Date().toISOString(),
     record.createdBy || '',
     record.updatedBy || '',
-    record.photos?.bumbu ? JSON.stringify(record.photos.bumbu) : '',
-    record.photos?.['m-bumbu'] ? JSON.stringify(record.photos['m-bumbu']) : '',
-    record.photos?.si ? JSON.stringify(record.photos.si) : '',
-    record.photos?.karton ? JSON.stringify(record.photos.karton) : '',
-    record.photos?.etiket ? JSON.stringify(record.photos.etiket) : '',
-    record.photos?.['etiket-banded'] ? JSON.stringify(record.photos['etiket-banded']) : '',
-    record.photos?.plakban ? JSON.stringify(record.photos.plakban) : '',
+    getPhotoName(record.photos?.bumbu) || getPhotoName(record.photos?.['bumbu']),
+    getPhotoName(record.photos?.mBumbu) || getPhotoName(record.photos?.['m-bumbu']),
+    getPhotoName(record.photos?.si),
+    getPhotoName(record.photos?.karton),
+    getPhotoName(record.photos?.etiket),
+    getPhotoName(record.photos?.etiketBanded) || getPhotoName(record.photos?.['etiket-banded']),
+    getPhotoName(record.photos?.plakban),
     record.kodeProduksi ? JSON.stringify(record.kodeProduksi) : '[]',
     record.validationStatus || '',
     record.validatedBy || '',
@@ -756,6 +767,17 @@ function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
   
+  // Helper to get photo name (string only, no JSON)
+  function getPhotoName(photo) {
+    if (!photo) return '';
+    if (typeof photo === 'string') return photo;
+    if (typeof photo === 'object' && photo.name) {
+      // Remove extension if present
+      return photo.name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+    }
+    return '';
+  }
+  
   Logger.log('=== UPDATE RECORD START ===');
   Logger.log('Looking for recordId: ' + recordId);
   Logger.log('recordId type: ' + typeof recordId);
@@ -773,6 +795,15 @@ function updateRecordData(recordId, updatedRecord) {
       Logger.log('✅ Found record at row: ' + rowIndex);
       Logger.log('Updated photos object: ' + JSON.stringify(updatedRecord.photos));
       
+      // Get photo names - use new value if provided, otherwise keep existing
+      const photoBumbu = getPhotoName(updatedRecord.photos?.bumbu) || getPhotoName(updatedRecord.photos?.['bumbu']) || data[i][9] || '';
+      const photoMBumbu = getPhotoName(updatedRecord.photos?.mBumbu) || getPhotoName(updatedRecord.photos?.['m-bumbu']) || data[i][10] || '';
+      const photoSi = getPhotoName(updatedRecord.photos?.si) || data[i][11] || '';
+      const photoKarton = getPhotoName(updatedRecord.photos?.karton) || data[i][12] || '';
+      const photoEtiket = getPhotoName(updatedRecord.photos?.etiket) || data[i][13] || '';
+      const photoEtiketBanded = getPhotoName(updatedRecord.photos?.etiketBanded) || getPhotoName(updatedRecord.photos?.['etiket-banded']) || data[i][14] || '';
+      const photoPlakban = getPhotoName(updatedRecord.photos?.plakban) || data[i][15] || '';
+      
       const row = [
         recordId,
         updatedRecord.tanggal || data[i][1],
@@ -781,15 +812,15 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.negara || data[i][4],
         data[i][5], // keep original createdAt
         new Date().toISOString(), // update updatedAt
-        data[i][7] || '', // keep original createdBy
-        updatedRecord.updatedBy || data[i][8] || '', // update updatedBy
-        updatedRecord.photos?.bumbu ? JSON.stringify(updatedRecord.photos.bumbu) : (data[i][9] || ''),
-        updatedRecord.photos?.['m-bumbu'] ? JSON.stringify(updatedRecord.photos['m-bumbu']) : (data[i][10] || ''),
-        updatedRecord.photos?.si ? JSON.stringify(updatedRecord.photos.si) : (data[i][11] || ''),
-        updatedRecord.photos?.karton ? JSON.stringify(updatedRecord.photos.karton) : (data[i][12] || ''),
-        updatedRecord.photos?.etiket ? JSON.stringify(updatedRecord.photos.etiket) : (data[i][13] || ''),
-        updatedRecord.photos?.['etiket-banded'] ? JSON.stringify(updatedRecord.photos['etiket-banded']) : (data[i][14] || ''),
-        updatedRecord.photos?.plakban ? JSON.stringify(updatedRecord.photos.plakban) : (data[i][15] || ''),
+        updatedRecord.createdBy || data[i][7] || '', // keep/update createdBy
+        updatedRecord.updatedBy || updatedRecord.createdBy || data[i][8] || '', // update updatedBy
+        photoBumbu,
+        photoMBumbu,
+        photoSi,
+        photoKarton,
+        photoEtiket,
+        photoEtiketBanded,
+        photoPlakban,
         updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : (data[i][16] || '[]'),
         updatedRecord.validationStatus !== undefined ? updatedRecord.validationStatus : (data[i][17] || ''),
         updatedRecord.validatedBy !== undefined ? updatedRecord.validatedBy : (data[i][18] || ''),
