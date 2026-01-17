@@ -379,18 +379,50 @@ function selectAutocompleteItem(inputId, item) {
     updateButtonStates();
 }
 
+// Map photo keys from Google Sheets format to input IDs
+function mapPhotoKeyToInputId(key) {
+    const keyMap = {
+        'bumbu': 'bumbu',
+        'm-bumbu': 'mBumbu',
+        'mBumbu': 'mBumbu',
+        'si': 'si',
+        'karton': 'karton',
+        'etiket': 'etiket',
+        'etiket-banded': 'etiketBanded',
+        'etiketBanded': 'etiketBanded',
+        'plakban': 'plakban'
+    };
+    return keyMap[key] || key;
+}
+
 // Select existing photos when editing
 function selectExistingPhotos() {
     if (!tempData || !tempData.photos) return;
     
+    console.log('📷 Loading existing photos:', tempData.photos);
+    
     for (const [type, photo] of Object.entries(tempData.photos)) {
         if (photo && photo.name) {
-            const input = document.getElementById(type);
+            // Map the key to the correct input ID
+            const inputId = mapPhotoKeyToInputId(type);
+            const input = document.getElementById(inputId);
+            
+            console.log(`📷 Processing photo: type=${type}, inputId=${inputId}, name=${photo.name}`);
+            
             if (input) {
-                input.value = photo.name;
+                // Remove extension from display
+                const displayName = removeExtension(photo.name);
+                input.value = displayName;
                 input.style.borderColor = '#27ae60';
                 input.style.backgroundColor = '#f0fff4';
-                selectedPhotos[type] = photo;
+                // Store with correct inputId key
+                selectedPhotos[inputId] = {
+                    ...photo,
+                    name: photo.name // Keep original name with extension for lookup
+                };
+                console.log(`✅ Set ${inputId} = ${displayName}`);
+            } else {
+                console.warn(`⚠️ Input not found for: ${inputId}`);
             }
         }
     }
@@ -470,14 +502,33 @@ function showPreview() {
         const photoCard = document.createElement('div');
         photoCard.style.cssText = 'background: white; border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden;';
         
-        const imgSrc = photo.thumbnailLink || 'assets/placeholder.png';
-        photoCard.innerHTML = `
-            <img src="${imgSrc}" alt="${photo.name}" style="width: 100%; height: 150px; object-fit: cover;" onerror="this.src='assets/placeholder.png'">
-            <div style="padding: 10px;">
-                <div style="font-weight: 600; margin-bottom: 5px;">${getLabelText(type)}</div>
-                <div style="font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${photo.name}</div>
-            </div>
-        `;
+        // Use thumbnailLink or directLink, with fallback to a gray placeholder div
+        const imgSrc = photo.thumbnailLink || photo.directLink || '';
+        const displayName = removeExtension(photo.name || '');
+        
+        if (imgSrc) {
+            photoCard.innerHTML = `
+                <img src="${imgSrc}" alt="${displayName}" style="width: 100%; height: 150px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div style="display: none; width: 100%; height: 150px; background: #f0f0f0; align-items: center; justify-content: center; color: #999;">
+                    <i class="fas fa-image" style="font-size: 48px;"></i>
+                </div>
+                <div style="padding: 10px;">
+                    <div style="font-weight: 600; margin-bottom: 5px;">${getLabelText(type)}</div>
+                    <div style="font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</div>
+                </div>
+            `;
+        } else {
+            // No image URL available - show placeholder
+            photoCard.innerHTML = `
+                <div style="width: 100%; height: 150px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">
+                    <i class="fas fa-image" style="font-size: 48px;"></i>
+                </div>
+                <div style="padding: 10px;">
+                    <div style="font-weight: 600; margin-bottom: 5px;">${getLabelText(type)}</div>
+                    <div style="font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</div>
+                </div>
+            `;
+        }
         photosContainer.appendChild(photoCard);
     }
     
