@@ -458,37 +458,69 @@ async function saveAll() {
         return;
     }
     
-    showLoading(isEditMode ? 'Mengupdate data...' : 'Menyimpan data ke Google Sheets...');
+    showLoading(isEditMode ? 'Mengupdate data...' : 'Menyimpan data...');
     
     try {
-        const rowData = [
-            temporarySave.id,
-            temporarySave.tanggal,
-            temporarySave.nomorMaterial,
-            temporarySave.flavor,
-            temporarySave.negara,
-            temporarySave.photos.bumbu?.webContentLink || '',
-            temporarySave.photos.mBumbu?.webContentLink || '',
-            temporarySave.photos.si?.webContentLink || '',
-            temporarySave.photos.karton?.webContentLink || '',
-            temporarySave.photos.etiket?.webContentLink || '',
-            temporarySave.photos.etiketBanded?.webContentLink || '',
-            temporarySave.photos.plakban?.webContentLink || '',
-            localStorage.getItem('userName') || 'Unknown',
-            new Date().toISOString()
-        ];
+        // Build record object for SheetsDB
+        const record = {
+            id: temporarySave.id,
+            tanggal: temporarySave.tanggal,
+            nomorMaterial: temporarySave.nomorMaterial,
+            flavor: temporarySave.flavor,
+            negara: temporarySave.negara,
+            photos: {
+                bumbu: temporarySave.photos.bumbu ? {
+                    id: temporarySave.photos.bumbu.id,
+                    name: temporarySave.photos.bumbu.name,
+                    directLink: temporarySave.photos.bumbu.webContentLink
+                } : null,
+                mBumbu: temporarySave.photos.mBumbu ? {
+                    id: temporarySave.photos.mBumbu.id,
+                    name: temporarySave.photos.mBumbu.name,
+                    directLink: temporarySave.photos.mBumbu.webContentLink
+                } : null,
+                si: temporarySave.photos.si ? {
+                    id: temporarySave.photos.si.id,
+                    name: temporarySave.photos.si.name,
+                    directLink: temporarySave.photos.si.webContentLink
+                } : null,
+                karton: temporarySave.photos.karton ? {
+                    id: temporarySave.photos.karton.id,
+                    name: temporarySave.photos.karton.name,
+                    directLink: temporarySave.photos.karton.webContentLink
+                } : null,
+                etiket: temporarySave.photos.etiket ? {
+                    id: temporarySave.photos.etiket.id,
+                    name: temporarySave.photos.etiket.name,
+                    directLink: temporarySave.photos.etiket.webContentLink
+                } : null,
+                etiketBanded: temporarySave.photos.etiketBanded ? {
+                    id: temporarySave.photos.etiketBanded.id,
+                    name: temporarySave.photos.etiketBanded.name,
+                    directLink: temporarySave.photos.etiketBanded.webContentLink
+                } : null,
+                plakban: temporarySave.photos.plakban ? {
+                    id: temporarySave.photos.plakban.id,
+                    name: temporarySave.photos.plakban.name,
+                    directLink: temporarySave.photos.plakban.webContentLink
+                } : null
+            },
+            createdBy: localStorage.getItem('userName') || 'Unknown',
+            createdAt: new Date().toISOString()
+        };
         
-        const token = gapi.client.getToken();
-        if (!token || !token.access_token) {
-            throw new Error('Google Drive not connected');
-        }
+        // Use SheetsDB to save (via Google Apps Script)
+        const sheetsDB = new SheetsDB();
+        let result;
         
         if (isEditMode) {
-            // Update existing record
-            await updateRecordInSheet(rowData);
+            result = await sheetsDB.updateRecord(temporarySave.id, record);
         } else {
-            // Add new record
-            await addRecordToSheet(rowData);
+            result = await sheetsDB.addRecord(record);
+        }
+        
+        if (!result || result.error) {
+            throw new Error(result?.error || 'Failed to save data');
         }
         
         // Clear temp data after successful save
@@ -509,81 +541,7 @@ async function saveAll() {
     }
 }
 
-async function addRecordToSheet(rowData) {
-    const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/Display!A:N:append?valueInputOption=USER_ENTERED`,
-        {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                values: [rowData]
-            })
-        }
-    );
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to save to Google Sheets');
-    }
-    
-    return response.json();
-}
-
-async function updateRecordInSheet(rowData) {
-    // First find the row number of the record
-    const searchResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/Display!A:A`,
-        {
-            headers: {
-                'Authorization': `Bearer ${gapi.client.getToken().access_token}`
-            }
-        }
-    );
-    
-    if (!searchResponse.ok) {
-        throw new Error('Failed to search for record');
-    }
-    
-    const searchResult = await searchResponse.json();
-    const values = searchResult.values || [];
-    
-    let rowIndex = -1;
-    for (let i = 0; i < values.length; i++) {
-        if (values[i][0] === editRecordId || values[i][0] === String(editRecordId)) {
-            rowIndex = i + 1; // Sheets is 1-indexed
-            break;
-        }
-    }
-    
-    if (rowIndex === -1) {
-        throw new Error('Record not found in sheet');
-    }
-    
-    // Update the row
-    const updateResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/Display!A${rowIndex}:N${rowIndex}?valueInputOption=USER_ENTERED`,
-        {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                values: [rowData]
-            })
-        }
-    );
-    
-    if (!updateResponse.ok) {
-        const error = await updateResponse.json();
-        throw new Error(error.error?.message || 'Failed to update record');
-    }
-    
-    return updateResponse.json();
-}
+// addRecordToSheet and updateRecordInSheet removed - now using SheetsDB via Google Apps Script
 
 function resetForm() {
     document.getElementById('flavor').value = '';

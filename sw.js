@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.15.0 - Added autocomplete inputs for photo selection in create-display
+// Version 2.16.0 - Fixed save using SheetsDB via Google Apps Script instead of Sheets API
 
-const CACHE_NAME = 'mds-track-v2.27.0';
+const CACHE_NAME = 'mds-track-v2.28.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
