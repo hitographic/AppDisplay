@@ -157,27 +157,34 @@ class GoogleSheetsDB {
         }
 
         try {
-            // Clean record - REMOVE base64 data to avoid Google Sheets 50k char limit
+            // Clean record - handle both string and object photo values
             const cleanRecord = {
                 ...record,
                 photos: {}
             };
             
-            // Remove base64 from photos (too large for Sheets - max 50k chars per cell)
+            // Process photos - support both string (filename) and object formats
             if (record.photos) {
                 for (const key in record.photos) {
-                    if (record.photos[key]) {
-                        cleanRecord.photos[key] = {
-                            id: record.photos[key].id || null,
-                            name: record.photos[key].name || null,
-                            directLink: record.photos[key].directLink || null
-                            // base64 intentionally omitted
-                        };
+                    const photoValue = record.photos[key];
+                    if (photoValue) {
+                        // If it's already a string (filename), keep it as string
+                        if (typeof photoValue === 'string') {
+                            cleanRecord.photos[key] = photoValue;
+                        } else {
+                            // If it's an object, extract only needed fields (no base64)
+                            cleanRecord.photos[key] = {
+                                id: photoValue.id || null,
+                                name: photoValue.name || null,
+                                directLink: photoValue.directLink || null
+                                // base64 intentionally omitted
+                            };
+                        }
                     }
                 }
             }
             
-            console.log('📤 Adding record to Sheets (no base64)');
+            console.log('📤 Adding record to Sheets:', cleanRecord);
             
             const result = await this.postRequest({
                 action: 'add',
@@ -201,39 +208,34 @@ class GoogleSheetsDB {
         try {
             console.log('📤 Updating record:', recordId);
             
-            // Clean record - REMOVE base64 data to avoid Google Sheets 50k char limit
+            // Clean record - handle both string and object photo values
             const cleanRecord = {
                 ...updatedRecord,
                 photos: {}
             };
             
-            // Normalize photo keys and REMOVE base64 (too large for Sheets)
+            // Process photos - support both string (filename) and object formats
             if (updatedRecord.photos) {
-                const photoKeyMap = {
-                    'bumbu': 'bumbu',
-                    'm-bumbu': 'm-bumbu',
-                    'si': 'si',
-                    'karton': 'karton',
-                    'etiket': 'etiket',
-                    'etiket-banded': 'etiket-banded',
-                    'plakban': 'plakban'
-                };
-                
                 for (const key in updatedRecord.photos) {
-                    const normalizedKey = photoKeyMap[key] || key;
-                    if (updatedRecord.photos[key]) {
-                        // Only save id, name, directLink - NOT base64
-                        cleanRecord.photos[normalizedKey] = {
-                            id: updatedRecord.photos[key].id || null,
-                            name: updatedRecord.photos[key].name || null,
-                            directLink: updatedRecord.photos[key].directLink || null
-                            // base64 intentionally omitted - too large for Sheets
-                        };
+                    const photoValue = updatedRecord.photos[key];
+                    if (photoValue) {
+                        // If it's already a string (filename), keep it as string
+                        if (typeof photoValue === 'string') {
+                            cleanRecord.photos[key] = photoValue;
+                        } else {
+                            // If it's an object, extract only needed fields (no base64)
+                            cleanRecord.photos[key] = {
+                                id: photoValue.id || null,
+                                name: photoValue.name || null,
+                                directLink: photoValue.directLink || null
+                                // base64 intentionally omitted - too large for Sheets
+                            };
+                        }
                     }
                 }
             }
             
-            console.log('📤 Clean record (no base64):', JSON.stringify(cleanRecord, null, 2).substring(0, 500) + '...');
+            console.log('📤 Clean record:', JSON.stringify(cleanRecord, null, 2).substring(0, 500) + '...');
             
             const result = await this.postRequest({
                 action: 'update',

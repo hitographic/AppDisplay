@@ -150,8 +150,32 @@ function updateDriveStatus(isConnected) {
 }
 
 function loadUserName() {
-    const userName = localStorage.getItem('userName') || 'User';
+    // Get user from CONFIG.STORAGE_KEYS.USER (stored as JSON object)
+    const userJson = localStorage.getItem(CONFIG.STORAGE_KEYS.USER);
+    let userName = 'User';
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            userName = user.name || 'User';
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+        }
+    }
     document.getElementById('userName').textContent = userName;
+}
+
+// Helper function to get current user name
+function getCurrentUserName() {
+    const userJson = localStorage.getItem(CONFIG.STORAGE_KEYS.USER);
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            return user.name || 'Unknown';
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+        }
+    }
+    return 'Unknown';
 }
 
 function connectGoogleDrive() {
@@ -501,7 +525,7 @@ async function saveAll() {
                 etiketBanded: getPhotoName(temporarySave.photos.etiketBanded),
                 plakban: getPhotoName(temporarySave.photos.plakban)
             },
-            createdBy: localStorage.getItem('userName') || 'Unknown',
+            createdBy: getCurrentUserName(),
             createdAt: new Date().toISOString()
         };
         
