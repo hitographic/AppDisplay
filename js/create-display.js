@@ -221,21 +221,117 @@ async function loadDropdown(dropdownId, folderName) {
         const files = response.result.files || [];
         folderFiles[dropdownId] = files;
         
-        const dropdown = document.getElementById(dropdownId);
-        dropdown.innerHTML = `<option value="">-- Pilih ${getLabelText(dropdownId)} --</option>`;
-        
-        files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file.id;
-            option.textContent = file.name;
-            option.dataset.thumbnailLink = file.thumbnailLink || '';
-            option.dataset.webContentLink = file.webContentLink || '';
-            dropdown.appendChild(option);
-        });
+        // Setup autocomplete for this input
+        setupAutocomplete(dropdownId, files);
         
     } catch (error) {
         console.error(`Error loading ${dropdownId}:`, error);
     }
+}
+
+// Setup autocomplete for an input field
+function setupAutocomplete(inputId, files) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(inputId + 'Dropdown');
+    
+    if (!input || !dropdown) return;
+    
+    // Store files for this input
+    input.dataset.files = JSON.stringify(files.map(f => ({
+        id: f.id,
+        name: f.name,
+        thumbnailLink: f.thumbnailLink || '',
+        webContentLink: f.webContentLink || ''
+    })));
+    
+    // Input event - filter and show dropdown
+    input.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const filesData = JSON.parse(this.dataset.files || '[]');
+        
+        if (query.length === 0) {
+            // Show all files when empty
+            showAutocompleteDropdown(inputId, filesData, dropdown);
+        } else {
+            // Filter files
+            const filtered = filesData.filter(f => 
+                f.name.toLowerCase().includes(query)
+            );
+            showAutocompleteDropdown(inputId, filtered, dropdown);
+        }
+    });
+    
+    // Focus event - show dropdown
+    input.addEventListener('focus', function() {
+        const filesData = JSON.parse(this.dataset.files || '[]');
+        const query = this.value.toLowerCase().trim();
+        
+        if (query.length === 0) {
+            showAutocompleteDropdown(inputId, filesData, dropdown);
+        } else {
+            const filtered = filesData.filter(f => 
+                f.name.toLowerCase().includes(query)
+            );
+            showAutocompleteDropdown(inputId, filtered, dropdown);
+        }
+    });
+    
+    // Click outside to close
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
+// Show autocomplete dropdown
+function showAutocompleteDropdown(inputId, files, dropdown) {
+    dropdown.innerHTML = '';
+    
+    if (files.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-no-results">Tidak ada hasil</div>';
+    } else {
+        files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = file.name;
+            item.dataset.id = file.id;
+            item.dataset.name = file.name;
+            item.dataset.thumbnailLink = file.thumbnailLink;
+            item.dataset.webContentLink = file.webContentLink;
+            
+            item.addEventListener('click', function() {
+                selectAutocompleteItem(inputId, this);
+            });
+            
+            dropdown.appendChild(item);
+        });
+    }
+    
+    dropdown.classList.remove('hidden');
+}
+
+// Select item from autocomplete
+function selectAutocompleteItem(inputId, item) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(inputId + 'Dropdown');
+    
+    input.value = item.dataset.name;
+    dropdown.classList.add('hidden');
+    
+    // Store selected photo
+    selectedPhotos[inputId] = {
+        id: item.dataset.id,
+        name: item.dataset.name,
+        thumbnailLink: item.dataset.thumbnailLink,
+        webContentLink: item.dataset.webContentLink
+    };
+    
+    // Highlight input to show selection
+    input.style.borderColor = '#27ae60';
+    input.style.backgroundColor = '#f0fff4';
+    
+    updateButtonStates();
 }
 
 // Select existing photos when editing
@@ -243,17 +339,13 @@ function selectExistingPhotos() {
     if (!tempData || !tempData.photos) return;
     
     for (const [type, photo] of Object.entries(tempData.photos)) {
-        if (photo && photo.id) {
-            const dropdown = document.getElementById(type);
-            if (dropdown) {
-                // Find option with matching ID
-                for (let i = 0; i < dropdown.options.length; i++) {
-                    if (dropdown.options[i].value === photo.id) {
-                        dropdown.selectedIndex = i;
-                        selectedPhotos[type] = photo;
-                        break;
-                    }
-                }
+        if (photo && photo.name) {
+            const input = document.getElementById(type);
+            if (input) {
+                input.value = photo.name;
+                input.style.borderColor = '#27ae60';
+                input.style.backgroundColor = '#f0fff4';
+                selectedPhotos[type] = photo;
             }
         }
     }
@@ -274,23 +366,7 @@ function getLabelText(dropdownId) {
     return labels[dropdownId] || dropdownId;
 }
 
-function handleDropdownChange(dropdownId) {
-    const dropdown = document.getElementById(dropdownId);
-    const selectedOption = dropdown.options[dropdown.selectedIndex];
-    
-    if (selectedOption.value) {
-        selectedPhotos[dropdownId] = {
-            id: selectedOption.value,
-            name: selectedOption.textContent,
-            thumbnailLink: selectedOption.dataset.thumbnailLink,
-            webContentLink: selectedOption.dataset.webContentLink
-        };
-    } else {
-        delete selectedPhotos[dropdownId];
-    }
-    
-    updateButtonStates();
-}
+// handleDropdownChange removed - now using autocomplete
 
 function updateButtonStates() {
     const hasSelections = Object.keys(selectedPhotos).length > 0;

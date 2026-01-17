@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.14.0 - Fixed CONFIG.GOOGLE_API_KEY usage in create-display
+// Version 2.15.0 - Added autocomplete inputs for photo selection in create-display
 
-const CACHE_NAME = 'mds-track-v2.26.0';
+const CACHE_NAME = 'mds-track-v2.27.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

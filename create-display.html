@@ -135,45 +135,52 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-pepper-hot"></i> Bumbu</label>
-                    <select id="bumbu" onchange="handleDropdownChange('bumbu')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih Bumbu --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="bumbu" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="bumbuDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-oil-can"></i> M. Bumbu</label>
-                    <select id="mBumbu" onchange="handleDropdownChange('mBumbu')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih M. Bumbu --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="mBumbu" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="mBumbuDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-barcode"></i> SI</label>
-                    <select id="si" onchange="handleDropdownChange('si')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih SI --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="si" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="siDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-box"></i> Karton</label>
-                    <select id="karton" onchange="handleDropdownChange('karton')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih Karton --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="karton" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="kartonDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-tag"></i> Etiket</label>
-                    <select id="etiket" onchange="handleDropdownChange('etiket')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih Etiket --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="etiket" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="etiketDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-cubes"></i> Etiket Banded</label>
-                    <select id="etiketBanded" onchange="handleDropdownChange('etiketBanded')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih Etiket Banded --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="etiketBanded" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="etiketBandedDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-tape"></i> Plakban</label>
-                    <select id="plakban" onchange="handleDropdownChange('plakban')" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
-                        <option value="">-- Pilih Plakban --</option>
-                    </select>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="plakban" placeholder="Ketik nama file..." autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <div id="plakbanDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
             </div>
             <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 25px; flex-wrap: wrap;">
@@ -221,7 +228,7 @@
     <script src="https://accounts.google.com/gsi/client"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/create-display.js?v=2.4"></script>
+    <script src="js/create-display.js?v=2.5"></script>
     <script>
         document.getElementById('footerYear').textContent = new Date().getFullYear();
         document.getElementById('tanggal').valueAsDate = new Date();
