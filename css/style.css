@@ -1068,6 +1068,7 @@ body {
     padding: 20px;
     min-height: 300px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
@@ -1076,6 +1077,27 @@ body {
     max-width: 100%;
     max-height: 400px;
     border-radius: var(--border-radius);
+}
+
+.photo-caption {
+    margin-top: 15px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+    text-align: center;
+    border-left: 4px solid var(--primary-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.photo-caption strong {
+    color: var(--primary-color);
+    margin-right: 5px;
+}
+
+.photo-caption span {
+    color: #333;
+    font-weight: 500;
 }
 
 .preview-info {
