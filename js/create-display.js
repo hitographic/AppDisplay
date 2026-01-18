@@ -479,7 +479,24 @@ function saveTemporary() {
         return;
     }
     
-    // Removed validation for minimum 1 photo - allow saving with any photos selected
+    // Sync selectedPhotos with actual input values
+    // If input is empty, remove from selectedPhotos
+    const photoInputIds = ['bumbu', 'mBumbu', 'si', 'karton', 'etiket', 'etiketBanded', 'plakban'];
+    photoInputIds.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            const inputValue = input.value.trim();
+            if (!inputValue) {
+                // Input is empty, remove from selectedPhotos
+                delete selectedPhotos[inputId];
+                // Reset input style
+                input.style.borderColor = '#e0e0e0';
+                input.style.backgroundColor = 'white';
+            }
+        }
+    });
+    
+    console.log('📷 Selected photos after sync:', selectedPhotos);
     
     temporarySave = {
         id: isEditMode ? editRecordId : (tempData?.id || generateId()),
@@ -490,6 +507,8 @@ function saveTemporary() {
         photos: { ...selectedPhotos },
         isEdit: isEditMode
     };
+    
+    console.log('💾 Temporary save:', temporarySave);
     
     showToast('Data berhasil disimpan sementara', 'success');
     updateButtonStates();
