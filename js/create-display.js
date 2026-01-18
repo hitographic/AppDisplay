@@ -479,22 +479,47 @@ function saveTemporary() {
         return;
     }
     
-    // Sync selectedPhotos with actual input values
-    // If input is empty, remove from selectedPhotos
-    const photoInputIds = ['bumbu', 'mBumbu', 'si', 'karton', 'etiket', 'etiketBanded', 'plakban'];
-    photoInputIds.forEach(inputId => {
+    // Mapping between input IDs and possible keys in selectedPhotos
+    // (from Google Sheets data which uses dash format)
+    const photoKeyMapping = {
+        'bumbu': ['bumbu'],
+        'mBumbu': ['mBumbu', 'm-bumbu'],
+        'si': ['si'],
+        'karton': ['karton'],
+        'etiket': ['etiket'],
+        'etiketBanded': ['etiketBanded', 'etiket-banded'],
+        'plakban': ['plakban']
+    };
+    
+    // Build clean photos object based on current input values
+    const cleanPhotos = {};
+    
+    Object.entries(photoKeyMapping).forEach(([inputId, possibleKeys]) => {
         const input = document.getElementById(inputId);
         if (input) {
             const inputValue = input.value.trim();
-            if (!inputValue) {
-                // Input is empty, remove from selectedPhotos
-                delete selectedPhotos[inputId];
-                // Reset input style
+            if (inputValue) {
+                // Input has value, find the photo data from selectedPhotos
+                let photoData = null;
+                for (const key of possibleKeys) {
+                    if (selectedPhotos[key]) {
+                        photoData = selectedPhotos[key];
+                        break;
+                    }
+                }
+                if (photoData) {
+                    cleanPhotos[inputId] = photoData;
+                }
+            } else {
+                // Input is empty, reset style
                 input.style.borderColor = '#e0e0e0';
                 input.style.backgroundColor = 'white';
             }
         }
     });
+    
+    // Replace selectedPhotos with clean version
+    selectedPhotos = cleanPhotos;
     
     console.log('📷 Selected photos after sync:', selectedPhotos);
     

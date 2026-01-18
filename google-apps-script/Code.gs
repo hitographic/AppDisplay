@@ -763,12 +763,6 @@ function addRecordData(record) {
 //                    photo_bumbu(9), photo_mbumbu(10), photo_si(11), photo_karton(12),
 //                    photo_etiket(13), photo_etiketbanded(14), photo_plakban(15), kodeProduksi(16),
 //                    validationStatus(17), validatedBy(18), validatedAt(19), validationReason(20)
-// Update record - returns data object
-// Struktur 21 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), createdAt(5), updatedAt(6),
-//                    createdBy(7), updatedBy(8),
-//                    photo_bumbu(9), photo_mbumbu(10), photo_si(11), photo_karton(12),
-//                    photo_etiket(13), photo_etiketbanded(14), photo_plakban(15), kodeProduksi(16),
-//                    validationStatus(17), validatedBy(18), validatedAt(19), validationReason(20)
 function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
