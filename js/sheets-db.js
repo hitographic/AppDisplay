@@ -215,22 +215,26 @@ class GoogleSheetsDB {
             };
             
             // Process photos - support both string (filename) and object formats
+            // IMPORTANT: Include empty strings ('') so deleted photos are cleared in the database
             if (updatedRecord.photos) {
                 for (const key in updatedRecord.photos) {
                     const photoValue = updatedRecord.photos[key];
-                    if (photoValue) {
+                    // Check if key exists (even if value is empty string)
+                    // This ensures deleted photos (value = '') are sent to the server
+                    if (photoValue === '' || photoValue === null || photoValue === undefined) {
+                        // Explicitly set empty string for deleted photos
+                        cleanRecord.photos[key] = '';
+                    } else if (typeof photoValue === 'string') {
                         // If it's already a string (filename), keep it as string
-                        if (typeof photoValue === 'string') {
-                            cleanRecord.photos[key] = photoValue;
-                        } else {
-                            // If it's an object, extract only needed fields (no base64)
-                            cleanRecord.photos[key] = {
-                                id: photoValue.id || null,
-                                name: photoValue.name || null,
-                                directLink: photoValue.directLink || null
-                                // base64 intentionally omitted - too large for Sheets
-                            };
-                        }
+                        cleanRecord.photos[key] = photoValue;
+                    } else {
+                        // If it's an object, extract only needed fields (no base64)
+                        cleanRecord.photos[key] = {
+                            id: photoValue.id || null,
+                            name: photoValue.name || null,
+                            directLink: photoValue.directLink || null
+                            // base64 intentionally omitted - too large for Sheets
+                        };
                     }
                 }
             }
