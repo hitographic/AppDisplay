@@ -286,7 +286,12 @@ function setupAutocomplete(inputId, files) {
         const query = this.value.toLowerCase().trim();
         const filesData = JSON.parse(this.dataset.files || '[]');
         
+        // If input is cleared, remove from selectedPhotos
         if (query.length === 0) {
+            delete selectedPhotos[inputId];
+            // Reset input style
+            this.style.borderColor = '#e0e0e0';
+            this.style.backgroundColor = 'white';
             // Show all files when empty
             showAutocompleteDropdown(inputId, filesData, dropdown);
         } else {
@@ -296,6 +301,8 @@ function setupAutocomplete(inputId, files) {
             );
             showAutocompleteDropdown(inputId, filtered, dropdown);
         }
+        
+        updateButtonStates();
     });
     
     // Focus event - show dropdown
@@ -499,6 +506,11 @@ function showPreview() {
     photosContainer.innerHTML = '';
     
     for (const [type, photo] of Object.entries(temporarySave.photos)) {
+        // Skip null, undefined, or empty photo entries
+        if (!photo || !photo.name) {
+            continue;
+        }
+        
         const photoCard = document.createElement('div');
         photoCard.style.cssText = 'background: white; border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden;';
         
@@ -518,7 +530,7 @@ function showPreview() {
                 </div>
             `;
         } else {
-            // No image URL available - show placeholder
+            // No image URL available - show placeholder with name
             photoCard.innerHTML = `
                 <div style="width: 100%; height: 150px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">
                     <i class="fas fa-image" style="font-size: 48px;"></i>
@@ -530,6 +542,11 @@ function showPreview() {
             `;
         }
         photosContainer.appendChild(photoCard);
+    }
+    
+    // Show message if no photos selected
+    if (photosContainer.children.length === 0) {
+        photosContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Tidak ada foto yang dipilih</div>';
     }
     
     document.getElementById('previewModal').style.display = 'flex';
