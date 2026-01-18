@@ -763,6 +763,13 @@ function addRecordData(record) {
 //                    photo_bumbu(9), photo_mbumbu(10), photo_si(11), photo_karton(12),
 //                    photo_etiket(13), photo_etiketbanded(14), photo_plakban(15), kodeProduksi(16),
 //                    validationStatus(17), validatedBy(18), validatedAt(19), validationReason(20)
+
+// Update record - returns data object
+// Struktur 21 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), createdAt(5), updatedAt(6),
+//                    createdBy(7), updatedBy(8),
+//                    photo_bumbu(9), photo_mbumbu(10), photo_si(11), photo_karton(12),
+//                    photo_etiket(13), photo_etiketbanded(14), photo_plakban(15), kodeProduksi(16),
+//                    validationStatus(17), validatedBy(18), validatedAt(19), validationReason(20)
 function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
@@ -772,37 +779,46 @@ function updateRecordData(recordId, updatedRecord) {
     if (!photo) return '';
     if (typeof photo === 'string') return photo;
     if (typeof photo === 'object' && photo.name) {
-      // Remove extension if present
       return photo.name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
     }
     return '';
   }
   
+  // Helper to get photo value - returns new value if key exists (even if empty), otherwise existing value
+  function getPhotoValue(photos, key, altKey, existingValue) {
+    // Check if key exists in photos object (even if value is empty string)
+    if (photos && (key in photos)) {
+      return getPhotoName(photos[key]);
+    }
+    if (photos && altKey && (altKey in photos)) {
+      return getPhotoName(photos[altKey]);
+    }
+    // Key not provided, keep existing value
+    return existingValue || '';
+  }
+  
   Logger.log('=== UPDATE RECORD START ===');
   Logger.log('Looking for recordId: ' + recordId);
-  Logger.log('recordId type: ' + typeof recordId);
-  Logger.log('Total rows: ' + data.length);
   Logger.log('Full updatedRecord: ' + JSON.stringify(updatedRecord));
   
   for (let i = 1; i < data.length; i++) {
-    Logger.log('Checking row ' + i + ', ID: ' + data[i][0] + ' (type: ' + typeof data[i][0] + ')');
-    
-    // Compare as strings to handle type mismatch
     if (String(data[i][0]) === String(recordId)) {
-      const rowIndex = i + 1; // 1-indexed
+      const rowIndex = i + 1;
       
-      // Log untuk debugging
       Logger.log('✅ Found record at row: ' + rowIndex);
       Logger.log('Updated photos object: ' + JSON.stringify(updatedRecord.photos));
       
-      // Get photo names - use new value if provided, otherwise keep existing
-      const photoBumbu = getPhotoName(updatedRecord.photos?.bumbu) || getPhotoName(updatedRecord.photos?.['bumbu']) || data[i][9] || '';
-      const photoMBumbu = getPhotoName(updatedRecord.photos?.mBumbu) || getPhotoName(updatedRecord.photos?.['m-bumbu']) || data[i][10] || '';
-      const photoSi = getPhotoName(updatedRecord.photos?.si) || data[i][11] || '';
-      const photoKarton = getPhotoName(updatedRecord.photos?.karton) || data[i][12] || '';
-      const photoEtiket = getPhotoName(updatedRecord.photos?.etiket) || data[i][13] || '';
-      const photoEtiketBanded = getPhotoName(updatedRecord.photos?.etiketBanded) || getPhotoName(updatedRecord.photos?.['etiket-banded']) || data[i][14] || '';
-      const photoPlakban = getPhotoName(updatedRecord.photos?.plakban) || data[i][15] || '';
+      // Get photo names - use new value if key exists (even if empty), otherwise keep existing
+      const photos = updatedRecord.photos || {};
+      const photoBumbu = getPhotoValue(photos, 'bumbu', null, data[i][9]);
+      const photoMBumbu = getPhotoValue(photos, 'mBumbu', 'm-bumbu', data[i][10]);
+      const photoSi = getPhotoValue(photos, 'si', null, data[i][11]);
+      const photoKarton = getPhotoValue(photos, 'karton', null, data[i][12]);
+      const photoEtiket = getPhotoValue(photos, 'etiket', null, data[i][13]);
+      const photoEtiketBanded = getPhotoValue(photos, 'etiketBanded', 'etiket-banded', data[i][14]);
+      const photoPlakban = getPhotoValue(photos, 'plakban', null, data[i][15]);
+      
+      Logger.log('Photo values - bumbu: "' + photoBumbu + '", mBumbu: "' + photoMBumbu + '"');
       
       const row = [
         recordId,
@@ -812,8 +828,8 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.negara || data[i][4],
         data[i][5], // keep original createdAt
         new Date().toISOString(), // update updatedAt
-        updatedRecord.createdBy || data[i][7] || '', // keep/update createdBy
-        updatedRecord.updatedBy || updatedRecord.createdBy || data[i][8] || '', // update updatedBy
+        updatedRecord.createdBy || data[i][7] || '',
+        updatedRecord.updatedBy || updatedRecord.createdBy || data[i][8] || '',
         photoBumbu,
         photoMBumbu,
         photoSi,
@@ -828,19 +844,16 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.validationReason !== undefined ? updatedRecord.validationReason : (data[i][20] || '')
       ];
       
-      Logger.log('Row to save (21 columns): ' + JSON.stringify(row));
-      Logger.log('Row length: ' + row.length);
+      Logger.log('Row to save: ' + JSON.stringify(row));
       
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
       
-      Logger.log('✅ Record updated successfully at row ' + rowIndex);
-      Logger.log('=== UPDATE RECORD END ===');
+      Logger.log('✅ Record updated successfully');
       return { success: true, message: 'Record updated', rowIndex: rowIndex };
     }
   }
   
   Logger.log('❌ Record not found: ' + recordId);
-  Logger.log('=== UPDATE RECORD END (NOT FOUND) ===');
   return { success: false, error: 'Record not found: ' + recordId };
 }
 
