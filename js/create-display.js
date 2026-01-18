@@ -453,11 +453,19 @@ function getLabelText(dropdownId) {
 // handleDropdownChange removed - now using autocomplete
 
 function updateButtonStates() {
-    const hasSelections = Object.keys(selectedPhotos).length > 0;
     const hasTempSave = temporarySave !== null;
     
-    document.getElementById('btnPreview').disabled = !hasTempSave;
-    document.getElementById('btnSaveAll').disabled = !hasTempSave;
+    // Show/hide buttons based on temporary save status
+    const btnPreview = document.getElementById('btnPreview');
+    const btnSaveAll = document.getElementById('btnSaveAll');
+    
+    if (hasTempSave) {
+        btnPreview.style.display = 'inline-flex';
+        btnSaveAll.style.display = 'inline-flex';
+    } else {
+        btnPreview.style.display = 'none';
+        btnSaveAll.style.display = 'none';
+    }
 }
 
 function saveTemporary() {
