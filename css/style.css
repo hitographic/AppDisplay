@@ -569,6 +569,14 @@ body {
     background-color: var(--warning-color);
 }
 
+.search-result-distributor {
+    color: var(--gray-700);
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+    padding-left: 20px;
+}
+
 .search-result-meta {
     color: var(--gray-600);
     font-size: 0.85rem;

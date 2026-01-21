@@ -722,6 +722,9 @@ function renderSearchResultsList(records) {
                     <span class="validation-indicator ${validationClass}" title="${validationClass === 'valid' ? 'Valid' : validationClass === 'invalid' ? 'Invalid' : 'Belum Validasi'}"></span>
                     ${escapeHtml(record.flavor)}
                 </div>
+                <div class="search-result-distributor">
+                    ${escapeHtml(record.distributor || '-')}
+                </div>
                 <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
                 <div class="search-result-actions">
                     <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
