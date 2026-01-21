@@ -154,16 +154,16 @@ function getUsersSheet() {
   // Jika sheet "Users" belum ada, buat otomatis dengan default users
   if (!sheet) {
     sheet = ss.insertSheet('Users');
-    var headers = ['nik', 'password', 'name', 'role', 'createdAt', 'updatedAt'];
+    var headers = ['nik', 'password', 'name', 'role', 'permissions', 'createdAt', 'updatedAt'];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
     sheet.setFrozenRows(1);
     
     // Add default users
     var defaultUsers = [
-      ['50086913', 'Ind0f00d25', 'Admin User', 'admin', new Date().toISOString(), new Date().toISOString()],
-      ['12345678', 'viewer123', 'Viewer User', 'viewer', new Date().toISOString(), new Date().toISOString()],
-      ['11111111', 'lihat123', 'Staff View', 'viewer', new Date().toISOString(), new Date().toISOString()]
+      ['50086913', 'Ind0f00d25', 'Admin User', 'admin', 'user_admin|records_viewer|records_editor|records_validator', new Date().toISOString(), new Date().toISOString()],
+      ['12345678', 'viewer123', 'Viewer User', 'field', 'records_viewer', new Date().toISOString(), new Date().toISOString()],
+      ['11111111', 'lihat123', 'Staff View', 'supervisor', 'records_viewer|records_validator', new Date().toISOString(), new Date().toISOString()]
     ];
     sheet.getRange(2, 1, defaultUsers.length, defaultUsers[0].length).setValues(defaultUsers);
   }
@@ -351,12 +351,20 @@ function loginUser(nik, password) {
   
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] == nik && data[i][1] == password) {
+      // Parse permissions
+      var permissionsStr = data[i][4] ? String(data[i][4]).trim() : '';
+      var permissions = [];
+      if (permissionsStr) {
+        permissions = permissionsStr.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+      }
+      
       return { 
         success: true, 
         user: {
           nik: data[i][0],
           name: data[i][2],
-          role: data[i][3]
+          role: data[i][3],
+          permissions: permissions
         }
       };
     }
@@ -377,13 +385,21 @@ function getAllUsersData() {
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
     if (row[0]) {
+      // Parse permissions from pipe-separated string (e.g., "perm1|perm2|perm3")
+      var permissionsStr = row[4] ? String(row[4]).trim() : '';
+      var permissions = [];
+      if (permissionsStr) {
+        permissions = permissionsStr.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+      }
+      
       users.push({
         nik: row[0],
         password: row[1], // Include password for admin view
         name: row[2],
         role: row[3],
-        createdAt: row[4],
-        updatedAt: row[5]
+        permissions: permissions,
+        createdAt: row[5],
+        updatedAt: row[6]
       });
     }
   }
@@ -398,12 +414,20 @@ function getUserByNik(nik) {
   
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] == nik) {
+      // Parse permissions
+      var permissionsStr = data[i][4] ? String(data[i][4]).trim() : '';
+      var permissions = [];
+      if (permissionsStr) {
+        permissions = permissionsStr.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+      }
+      
       return { 
         success: true, 
         user: {
           nik: data[i][0],
           name: data[i][2],
-          role: data[i][3]
+          role: data[i][3],
+          permissions: permissions
         }
       };
     }
@@ -423,11 +447,18 @@ function addUserData(user) {
     }
   }
   
+  // Convert permissions array to pipe-separated string
+  var permissionsStr = '';
+  if (user.permissions && Array.isArray(user.permissions)) {
+    permissionsStr = user.permissions.join('|');
+  }
+  
   var row = [
     user.nik,
     user.password,
     user.name,
-    user.role || 'viewer',
+    user.role || 'field',
+    permissionsStr,
     new Date().toISOString(),
     new Date().toISOString()
   ];
@@ -443,12 +474,21 @@ function updateUserData(nik, updatedUser) {
   
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] == nik) {
+      // Convert permissions array to pipe-separated string
+      var permissionsStr = '';
+      if (updatedUser.permissions && Array.isArray(updatedUser.permissions)) {
+        permissionsStr = updatedUser.permissions.join('|');
+      } else if (data[i][4]) {
+        permissionsStr = String(data[i][4]);
+      }
+      
       var row = [
         nik, // NIK tidak bisa diubah
         updatedUser.password || data[i][1],
         updatedUser.name || data[i][2],
         updatedUser.role || data[i][3],
-        data[i][4], // Keep original createdAt
+        permissionsStr,
+        data[i][5], // Keep original createdAt
         new Date().toISOString()
       ];
       
