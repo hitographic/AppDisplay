@@ -236,14 +236,43 @@ function isConnected() {
 // Get folder ID by name
 async function getFolderId(folderName) {
     try {
+        let parentFolderId = CONFIG.GOOGLE_FOLDER_ID;
+        let actualFolderName = folderName;
+        
+        // Handle nested folders like "Kode Karton/Depan" or "Kode Karton/Belakang"
+        if (folderName.includes('/')) {
+            const parts = folderName.split('/');
+            const parentName = parts[0];
+            actualFolderName = parts[1];
+            
+            // First find parent folder (e.g., "Kode Karton")
+            const parentResponse = await gapi.client.drive.files.list({
+                q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${parentName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                fields: 'files(id, name)',
+                pageSize: 1
+            });
+            
+            if (parentResponse.result.files && parentResponse.result.files.length > 0) {
+                parentFolderId = parentResponse.result.files[0].id;
+                console.log(`Found parent folder "${parentName}" with ID: ${parentFolderId}`);
+            } else {
+                console.error(`Parent folder "${parentName}" not found`);
+                return null;
+            }
+        }
+        
+        // Now find the actual folder inside parent
         const response = await gapi.client.drive.files.list({
-            q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            q: `'${parentFolderId}' in parents and name='${actualFolderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: 'files(id, name)',
             pageSize: 1
         });
         
         if (response.result.files && response.result.files.length > 0) {
+            console.log(`Found folder "${folderName}" with ID: ${response.result.files[0].id}`);
             return response.result.files[0].id;
+        } else {
+            console.log(`Folder "${folderName}" not found in parent ${parentFolderId}`);
         }
     } catch (error) {
         console.error('Error getting folder ID:', error);
