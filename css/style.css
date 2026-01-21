@@ -528,26 +528,37 @@ body {
 
 .search-result-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     padding: 12px 16px;
     background: var(--gray-100);
     border-radius: var(--border-radius);
     transition: var(--transition);
+    gap: 8px;
 }
 
 .search-result-item:hover {
     background: var(--gray-200);
 }
 
+/* Row 1: Flavor + Actions */
+.search-result-row-1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-result-flavor-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
 .search-result-flavor {
     font-weight: 600;
     color: var(--gray-800);
     font-size: 0.95rem;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
 .search-result-flavor .validation-indicator {
@@ -569,23 +580,31 @@ body {
     background-color: var(--warning-color);
 }
 
+/* Row 2: Distributor + Meta Info */
+.search-result-row-2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 20px;
+    gap: 12px;
+}
+
 .search-result-distributor {
     color: var(--gray-700);
     font-size: 0.85rem;
     font-weight: 500;
-    margin-bottom: 4px;
-    padding-left: 20px;
+    flex: 1;
 }
 
 .search-result-meta {
     color: var(--gray-600);
     font-size: 0.85rem;
-    margin-right: 15px;
+    white-space: nowrap;
 }
 
 .search-result-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
 }
 

@@ -718,34 +718,41 @@ function renderSearchResultsList(records) {
         
         return `
             <div class="search-result-item">
-                <div class="search-result-flavor">
-                    <span class="validation-indicator ${validationClass}" title="${validationClass === 'valid' ? 'Valid' : validationClass === 'invalid' ? 'Invalid' : 'Belum Validasi'}"></span>
-                    ${escapeHtml(record.flavor)}
+                <!-- Row 1: Flavor + Actions -->
+                <div class="search-result-row-1">
+                    <div class="search-result-flavor-wrapper">
+                        <span class="validation-indicator ${validationClass}" title="${validationClass === 'valid' ? 'Valid' : validationClass === 'invalid' ? 'Invalid' : 'Belum Validasi'}"></span>
+                        <span class="search-result-flavor">${escapeHtml(record.flavor)}</span>
+                    </div>
+                    <div class="search-result-actions">
+                        <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${userCanEdit ? `
+                        <button class="btn-action edit" onclick="editRecord('${record.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action delete" onclick="deleteRecord('${record.id}')" title="Hapus">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn-action info" onclick="showValidationInfo('${record.id}')" title="Info">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        ` : ''}
+                        ${userCanValidate ? `
+                        <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        ` : ''}
+                    </div>
                 </div>
-                <div class="search-result-distributor">
-                    ${escapeHtml(record.distributor || '-')}
-                </div>
-                <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
-                <div class="search-result-actions">
-                    <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    ${userCanEdit ? `
-                    <button class="btn-action edit" onclick="editRecord('${record.id}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-action delete" onclick="deleteRecord('${record.id}')" title="Hapus">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                    <button class="btn-action info" onclick="showValidationInfo('${record.id}')" title="Info">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
-                    ` : ''}
-                    ${userCanValidate ? `
-                    <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
-                        <i class="fas fa-check-double"></i>
-                    </button>
-                    ` : ''}
+                
+                <!-- Row 2: Distributor + Meta Info -->
+                <div class="search-result-row-2">
+                    <div class="search-result-distributor">
+                        ${escapeHtml(record.distributor || '-')}
+                    </div>
+                    <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
                 </div>
             </div>
         `;
