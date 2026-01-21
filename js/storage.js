@@ -39,10 +39,12 @@ class Storage {
         if (this.useGoogleSheets && this.isOnline) {
             try {
                 console.log('📡 Storage: Attempting to fetch from Google Sheets...');
+                // Use 35 second timeout (slightly more than sheets-db 30s timeout + grace period)
+                // This allows sheets-db to handle its own timeout logic
                 const records = await Promise.race([
                     sheetsDB.getAllRecords(),
                     new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Storage fetch timeout')), 12000)
+                        setTimeout(() => reject(new Error('Storage fetch timeout')), 35000)
                     )
                 ]);
                 
