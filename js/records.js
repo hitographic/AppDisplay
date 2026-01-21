@@ -998,7 +998,8 @@ function showPreviewTab(tabId) {
             'bumbu': 'Bumbu',
             'm-bumbu': 'M. Bumbu',
             'si': 'SI',
-            'karton': 'Karton',
+            'karton-depan': 'Karton Depan',
+            'karton-belakang': 'Karton Belakang',
             'etiket': 'Etiket',
             'etiket-banded': 'Etiket Banded',
             'plakban': 'Plakban'

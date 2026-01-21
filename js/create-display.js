@@ -1,12 +1,13 @@
 // create-display.js - Simplified version with dropdown selection
-// Version 2.3 - Fixed CONFIG.GOOGLE_API_KEY usage
+// Version 2.4 - Split karton into kartonDepan and kartonBelakang
 
 // Mapping dropdown ID ke nama folder di Google Drive
 const PHOTO_FOLDER_MAP = {
     bumbu: 'Bumbu',
     mBumbu: 'Minyak Bumbu',
     si: 'Kode SI',
-    karton: 'Kode Karton',
+    kartonDepan: 'Kode Karton/Depan',
+    kartonBelakang: 'Kode Karton/Belakang',
     etiket: 'Kode Etiket',
     etiketBanded: 'Five or Six in One',
     plakban: 'Plakban'
@@ -213,6 +214,7 @@ async function loadAllDropdowns() {
 }
 
 // Get folder ID by folder name from main folder
+// Support subfolder with format "ParentFolder/SubFolder"
 async function getFolderIdByName(folderName) {
     // Check cache first
     if (folderIdCache[folderName]) {
@@ -220,6 +222,32 @@ async function getFolderIdByName(folderName) {
     }
     
     try {
+        // Check if folderName contains subfolder (e.g., "Kode Karton/Depan")
+        if (folderName.includes('/')) {
+            const parts = folderName.split('/');
+            let currentFolderId = CONFIG.GOOGLE_FOLDER_ID;
+            
+            for (const part of parts) {
+                const response = await gapi.client.drive.files.list({
+                    q: `'${currentFolderId}' in parents and name='${part}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                    fields: 'files(id, name)',
+                    pageSize: 1
+                });
+                
+                if (response.result.files && response.result.files.length > 0) {
+                    currentFolderId = response.result.files[0].id;
+                } else {
+                    console.error(`Subfolder "${part}" not found`);
+                    return null;
+                }
+            }
+            
+            folderIdCache[folderName] = currentFolderId;
+            console.log(`📁 Found folder "${folderName}" with ID: ${currentFolderId}`);
+            return currentFolderId;
+        }
+        
+        // Simple folder name (no subfolder)
         const response = await gapi.client.drive.files.list({
             q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: 'files(id, name)',
@@ -393,7 +421,10 @@ function mapPhotoKeyToInputId(key) {
         'm-bumbu': 'mBumbu',
         'mBumbu': 'mBumbu',
         'si': 'si',
-        'karton': 'karton',
+        'karton-depan': 'kartonDepan',
+        'kartonDepan': 'kartonDepan',
+        'karton-belakang': 'kartonBelakang',
+        'kartonBelakang': 'kartonBelakang',
         'etiket': 'etiket',
         'etiket-banded': 'etiketBanded',
         'etiketBanded': 'etiketBanded',
@@ -442,7 +473,8 @@ function getLabelText(dropdownId) {
         bumbu: 'Bumbu',
         mBumbu: 'M. Bumbu',
         si: 'SI',
-        karton: 'Karton',
+        kartonDepan: 'Karton Depan',
+        kartonBelakang: 'Karton Belakang',
         etiket: 'Etiket',
         etiketBanded: 'Etiket Banded',
         plakban: 'Plakban'
@@ -485,7 +517,8 @@ function saveTemporary() {
         'bumbu': ['bumbu'],
         'mBumbu': ['mBumbu', 'm-bumbu'],
         'si': ['si'],
-        'karton': ['karton'],
+        'kartonDepan': ['kartonDepan', 'karton-depan'],
+        'kartonBelakang': ['kartonBelakang', 'karton-belakang'],
         'etiket': ['etiket'],
         'etiketBanded': ['etiketBanded', 'etiket-banded'],
         'plakban': ['plakban']
@@ -640,7 +673,8 @@ async function saveAll() {
                 bumbu: getPhotoName(temporarySave.photos.bumbu),
                 mBumbu: getPhotoName(temporarySave.photos.mBumbu),
                 si: getPhotoName(temporarySave.photos.si),
-                karton: getPhotoName(temporarySave.photos.karton),
+                kartonDepan: getPhotoName(temporarySave.photos.kartonDepan),
+                kartonBelakang: getPhotoName(temporarySave.photos.kartonBelakang),
                 etiket: getPhotoName(temporarySave.photos.etiket),
                 etiketBanded: getPhotoName(temporarySave.photos.etiketBanded),
                 plakban: getPhotoName(temporarySave.photos.plakban)
@@ -689,8 +723,13 @@ function resetForm() {
     document.getElementById('negara').value = '';
     document.getElementById('tanggal').valueAsDate = new Date();
     
-    ['bumbu', 'mBumbu', 'si', 'karton', 'etiket', 'etiketBanded', 'plakban'].forEach(id => {
-        document.getElementById(id).selectedIndex = 0;
+    ['bumbu', 'mBumbu', 'si', 'kartonDepan', 'kartonBelakang', 'etiket', 'etiketBanded', 'plakban'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = '';
+            el.style.borderColor = '#e0e0e0';
+            el.style.backgroundColor = 'white';
+        }
     });
     
     selectedPhotos = {};
