@@ -10,7 +10,8 @@ const MASTER_FOLDERS = [
     { name: 'Bumbu Kuah', icon: 'fa-bowl-food', color: '#e67e22' },
     { name: 'Five or Six in One', icon: 'fa-cubes', color: '#9b59b6' },
     { name: 'Kode Etiket', icon: 'fa-tag', color: '#3498db' },
-    { name: 'Kode Karton', icon: 'fa-box', color: '#1abc9c' },
+    { name: 'Kode Karton/Depan', icon: 'fa-box', color: '#1abc9c' },
+    { name: 'Kode Karton/Belakang', icon: 'fa-box-open', color: '#16a085' },
     { name: 'Kode SI', icon: 'fa-barcode', color: '#34495e' },
     { name: 'Minyak Bumbu', icon: 'fa-oil-can', color: '#f1c40f' },
     { name: 'Plakban', icon: 'fa-tape', color: '#95a5a6' }
