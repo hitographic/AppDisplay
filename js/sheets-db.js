@@ -8,6 +8,8 @@ class GoogleSheetsDB {
         // Google Sheets API endpoint (via Apps Script Web App)
         this.webAppUrl = CONFIG.GOOGLE_SHEETS_WEBAPP_URL || '';
         this.callbackCounter = 0;
+        // Keep track of pending callbacks to avoid deleting them prematurely
+        this.pendingCallbacks = new Set();
     }
 
     // Check if configured
@@ -16,25 +18,52 @@ class GoogleSheetsDB {
     }
 
     // JSONP request untuk GET (bypass CORS)
-    jsonpRequest(url, timeoutMs = 10000) {
+    // Increased timeout to 30000ms (30 seconds) for slow connections
+    jsonpRequest(url, timeoutMs = 30000) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonpCallback_' + (++this.callbackCounter) + '_' + Date.now();
+            let isResolved = false;
+            let script = null;
+            
+            // Register callback in pending set
+            this.pendingCallbacks.add(callbackName);
+            
+            const cleanup = () => {
+                this.pendingCallbacks.delete(callbackName);
+                // Don't delete callback immediately - give it a grace period
+                // in case response arrives just after timeout
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                    }
+                }, 5000); // 5 second grace period
+                if (script && script.parentNode) {
+                    try { script.parentNode.removeChild(script); } catch(e) {}
+                }
+            };
+            
             const timeoutId = setTimeout(() => {
-                delete window[callbackName];
-                if (script && script.parentNode) script.parentNode.removeChild(script);
-                console.warn(`⏱️ JSONP request timeout (${timeoutMs}ms) for:`, url);
-                reject(new Error(`JSONP request timeout after ${timeoutMs}ms`));
+                if (!isResolved) {
+                    isResolved = true;
+                    console.warn(`⏱️ JSONP request timeout (${timeoutMs}ms) for:`, url);
+                    cleanup();
+                    reject(new Error(`JSONP request timeout after ${timeoutMs}ms`));
+                }
             }, timeoutMs);
 
             window[callbackName] = (data) => {
+                if (isResolved) {
+                    console.log('⚠️ Late JSONP response received (after timeout):', callbackName);
+                    return; // Already timed out, ignore late response
+                }
+                isResolved = true;
                 clearTimeout(timeoutId);
                 console.log('✅ JSONP callback received:', callbackName);
-                delete window[callbackName];
-                if (script && script.parentNode) script.parentNode.removeChild(script);
+                cleanup();
                 resolve(data);
             };
 
-            const script = document.createElement('script');
+            script = document.createElement('script');
             // Add callback parameter to URL
             const separator = url.includes('?') ? '&' : '?';
             script.src = url + separator + 'callback=' + callbackName;
@@ -42,11 +71,13 @@ class GoogleSheetsDB {
             console.log('📡 JSONP Request URL:', script.src);
             
             script.onerror = () => {
-                clearTimeout(timeoutId);
-                delete window[callbackName];
-                if (script && script.parentNode) script.parentNode.removeChild(script);
-                console.error('❌ JSONP script load error:', script.src);
-                reject(new Error('JSONP script load error'));
+                if (!isResolved) {
+                    isResolved = true;
+                    clearTimeout(timeoutId);
+                    cleanup();
+                    console.error('❌ JSONP script load error:', script.src);
+                    reject(new Error('JSONP script load error'));
+                }
             };
             document.head.appendChild(script);
         });
@@ -134,7 +165,8 @@ class GoogleSheetsDB {
             const url = `${this.webAppUrl}?action=getAll`;
             console.log('📡 Request URL:', url);
             
-            const data = await this.jsonpRequest(url, 8000);
+            // Use longer timeout (30 seconds) for fetching all records
+            const data = await this.jsonpRequest(url, 30000);
             console.log('✅ Data fetched from Google Sheets:', data);
             
             if (data.success === false) {
