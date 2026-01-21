@@ -161,7 +161,7 @@ function getUsersSheet() {
     
     // Add default users
     var defaultUsers = [
-      ['50086913', 'Ind0f00d25', 'Admin User', 'admin', 'user_admin|records_viewer|records_editor|records_validator', new Date().toISOString(), new Date().toISOString()],
+      ['50086913', 'Ind0f00d25', 'Admin User', 'admin', 'user_admin|records_viewer|records_editor|records_validator|master_editor', new Date().toISOString(), new Date().toISOString()],
       ['12345678', 'viewer123', 'Viewer User', 'field', 'records_viewer', new Date().toISOString(), new Date().toISOString()],
       ['11111111', 'lihat123', 'Staff View', 'supervisor', 'records_viewer|records_validator', new Date().toISOString(), new Date().toISOString()]
     ];

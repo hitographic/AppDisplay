@@ -28,6 +28,7 @@ let folderCache = {};
 // Initialize
 document.addEventListener('DOMContentLoaded', async function() {
     checkAuth();
+    checkMasterEditorPermission();
     renderFolderGrid();
     
     // Wait for Google API to be ready, then auto-connect
@@ -50,6 +51,33 @@ function checkAuth() {
         return;
     }
     document.getElementById('userName').textContent = user.name || 'User';
+}
+
+// Check master_editor permission
+function checkMasterEditorPermission() {
+    const storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
+        ? CONFIG.STORAGE_KEYS.USER 
+        : 'validDisplay_user';
+    
+    const user = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    
+    if (!user || !user.permissions) {
+        console.warn('⚠️ User tidak memiliki permissions. Redirect ke records.');
+        window.location.href = 'records.html';
+        return;
+    }
+    
+    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    const hasMasterEditorAccess = permissions.includes('master_editor') || permissions.includes('user_admin');
+    
+    if (!hasMasterEditorAccess) {
+        console.warn('⚠️ User tidak memiliki permission master_editor. Halaman disembunyikan.');
+        // Redirect ke records jika tidak punya akses
+        window.location.href = 'records.html';
+        return;
+    }
+    
+    console.log('✅ User memiliki akses master_editor');
 }
 
 // Logout

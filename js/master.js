@@ -19,6 +19,34 @@ document.addEventListener('DOMContentLoaded', function() {
     initMasterPage();
 });
 
+// Protect page - check permissions
+function protectPage() {
+    const auth = new Auth();
+    if (!auth.isLoggedIn()) {
+        window.location.href = 'index.html';
+        return false;
+    }
+
+    const user = auth.getUser();
+    if (!user || !user.permissions) {
+        console.warn('⚠️ User tidak memiliki permissions. Redirect ke records.');
+        window.location.href = 'records.html';
+        return false;
+    }
+
+    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    const hasMasterEditorAccess = permissions.includes('master_editor') || permissions.includes('user_admin');
+
+    if (!hasMasterEditorAccess) {
+        console.warn('⚠️ User tidak memiliki permission master_editor. Halaman disembunyikan.');
+        window.location.href = 'records.html';
+        return false;
+    }
+
+    console.log('✅ User memiliki akses master_editor');
+    return true;
+}
+
 async function initMasterPage() {
     console.log('🚀 initMasterPage: Starting initialization...');
     

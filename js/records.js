@@ -70,6 +70,7 @@ function setupPermissionBasedUI() {
     const googleDriveAlert = document.getElementById('googleDriveAlert');
     const googleDriveConnected = document.getElementById('googleDriveConnected');
     const driveConnectionPopup = document.getElementById('driveConnectionPopup');
+    const editMasterBtn = document.querySelector('a[href="edit-master.html"]');
     
     // Show user management link for user_admin permission
     if (hasPermission('user_admin')) {
@@ -78,10 +79,13 @@ function setupPermissionBasedUI() {
         }
     }
     
-    // Show master data link for editors
-    if (canEdit()) {
+    // Show master data link and edit master button for master_editor permission
+    if (hasPermission('master_editor')) {
         if (masterDataLink) {
             masterDataLink.style.display = 'inline-flex';
+        }
+        if (editMasterBtn) {
+            editMasterBtn.style.display = 'inline-flex';
         }
     }
     
