@@ -57,6 +57,7 @@ function prefillForm() {
     if (tempData.flavor) document.getElementById('flavor').value = tempData.flavor;
     if (tempData.nomorMaterial) document.getElementById('nomorMaterial').value = tempData.nomorMaterial;
     if (tempData.negara) document.getElementById('negara').value = tempData.negara;
+    if (tempData.distributor) document.getElementById('distributor').value = tempData.distributor;
     
     // Handle tanggal - convert from various formats to YYYY-MM-DD for input[type="date"]
     if (tempData.tanggal) {
@@ -508,6 +509,7 @@ function saveTemporary() {
     const flavor = document.getElementById('flavor').value.trim();
     const nomorMaterial = document.getElementById('nomorMaterial').value.trim();
     const negara = document.getElementById('negara').value.trim();
+    const distributor = document.getElementById('distributor').value.trim();
     const tanggal = document.getElementById('tanggal').value;
     
     if (!flavor || !nomorMaterial || !negara || !tanggal) {
@@ -565,6 +567,7 @@ function saveTemporary() {
         flavor,
         nomorMaterial,
         negara,
+        distributor,
         tanggal,
         photos: { ...selectedPhotos },
         isEdit: isEditMode
@@ -589,6 +592,7 @@ function showPreview() {
     document.getElementById('previewFlavor').textContent = temporarySave.flavor;
     document.getElementById('previewNomorMaterial').textContent = temporarySave.nomorMaterial;
     document.getElementById('previewNegara').textContent = temporarySave.negara;
+    document.getElementById('previewDistributor').textContent = temporarySave.distributor || '-';
     document.getElementById('previewTanggal').textContent = formatDate(temporarySave.tanggal);
     
     const photosContainer = document.getElementById('previewPhotos');
@@ -673,6 +677,7 @@ async function saveAll() {
             nomorMaterial: temporarySave.nomorMaterial,
             flavor: temporarySave.flavor,
             negara: temporarySave.negara,
+            distributor: temporarySave.distributor,
             photos: {
                 bumbu: getPhotoName(temporarySave.photos.bumbu),
                 mBumbu: getPhotoName(temporarySave.photos.mBumbu),

@@ -628,6 +628,7 @@ function applySearch() {
     const nomorMaterial = document.getElementById('searchNomorMaterial').value.trim();
     const flavor = document.getElementById('searchFlavor').value.toLowerCase().trim();
     const negara = document.getElementById('searchNegara').value.toLowerCase().trim();
+    const distributor = document.getElementById('searchDistributor').value.toLowerCase().trim();
     const date = document.getElementById('searchDate').value;
     const validationStatus = document.getElementById('searchValidation').value;
 
@@ -643,6 +644,10 @@ function applySearch() {
         }
 
         if (negara && !record.negara.toLowerCase().includes(negara)) {
+            match = false;
+        }
+
+        if (distributor && (!record.distributor || !record.distributor.toLowerCase().includes(distributor))) {
             match = false;
         }
 
@@ -1134,6 +1139,10 @@ function renderPreviewRecordInfo() {
     
     if (currentPreviewRecord.negara) {
         html += `<span><i class="fas fa-globe"></i> <strong>Negara:</strong> ${escapeHtml(currentPreviewRecord.negara)}</span>`;
+    }
+    
+    if (currentPreviewRecord.distributor) {
+        html += `<span><i class="fas fa-truck"></i> <strong>Distributor:</strong> ${escapeHtml(currentPreviewRecord.distributor)}</span>`;
     }
     
     if (currentPreviewRecord.nomorMaterial) {

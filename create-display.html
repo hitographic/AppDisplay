@@ -102,6 +102,10 @@
                         <input type="text" id="negara" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
                     </div>
                     <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px;">Distributor</label>
+                        <input type="text" id="distributor" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    </div>
+                    <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px;">Tanggal</label>
                         <input type="date" id="tanggal" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
                     </div>
@@ -215,6 +219,7 @@
                         <div><strong>Flavor:</strong> <span id="previewFlavor">-</span></div>
                         <div><strong>Nomor Material:</strong> <span id="previewNomorMaterial">-</span></div>
                         <div><strong>Negara:</strong> <span id="previewNegara">-</span></div>
+                        <div><strong>Distributor:</strong> <span id="previewDistributor">-</span></div>
                         <div><strong>Tanggal:</strong> <span id="previewTanggal">-</span></div>
                     </div>
                 </div>
@@ -258,6 +263,9 @@
                 }
                 if (tempData.negara) {
                     badges.innerHTML += `<span class="info-badge"><i class="fas fa-globe"></i> ${tempData.negara}</span>`;
+                }
+                if (tempData.distributor) {
+                    badges.innerHTML += `<span class="info-badge"><i class="fas fa-truck"></i> ${tempData.distributor}</span>`;
                 }
                 if (tempData.tanggal) {
                     const date = new Date(tempData.tanggal);
