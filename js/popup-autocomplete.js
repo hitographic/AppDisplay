@@ -31,6 +31,7 @@ async function loadMasterDataForPopup() {
 // Initialize autocomplete for Add Data popup
 function initPopupAutocomplete() {
     var negaraInput = document.getElementById('inputNegara');
+    var distributorInput = document.getElementById('inputDistributor');
     var flavorInput = document.getElementById('inputFlavor');
     
     if (!negaraInput || !flavorInput) {
@@ -42,8 +43,12 @@ function initPopupAutocomplete() {
     
     // Remove existing listeners by cloning
     var newNegaraInput = negaraInput.cloneNode(true);
+    var newDistributorInput = distributorInput ? distributorInput.cloneNode(true) : null;
     var newFlavorInput = flavorInput.cloneNode(true);
     negaraInput.parentNode.replaceChild(newNegaraInput, negaraInput);
+    if (newDistributorInput && distributorInput.parentNode) {
+        distributorInput.parentNode.replaceChild(newDistributorInput, distributorInput);
+    }
     flavorInput.parentNode.replaceChild(newFlavorInput, flavorInput);
     
     // Negara autocomplete
@@ -61,6 +66,24 @@ function initPopupAutocomplete() {
             if (dd) dd.classList.add('hidden');
         }, 200);
     });
+    
+    // Distributor autocomplete
+    if (newDistributorInput) {
+        newDistributorInput.addEventListener('input', function(e) {
+            handleDistributorAutocomplete(e.target.value);
+        });
+        
+        newDistributorInput.addEventListener('focus', function(e) {
+            handleDistributorAutocomplete(e.target.value);
+        });
+        
+        newDistributorInput.addEventListener('blur', function() {
+            setTimeout(function() {
+                var dd = document.getElementById('popupDistributorDropdown');
+                if (dd) dd.classList.add('hidden');
+            }, 200);
+        });
+    }
     
     // Flavor autocomplete
     newFlavorInput.addEventListener('input', function(e) {
@@ -218,6 +241,62 @@ function handleFlavorAutocomplete(query) {
     });
 }
 
+// Handle Distributor autocomplete - show all unique distributors from master data
+function handleDistributorAutocomplete(query) {
+    var dropdown = document.getElementById('popupDistributorDropdown');
+    if (!dropdown) return;
+    
+    console.log('🔍 handleDistributorAutocomplete called with:', query);
+    
+    // Get unique DISTRIBUTOR values from master data
+    var distributorSet = {};
+    popupState.masterData.forEach(function(m) {
+        if (m.distributor) distributorSet[m.distributor] = true;
+    });
+    var distributorList = Object.keys(distributorSet).sort();
+    
+    console.log('📋 Unique distributor count:', distributorList.length);
+    
+    var lowerQuery = query.toLowerCase().trim();
+    var filtered = distributorList;
+    if (lowerQuery.length > 0) {
+        filtered = distributorList.filter(function(d) {
+            return d.toLowerCase().indexOf(lowerQuery) !== -1;
+        });
+    }
+    
+    console.log('📋 Filtered distributor results:', filtered.length);
+    
+    if (filtered.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--gray-500); font-style: italic;">Tidak ditemukan</div>';
+    } else {
+        dropdown.innerHTML = filtered.slice(0, 15).map(function(distributor) {
+            var displayHtml = escapeHtmlPopup(distributor);
+            if (lowerQuery.length > 0) {
+                var idx = distributor.toLowerCase().indexOf(lowerQuery);
+                if (idx !== -1) {
+                    displayHtml = escapeHtmlPopup(distributor.substring(0, idx)) + 
+                        '<span class="match">' + escapeHtmlPopup(distributor.substring(idx, idx + lowerQuery.length)) + '</span>' +
+                        escapeHtmlPopup(distributor.substring(idx + lowerQuery.length));
+                }
+            }
+            return '<div class="autocomplete-item" data-value="' + escapeHtmlPopup(distributor) + '">' + displayHtml + '</div>';
+        }).join('');
+    }
+    
+    dropdown.classList.remove('hidden');
+    
+    dropdown.querySelectorAll('.autocomplete-item[data-value]').forEach(function(item) {
+        item.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            var value = item.dataset.value;
+            document.getElementById('inputDistributor').value = value;
+            dropdown.classList.add('hidden');
+            showToast('Distributor "' + value + '" dipilih', 'success');
+        });
+    });
+}
+
 function escapeHtmlPopup(text) {
     if (!text) return '';
     var div = document.createElement('div');
@@ -255,8 +334,10 @@ window.closeAddDataPopup = function() {
     if (flavorInput) flavorInput.placeholder = 'Pilih negara dulu, lalu ketik flavor...';
     
     var negaraDropdown = document.getElementById('popupNegaraDropdown');
+    var distributorDropdown = document.getElementById('popupDistributorDropdown');
     var flavorDropdown = document.getElementById('popupFlavorDropdown');
     if (negaraDropdown) negaraDropdown.classList.add('hidden');
+    if (distributorDropdown) distributorDropdown.classList.add('hidden');
     if (flavorDropdown) flavorDropdown.classList.add('hidden');
 };
 

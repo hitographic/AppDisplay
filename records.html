@@ -206,7 +206,10 @@
                     <label for="inputDistributor">
                         <i class="fas fa-truck"></i> Distributor
                     </label>
-                    <input type="text" id="inputDistributor" placeholder="Masukkan nama distributor..." autocomplete="off">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="inputDistributor" placeholder="Ketik nama distributor..." autocomplete="off">
+                        <div id="popupDistributorDropdown" class="autocomplete-dropdown hidden"></div>
+                    </div>
                 </div>
                 <div class="form-group autocomplete-wrapper">
                     <label for="inputFlavor">
