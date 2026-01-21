@@ -47,9 +47,9 @@ async function initRecordsPage() {
     // Initialize Google API for all users (to show status)
     await initGoogleDriveConnection();
 
-    // Load records
-    console.log('📋 initRecordsPage: Calling loadRecords()...');
-    await loadRecords();
+    // DO NOT load records here - wait for user to click "Cari" button
+    // This keeps initial page load fast
+    console.log('📋 initRecordsPage: Skipping initial data load - wait for user search');
 
     // Initialize search filters
     initSearchFilters();
@@ -60,7 +60,29 @@ async function initRecordsPage() {
     // Initialize preview tabs
     initPreviewTabs();
     
-    console.log('✅ initRecordsPage: Initialization complete!');
+    // Show welcome message
+    showWelcomeState();
+    
+    console.log('✅ initRecordsPage: Initialization complete! Ready for search.');
+}
+
+// Show welcome/instruction state when page first loads
+function showWelcomeState() {
+    const grid = document.getElementById('recordsGrid');
+    const emptyState = document.getElementById('emptyState');
+    
+    grid.innerHTML = `
+        <div class="welcome-state">
+            <div class="welcome-icon">
+                <i class="fas fa-search-plus"></i>
+            </div>
+            <h3>Mulai Pencarian</h3>
+            <p>Klik tombol <strong>"Advanced Search"</strong> di atas untuk mulai mencari records</p>
+            <small>Data akan dimuat ketika Anda melakukan pencarian pertama</small>
+        </div>
+    `;
+    emptyState.classList.add('hidden');
+    hidePagination();
 }
 
 function setupPermissionBasedUI() {
@@ -628,13 +650,25 @@ function handleNegaraBlur() {
 
 // ==================== SEARCH FUNCTIONS ====================
 
-function applySearch() {
+async function applySearch() {
+    // Load records if not already loaded
+    if (allRecords.length === 0) {
+        console.log('📋 applySearch: Loading records for first time...');
+        showLoading('Memuat data...');
+        await loadRecords();
+        hideLoading();
+    }
+
     const nomorMaterial = document.getElementById('searchNomorMaterial').value.trim();
     const flavor = document.getElementById('searchFlavor').value.toLowerCase().trim();
     const negara = document.getElementById('searchNegara').value.toLowerCase().trim();
     const distributor = document.getElementById('searchDistributor').value.toLowerCase().trim();
     const date = document.getElementById('searchDate').value;
     const validationStatus = document.getElementById('searchValidation').value;
+
+    console.log('🔍 applySearch: Filtering records with criteria:', {
+        nomorMaterial, flavor, negara, distributor, date, validationStatus
+    });
 
     filteredRecords = allRecords.filter(record => {
         let match = true;
