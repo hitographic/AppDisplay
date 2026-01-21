@@ -18,6 +18,7 @@ const ROLES = {
 // Permission definitions
 const PERMISSIONS = {
     user_admin: { name: 'User Admin', icon: 'fas fa-users-cog', desc: 'Kelola User & Permissions' },
+    master_editor: { name: 'Master Editor', icon: 'fas fa-folder-open', desc: 'Edit Master Data' },
     records_viewer: { name: 'Viewer', icon: 'fas fa-eye', desc: 'Lihat Records' },
     records_editor: { name: 'Editor', icon: 'fas fa-edit', desc: 'CRUD Records' },
     records_validator: { name: 'Validator', icon: 'fas fa-check-double', desc: 'Validasi Records' }
@@ -25,7 +26,7 @@ const PERMISSIONS = {
 
 // Default permissions per role
 const DEFAULT_PERMISSIONS = {
-    admin: ['user_admin', 'records_viewer', 'records_editor', 'records_validator'],
+    admin: ['user_admin', 'master_editor', 'records_viewer', 'records_editor', 'records_validator'],
     manager: ['records_viewer', 'records_editor', 'records_validator'],
     supervisor: ['records_viewer', 'records_validator'],
     field: ['records_viewer', 'records_editor']
