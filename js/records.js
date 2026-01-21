@@ -863,6 +863,7 @@ async function proceedToCreateDisplay() {
     const nomorMaterial = document.getElementById('inputNomorMaterial').value.trim();
     const flavor = document.getElementById('inputFlavor').value.trim();
     const negara = document.getElementById('inputNegara').value.trim();
+    const distributor = document.getElementById('inputDistributor').value.trim();
 
     if (!tanggal || !nomorMaterial || !flavor || !negara) {
         showToast('Mohon lengkapi semua field', 'error');
@@ -903,6 +904,7 @@ async function proceedToCreateDisplay() {
         nomorMaterial: nomorMaterial,
         flavor: flavor,
         negara: negara,
+        distributor: distributor,
         createdAt: new Date().toISOString(),
         photos: {},
         kodeProduksi: []
