@@ -415,16 +415,20 @@ function selectAutocompleteItem(inputId, item) {
 }
 
 // Map photo keys from Google Sheets format to input IDs
+// Supports backward compatibility for old 'karton' key
 function mapPhotoKeyToInputId(key) {
     const keyMap = {
         'bumbu': 'bumbu',
         'm-bumbu': 'mBumbu',
         'mBumbu': 'mBumbu',
         'si': 'si',
+        // New split keys
         'karton-depan': 'kartonDepan',
         'kartonDepan': 'kartonDepan',
         'karton-belakang': 'kartonBelakang',
         'kartonBelakang': 'kartonBelakang',
+        // Backward compatibility for old single 'karton' key - maps to kartonDepan as default
+        'karton': 'kartonDepan',
         'etiket': 'etiket',
         'etiket-banded': 'etiketBanded',
         'etiketBanded': 'etiketBanded',

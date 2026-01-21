@@ -988,7 +988,17 @@ function showPreviewTab(tabId) {
         return;
     }
 
-    const photo = currentPreviewRecord.photos[tabId];
+    // Backward compatibility: map old 'karton' to new keys
+    // If looking for karton-depan but data only has 'karton', use that
+    let photo = currentPreviewRecord.photos[tabId];
+    
+    // Fallback for old 'karton' data when viewing new karton-depan/karton-belakang tabs
+    if (!photo && tabId === 'karton-depan' && currentPreviewRecord.photos['karton']) {
+        photo = currentPreviewRecord.photos['karton'];
+        console.log('📷 Fallback: using old "karton" data for karton-depan');
+    }
+    // karton-belakang has no fallback from old data (it was single karton field before)
+    
     console.log('📷 Preview tab:', tabId);
     console.log('📷 Photo data:', photo);
 
