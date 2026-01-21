@@ -114,6 +114,7 @@ function jsonpRequest(url) {
 // POST request via JSONP (GET with data parameter) - bypasses CORS
 function postRequest(data) {
     console.log('📤 User operation via JSONP:', data.action);
+    console.log('📤 Full request data:', JSON.stringify(data));
     
     return new Promise((resolve, reject) => {
         const callbackName = 'usersPostCallback_' + Date.now();
@@ -137,6 +138,7 @@ function postRequest(data) {
         const url = `${webAppUrl}?action=${data.action}&data=${encodedData}&callback=${callbackName}`;
         
         console.log('📤 JSONP URL length:', url.length);
+        console.log('📤 Encoded data sample:', encodedData.substring(0, 100) + '...');
 
         const script = document.createElement('script');
         script.src = url;
@@ -415,6 +417,10 @@ async function saveUser(event) {
     const role = document.getElementById('userRole').value;
     const permissions = getSelectedPermissions();
     
+    console.log('🔍 saveUser() - editMode:', editMode);
+    console.log('🔍 saveUser() - permissions array:', permissions);
+    console.log('🔍 saveUser() - permissions joined:', permissions.join('|'));
+    
     if (!nik || !name || !password || !role) {
         showToast('Mohon lengkapi semua field', 'error');
         return;
@@ -426,16 +432,20 @@ async function saveUser(event) {
         let result;
         
         if (editMode === 'add') {
-            result = await postRequest({
+            const requestData = {
                 action: 'addUser',
                 user: { nik, name, password, role, permissions: permissions.join('|') }
-            });
+            };
+            console.log('📤 Adding user - Request data:', JSON.stringify(requestData));
+            result = await postRequest(requestData);
         } else {
-            result = await postRequest({
+            const requestData = {
                 action: 'updateUser',
                 nik: originalNik,
                 user: { name, password, role, permissions: permissions.join('|') }
-            });
+            };
+            console.log('📤 Updating user - Request data:', JSON.stringify(requestData));
+            result = await postRequest(requestData);
         }
         
         hideLoading();

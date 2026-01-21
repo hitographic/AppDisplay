@@ -472,15 +472,26 @@ function updateUserData(nik, updatedUser) {
   var sheet = getUsersSheet();
   var data = sheet.getDataRange().getValues();
   
+  Logger.log('updateUserData called with nik=' + nik + ', updatedUser=' + JSON.stringify(updatedUser));
+  
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] == nik) {
-      // Convert permissions array to pipe-separated string
+      // Handle permissions - can be string (pipe-separated) or array
       var permissionsStr = '';
-      if (updatedUser.permissions && Array.isArray(updatedUser.permissions)) {
-        permissionsStr = updatedUser.permissions.join('|');
+      if (updatedUser.permissions) {
+        if (Array.isArray(updatedUser.permissions)) {
+          // If it's an array, join it
+          permissionsStr = updatedUser.permissions.join('|');
+        } else if (typeof updatedUser.permissions === 'string') {
+          // If it's already a string, use it directly
+          permissionsStr = String(updatedUser.permissions).trim();
+        }
       } else if (data[i][4]) {
+        // If no permissions provided, keep existing
         permissionsStr = String(data[i][4]);
       }
+      
+      Logger.log('Updating user ' + nik + ' with permissions: ' + permissionsStr);
       
       var row = [
         nik, // NIK tidak bisa diubah
@@ -493,10 +504,12 @@ function updateUserData(nik, updatedUser) {
       ];
       
       sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+      Logger.log('User updated successfully');
       return { success: true, message: 'User berhasil diupdate' };
     }
   }
   
+  Logger.log('User not found: ' + nik);
   return { success: false, error: 'User not found' };
 }
 
