@@ -245,7 +245,6 @@ async function connectGoogleDrive() {
 }
 
 async function loadRecords() {
-    showLoadingRecords();
     console.log('📋 loadRecords: Starting to load records...');
 
     try {
@@ -256,32 +255,31 @@ async function loadRecords() {
         
         if (allRecords.length === 0) {
             console.warn('⚠️ WARNING: No records found! Check if Google Sheets connection is working.');
+            showToast('❌ Data tidak ditemukan di Google Sheets', 'error');
         }
         
         filteredRecords = [...allRecords];
-        renderRecords();
+        return true;
     } catch (error) {
         console.error('❌ loadRecords: Error loading records:', error);
-        console.log('⚠️ loadRecords: Falling back to local storage');
         
         allRecords = storage.getRecordsLocal();
-        console.log(`📦 loadRecords: Loaded ${allRecords.length} records from local storage`);
+        console.log(`📦 loadRecords: Fallback - Loaded ${allRecords.length} records from local storage`);
         
-        // Show detailed error message
         if (allRecords.length === 0) {
             showToast(
-                `❌ Gagal memuat data dari Google Sheets dan tidak ada data lokal tersimpan.\n\nMohon:\n1. Refresh halaman\n2. Cek koneksi internet\n3. Pastikan Google Sheets API sudah terkonfigurasi`,
+                `❌ Gagal memuat data dari Google Sheets dan tidak ada data lokal.\n\nMohon refresh halaman atau hubungi admin.`,
                 'error'
             );
         } else {
             showToast(
-                `⚠️ Data terbatas (${allRecords.length} records dari cache lokal)\n\nUntuk data lengkap:\n1. Refresh halaman\n2. Tunggu 90 detik saat loading`,
+                `⚠️ Menggunakan ${allRecords.length} records dari cache lokal.\n\nUntuk data terbaru: refresh halaman.`,
                 'warning'
             );
         }
         
         filteredRecords = [...allRecords];
-        renderRecords();
+        return false;
     }
 }
 
@@ -496,7 +494,22 @@ function initSearchFilters() {
 
 function toggleAdvancedSearch() {
     const panel = document.getElementById('advancedSearchPanel');
+    const isHidden = panel.classList.contains('hidden');
+    
     panel.classList.toggle('hidden');
+    
+    // Load records when Advanced Search panel first opens
+    if (isHidden && allRecords.length === 0) {
+        console.log('📋 toggleAdvancedSearch: Loading records on first open...');
+        showLoading('⏳ Memuat data dari Google Sheets... (pertama kali mungkin 30-90 detik)');
+        loadRecords().then(() => {
+            hideLoading();
+            showToast(`✅ Loaded ${allRecords.length} records. Gunakan filter di bawah.`, 'success');
+        }).catch(error => {
+            hideLoading();
+            console.error('Error loading records:', error);
+        });
+    }
     
     // Hide search results when closing panel
     if (panel.classList.contains('hidden')) {
@@ -513,12 +526,10 @@ function toggleAdvancedSearch() {
 // ==================== SEARCH FUNCTIONS ====================
 
 async function applySearch() {
-    // Load records if not already loaded
+    // Data should already be loaded - if not, something went wrong
     if (allRecords.length === 0) {
-        console.log('📋 applySearch: Loading records for first time...');
-        showLoading('⏳ Memuat data dari Google Sheets... (ini mungkin butuh 30-90 detik)');
-        await loadRecords();
-        hideLoading();
+        showToast('⚠️ Data belum dimuat. Tutup dan buka kembali Advanced Search.', 'warning');
+        return;
     }
 
     const nomorMaterial = document.getElementById('searchNomorMaterial').value.trim();
@@ -572,10 +583,10 @@ async function applySearch() {
 
     currentPage = 1; // Reset to first page when searching
     
-    // Render search results in list view (tanpa gambar)
+    // Render search results in list view
     renderSearchResultsList(filteredRecords);
     
-    showToast(`Ditemukan ${filteredRecords.length} hasil`, 'info');
+    showToast(`✅ Ditemukan ${filteredRecords.length} hasil`, 'success');
 }
 
 // Render search results as list view inside Advanced Search panel
@@ -829,45 +840,44 @@ async function proceedToCreateDisplay() {
 // ==================== PREVIEW POPUP ====================
 
 function openPreview(recordId) {
-    console.log('🔍 Opening preview for:', recordId, 'type:', typeof recordId);
-    console.log('🔍 allRecords length:', allRecords.length);
-    console.log('🔍 allRecords IDs:', allRecords.map(r => ({ id: r.id, type: typeof r.id })));
+    console.log('🔍 Opening preview for:', recordId);
     
-    // Cari dari allRecords yang sudah dimuat (bukan dari local storage)
-    // Konversi kedua sisi ke string untuk perbandingan yang konsisten
+    // Find record from already loaded data
     currentPreviewRecord = allRecords.find(r => String(r.id) === String(recordId));
     
-    // Fallback ke filteredRecords jika tidak ditemukan di allRecords
+    // Fallback to filteredRecords if not found
     if (!currentPreviewRecord) {
         currentPreviewRecord = filteredRecords.find(r => String(r.id) === String(recordId));
     }
     
-    // Fallback ke storage jika tidak ditemukan
+    // Fallback to storage if not found
     if (!currentPreviewRecord) {
         currentPreviewRecord = storage.getRecordById(recordId);
     }
     
-    // Fallback: jika record tidak punya field photos, buat object kosong
+    // Ensure photos object exists
     if (currentPreviewRecord && typeof currentPreviewRecord.photos !== 'object') {
         currentPreviewRecord.photos = {};
     }
-    
-    console.log('🔍 Record data:', currentPreviewRecord);
-    console.log('🔍 Photos:', currentPreviewRecord?.photos);
     
     if (!currentPreviewRecord) {
         showToast('Record tidak ditemukan', 'error');
         return;
     }
+    
     const popup = document.getElementById('previewPopup');
     const title = document.getElementById('previewTitle');
     title.innerHTML = `<i class="fas fa-images"></i> ${escapeHtml(currentPreviewRecord.flavor)}`;
-    // Show first tab content
+    
+    // Show first tab content (lazy load photos if needed)
     showPreviewTab('bumbu');
+    
     // Show record info (negara, nomor material)
     renderPreviewRecordInfo();
+    
     // Show kode produksi
     renderKodeProduksi();
+    
     popup.classList.remove('hidden');
 }
 
