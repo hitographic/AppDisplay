@@ -99,25 +99,19 @@
             <div class="search-grid">
                 <div class="search-field">
                     <label><i class="fas fa-barcode"></i> Nomor Material</label>
-                    <input type="text" id="searchNomorMaterial" placeholder="Cari nomor material...">
+                    <input type="text" id="searchNomorMaterial" placeholder="Ketik nomor material...">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-tag"></i> Flavor</label>
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="searchFlavor" placeholder="Cari flavor... (misal: GSA ME)" autocomplete="off">
-                        <div id="flavorDropdown" class="autocomplete-dropdown hidden"></div>
-                    </div>
+                    <input type="text" id="searchFlavor" placeholder="Ketik flavor (contoh: GSS)">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-globe"></i> Negara</label>
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="searchNegara" placeholder="Cari negara..." autocomplete="off">
-                        <div id="negaraDropdown" class="autocomplete-dropdown hidden"></div>
-                    </div>
+                    <input type="text" id="searchNegara" placeholder="Ketik negara (contoh: AMERIKA)">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-truck"></i> Distributor</label>
-                    <input type="text" id="searchDistributor" placeholder="Cari distributor..." autocomplete="off">
+                    <input type="text" id="searchDistributor" placeholder="Ketik nama distributor...">
                 </div>
                 <div class="search-field">
                     <label><i class="fas fa-calendar"></i> Tanggal</label>
@@ -361,8 +355,7 @@
     <script src="js/sheets-db.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/test-data.js"></script>
-    <script src="js/records.js?v=2.9"></script>
-    <script src="js/popup-autocomplete.js?v=2.8"></script>
+    <script src="js/records.js?v=3.0"></script>
     <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
     
     <!-- Service Worker Registration for PWA -->
