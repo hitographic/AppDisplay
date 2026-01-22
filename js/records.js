@@ -47,9 +47,17 @@ async function initRecordsPage() {
     // Initialize Google API for all users (to show status)
     await initGoogleDriveConnection();
 
-    // DO NOT load records here - wait for user to click "Cari" button
-    // This keeps initial page load fast
-    console.log('📋 initRecordsPage: Skipping initial data load - wait for user search');
+    // ✅ LOAD RECORDS IMMEDIATELY (like master.html)
+    console.log('📋 initRecordsPage: Loading all records on page init...');
+    showLoading('⏳ Memuat semua data...');
+    const success = await loadRecords();
+    hideLoading();
+    
+    if (success) {
+        showToast(`✅ Loaded ${allRecords.length} records`, 'success');
+    } else {
+        showToast(`⚠️ Using local data (${allRecords.length} records)`, 'warning');
+    }
 
     // Initialize search filters
     initSearchFilters();
@@ -60,10 +68,10 @@ async function initRecordsPage() {
     // Initialize preview tabs
     initPreviewTabs();
     
-    // Show welcome message
-    showWelcomeState();
+    // ✅ Display all records immediately
+    renderAllRecordsAsCardList();
     
-    console.log('✅ initRecordsPage: Initialization complete! Ready for search.');
+    console.log('✅ initRecordsPage: Initialization complete! Records displayed.');
 }
 
 // Show welcome/instruction state when page first loads
@@ -309,6 +317,77 @@ function renderRecords() {
     console.log('📋 Records loaded:', filteredRecords.length, '- Use Advanced Search to view');
 }
 
+// ✅ NEW FUNCTION: Display all records as card list on main page
+function renderAllRecordsAsCardList() {
+    const grid = document.getElementById('recordsGrid');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (!allRecords || allRecords.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    // Show all records as card list
+    emptyState.classList.add('hidden');
+    
+    const userCanEdit = canEdit();
+    const userCanValidate = canValidate();
+    
+    grid.innerHTML = allRecords.map(record => {
+        // Determine validation status indicator
+        let validationClass = 'pending';
+        if (record.validationStatus === 'valid') {
+            validationClass = 'valid';
+        } else if (record.validationStatus === 'invalid') {
+            validationClass = 'invalid';
+        }
+        
+        return `
+            <div class="search-result-item">
+                <!-- Row 1: Flavor + Actions -->
+                <div class="search-result-row-1">
+                    <div class="search-result-flavor-wrapper">
+                        <span class="validation-indicator ${validationClass}" title="${validationClass === 'valid' ? 'Valid' : validationClass === 'invalid' ? 'Invalid' : 'Belum Validasi'}"></span>
+                        <span class="search-result-flavor">${escapeHtml(record.flavor)}</span>
+                    </div>
+                    <div class="search-result-actions">
+                        <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${userCanEdit ? `
+                        <button class="btn-action edit" onclick="editRecord('${record.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action delete" onclick="deleteRecord('${record.id}')" title="Hapus">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn-action info" onclick="showValidationInfo('${record.id}')" title="Info">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        ` : ''}
+                        ${userCanValidate ? `
+                        <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <!-- Row 2: Distributor + Meta Info -->
+                <div class="search-result-row-2">
+                    <div class="search-result-distributor">
+                        ${escapeHtml(record.distributor || '-')}
+                    </div>
+                    <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    console.log(`🎨 Displayed ${allRecords.length} records as card list`);
+}
+
 // ==================== PAGINATION FUNCTIONS ====================
 
 // ==================== RECORDS INPUT FUNCTIONS ====================
@@ -494,29 +573,16 @@ function initSearchFilters() {
 
 function toggleAdvancedSearch() {
     const panel = document.getElementById('advancedSearchPanel');
-    const isHidden = panel.classList.contains('hidden');
-    
     panel.classList.toggle('hidden');
     
-    // Load records when Advanced Search panel first opens
-    if (isHidden && allRecords.length === 0) {
-        console.log('📋 toggleAdvancedSearch: Loading records on first open...');
-        showLoading('⏳ Memuat data dari Google Sheets... (pertama kali mungkin 30-90 detik)');
-        loadRecords().then(() => {
-            hideLoading();
-            showToast(`✅ Loaded ${allRecords.length} records. Gunakan filter di bawah.`, 'success');
-        }).catch(error => {
-            hideLoading();
-            console.error('Error loading records:', error);
-        });
-    }
-    
-    // Hide search results when closing panel
+    // Hide search results when closing panel - show all records instead
     if (panel.classList.contains('hidden')) {
         const searchResultsList = document.getElementById('searchResultsList');
         if (searchResultsList) {
             searchResultsList.classList.add('hidden');
         }
+        // Show all records again
+        renderAllRecordsAsCardList();
     }
 }
 
@@ -526,9 +592,9 @@ function toggleAdvancedSearch() {
 // ==================== SEARCH FUNCTIONS ====================
 
 async function applySearch() {
-    // Data should already be loaded - if not, something went wrong
+    // Data should already be loaded
     if (allRecords.length === 0) {
-        showToast('⚠️ Data belum dimuat. Tutup dan buka kembali Advanced Search.', 'warning');
+        showToast('⚠️ Data belum dimuat. Refresh halaman.', 'warning');
         return;
     }
 
@@ -581,10 +647,10 @@ async function applySearch() {
         return match;
     });
 
-    currentPage = 1; // Reset to first page when searching
+    currentPage = 1;
     
-    // Render search results in list view
-    renderSearchResultsList(filteredRecords);
+    // ✅ Display filtered results directly as card list
+    renderAllRecordsAsCardList();
     
     showToast(`✅ Ditemukan ${filteredRecords.length} hasil`, 'success');
 }
@@ -670,19 +736,18 @@ function resetSearch() {
     document.getElementById('searchNomorMaterial').value = '';
     document.getElementById('searchFlavor').value = '';
     document.getElementById('searchNegara').value = '';
+    document.getElementById('searchDistributor').value = '';
     document.getElementById('searchDate').value = '';
     document.getElementById('searchValidation').value = '';
 
+    // Reset to all records
     filteredRecords = [...allRecords];
-    currentPage = 1; // Reset to first page
+    currentPage = 1;
     
-    // Hide search results list
-    const searchResultsList = document.getElementById('searchResultsList');
-    if (searchResultsList) {
-        searchResultsList.classList.add('hidden');
-    }
+    // Display all records again
+    renderAllRecordsAsCardList();
     
-    showToast('Filter direset', 'info');
+    showToast('Filter direset - menampilkan semua records', 'info');
 }
 
 // ==================== ADD DATA POPUP ====================
