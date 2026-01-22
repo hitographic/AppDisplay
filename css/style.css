@@ -807,6 +807,27 @@ body {
     margin-bottom: 10px;
 }
 
+/* Loading state for preview */
+.loading-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.loading-preview i {
+    margin-bottom: 15px;
+    color: var(--primary-color);
+}
+
+.loading-preview p {
+    color: var(--gray-600);
+    font-size: 0.95rem;
+}
+
 .card-content {
     padding: 20px;
 }

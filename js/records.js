@@ -905,46 +905,83 @@ async function proceedToCreateDisplay() {
 
 // ==================== PREVIEW POPUP ====================
 
-function openPreview(recordId) {
+async function openPreview(recordId) {
     console.log('🔍 Opening preview for:', recordId);
     
-    // Find record from already loaded data
-    currentPreviewRecord = allRecords.find(r => String(r.id) === String(recordId));
-    
-    // Fallback to filteredRecords if not found
-    if (!currentPreviewRecord) {
-        currentPreviewRecord = filteredRecords.find(r => String(r.id) === String(recordId));
+    // Find basic record from already loaded data (for title/info)
+    let basicRecord = allRecords.find(r => String(r.id) === String(recordId));
+    if (!basicRecord) {
+        basicRecord = filteredRecords.find(r => String(r.id) === String(recordId));
     }
     
-    // Fallback to storage if not found
-    if (!currentPreviewRecord) {
-        currentPreviewRecord = storage.getRecordById(recordId);
-    }
-    
-    // Ensure photos object exists
-    if (currentPreviewRecord && typeof currentPreviewRecord.photos !== 'object') {
-        currentPreviewRecord.photos = {};
-    }
-    
-    if (!currentPreviewRecord) {
+    if (!basicRecord) {
         showToast('Record tidak ditemukan', 'error');
         return;
     }
+    
+    // Set basic info first (from fast-loaded data)
+    currentPreviewRecord = { ...basicRecord };
     
     const popup = document.getElementById('previewPopup');
     const title = document.getElementById('previewTitle');
     title.innerHTML = `<i class="fas fa-images"></i> ${escapeHtml(currentPreviewRecord.flavor)}`;
     
-    // Show first tab content (lazy load photos if needed)
-    showPreviewTab('bumbu');
+    // Show popup with loading state
+    popup.classList.remove('hidden');
     
-    // Show record info (negara, nomor material)
+    // Show loading in preview content
+    const previewContent = document.getElementById('previewContent');
+    previewContent.innerHTML = `
+        <div class="loading-preview">
+            <i class="fas fa-spinner fa-spin fa-3x"></i>
+            <p>Memuat foto dari Google Drive...</p>
+        </div>
+    `;
+    
+    // Show record info (negara, nomor material) - this works with basic data
     renderPreviewRecordInfo();
     
-    // Show kode produksi
+    // Show kode produksi - this works with basic data
     renderKodeProduksi();
     
-    popup.classList.remove('hidden');
+    // 🚀 LAZY LOAD: Fetch full record with processed photos from Google Sheets
+    try {
+        console.log('📷 Fetching full record with photos for:', recordId);
+        const fullRecord = await sheetsDB.getRecordById(recordId);
+        
+        if (fullRecord) {
+            console.log('✅ Full record loaded:', fullRecord);
+            // Update currentPreviewRecord with full photo data
+            currentPreviewRecord = fullRecord;
+            
+            // Ensure photos object exists
+            if (typeof currentPreviewRecord.photos !== 'object') {
+                currentPreviewRecord.photos = {};
+            }
+            
+            // Now show the first tab with real photo data
+            showPreviewTab('bumbu');
+        } else {
+            console.warn('⚠️ Could not fetch full record, using basic data');
+            // Show message that photos couldn't be loaded
+            previewContent.innerHTML = `
+                <div class="no-image">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Gagal memuat foto dari server</p>
+                    <small>Record: ${escapeHtml(basicRecord.flavor)}</small>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('❌ Error fetching full record:', error);
+        previewContent.innerHTML = `
+            <div class="no-image">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error memuat foto</p>
+                <small>${escapeHtml(error.message)}</small>
+            </div>
+        `;
+    }
 }
 
 function closePreviewPopup() {
