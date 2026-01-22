@@ -18,8 +18,8 @@ class GoogleSheetsDB {
     }
 
     // JSONP request untuk GET (bypass CORS)
-    // Increased timeout to 30000ms (30 seconds) for slow connections
-    jsonpRequest(url, timeoutMs = 30000) {
+    // Increased timeout to 60000ms (60 seconds) for slow connections
+    jsonpRequest(url, timeoutMs = 60000) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonpCallback_' + (++this.callbackCounter) + '_' + Date.now();
             let isResolved = false;
@@ -165,8 +165,9 @@ class GoogleSheetsDB {
             const url = `${this.webAppUrl}?action=getAll`;
             console.log('📡 Request URL:', url);
             
-            // Use longer timeout (30 seconds) for fetching all records
-            const data = await this.jsonpRequest(url, 30000);
+            // Use much longer timeout (60 seconds) for fetching all records - Google Sheets can be slow
+            // when dealing with large datasets
+            const data = await this.jsonpRequest(url, 60000);
             console.log('✅ Data fetched from Google Sheets:', data);
             
             if (data.success === false) {

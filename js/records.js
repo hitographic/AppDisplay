@@ -259,8 +259,18 @@ async function loadRecords() {
     } catch (error) {
         console.error('❌ loadRecords: Error loading records:', error);
         console.log('⚠️ loadRecords: Falling back to local storage');
+        
         allRecords = storage.getRecordsLocal();
         console.log(`📦 loadRecords: Loaded ${allRecords.length} records from local storage`);
+        
+        // Show warning that user is viewing limited local data
+        if (allRecords.length > 0) {
+            showToast(
+                `⚠️ Menggunakan data lokal (${allRecords.length} records). Data dari Google Sheets sedang dimuat. Silakan refresh halaman untuk data terbaru.`,
+                'warning'
+            );
+        }
+        
         filteredRecords = [...allRecords];
         renderRecords();
     }
