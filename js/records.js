@@ -318,24 +318,39 @@ function renderRecords() {
     console.log('📋 Records loaded:', filteredRecords.length, '- Use Advanced Search to view');
 }
 
+// Helper: Check if any filter is currently applied
+function isFilterApplied() {
+    const nomorMaterial = document.getElementById('searchNomorMaterial')?.value.trim() || '';
+    const flavor = document.getElementById('searchFlavor')?.value.trim() || '';
+    const negara = document.getElementById('searchNegara')?.value.trim() || '';
+    const distributor = document.getElementById('searchDistributor')?.value.trim() || '';
+    const date = document.getElementById('searchDate')?.value || '';
+    const validationStatus = document.getElementById('searchValidation')?.value || '';
+    
+    return !!(nomorMaterial || flavor || negara || distributor || date || validationStatus);
+}
+
 // ✅ NEW FUNCTION: Display all records as card list on main page
 function renderAllRecordsAsCardList() {
     const grid = document.getElementById('recordsGrid');
     const emptyState = document.getElementById('emptyState');
     
-    if (!allRecords || allRecords.length === 0) {
+    // Use filteredRecords if filter has been applied, otherwise use allRecords
+    const recordsToDisplay = filteredRecords.length > 0 || isFilterApplied() ? filteredRecords : allRecords;
+    
+    if (!recordsToDisplay || recordsToDisplay.length === 0) {
         grid.innerHTML = '';
         emptyState.classList.remove('hidden');
         return;
     }
     
-    // Show all records as card list
+    // Show records as card list
     emptyState.classList.add('hidden');
     
     const userCanEdit = canEdit();
     const userCanValidate = canValidate();
     
-    grid.innerHTML = allRecords.map(record => {
+    grid.innerHTML = recordsToDisplay.map(record => {
         // Determine validation status indicator
         let validationClass = 'pending';
         if (record.validationStatus === 'valid') {
@@ -386,7 +401,7 @@ function renderAllRecordsAsCardList() {
         `;
     }).join('');
     
-    console.log(`🎨 Displayed ${allRecords.length} records as card list`);
+    console.log(`🎨 Displayed ${recordsToDisplay.length} records as card list`);
 }
 
 // ==================== PAGINATION FUNCTIONS ====================
