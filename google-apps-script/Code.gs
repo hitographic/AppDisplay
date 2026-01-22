@@ -192,6 +192,9 @@ function doGet(e) {
     // Records actions
     if (action === 'getAll') {
       result = getAllRecordsData();
+    } else if (action === 'getRecordsBasic') {
+      // FAST endpoint - returns records WITHOUT processing photos (no Google Drive access)
+      result = getRecordsBasicData();
     } else if (action === 'get') {
       const id = e.parameter.id;
       result = getRecordByIdData(id);
@@ -723,6 +726,57 @@ function getAllRecordsData() {
           etiket: parsePhotoValue(row[15], 'photo_etiket'),
           'etiket-banded': parsePhotoValue(row[16], 'photo_etiketbanded'),
           plakban: parsePhotoValue(row[17], 'photo_plakban')
+        },
+        kodeProduksi: row[18] ? safeJsonParse(row[18]) : [],
+        validationStatus: row[19] || '',
+        validatedBy: row[20] || '',
+        validatedAt: row[21] || '',
+        validationReason: row[22] || ''
+      });
+    }
+  }
+  
+  return { success: true, records: records };
+}
+
+// =====================================================
+// FAST ENDPOINT - Get records WITHOUT photo processing
+// Returns basic data only, photos as raw string (no Google Drive access)
+// This is MUCH FASTER than getAllRecordsData() which processes 8 photos per record
+// =====================================================
+function getRecordsBasicData() {
+  const sheet = getRecordsSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) {
+    return { success: true, records: [] };
+  }
+  
+  const records = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0]) { // Jika ada ID
+      records.push({
+        id: row[0],
+        tanggal: row[1],
+        flavor: row[2],
+        nomorMaterial: row[3] || '',
+        negara: row[4],
+        distributor: row[5] || '',
+        createdAt: row[6],
+        updatedAt: row[7],
+        createdBy: row[8] || '',
+        updatedBy: row[9] || '',
+        // Store raw photo values - NO parsePhotoValue() = NO Google Drive access!
+        photos: {
+          bumbu: row[10] || '',
+          'm-bumbu': row[11] || '',
+          si: row[12] || '',
+          'karton-depan': row[13] || '',
+          'karton-belakang': row[14] || '',
+          etiket: row[15] || '',
+          'etiket-banded': row[16] || '',
+          plakban: row[17] || ''
         },
         kodeProduksi: row[18] ? safeJsonParse(row[18]) : [],
         validationStatus: row[19] || '',

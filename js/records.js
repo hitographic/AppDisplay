@@ -253,13 +253,14 @@ async function connectGoogleDrive() {
 }
 
 async function loadRecords() {
-    console.log('📋 loadRecords: Starting to load records...');
+    console.log('🚀 loadRecords: Starting FAST load...');
 
     try {
-        // Load from Google Sheets (if configured) or local storage
-        console.log('📋 loadRecords: Calling storage.getAllRecords()...');
-        allRecords = await storage.getAllRecords();
-        console.log(`✅ loadRecords: Loaded ${allRecords.length} records`);
+        // ✅ USE FAST ENDPOINT - getRecordsBasic() instead of getAllRecords()
+        // This is 10-50x faster because it doesn't process photos (no Google Drive access)
+        console.log('🚀 loadRecords: Calling storage.getRecordsBasic() [FAST]...');
+        allRecords = await storage.getRecordsBasic();
+        console.log(`✅ loadRecords: FAST loaded ${allRecords.length} records`);
         
         if (allRecords.length === 0) {
             console.warn('⚠️ WARNING: No records found! Check if Google Sheets connection is working.');

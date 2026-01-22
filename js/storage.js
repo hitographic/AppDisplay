@@ -34,7 +34,40 @@ class Storage {
 
     // ==================== MAIN DATA OPERATIONS ====================
     
-    // Get all records (from Google Sheets or local)
+    // =====================================================
+    // FAST METHOD - Get all records WITHOUT photo processing
+    // Use this for listing/displaying records quickly
+    // =====================================================
+    async getRecordsBasic() {
+        if (this.useGoogleSheets && this.isOnline) {
+            try {
+                console.log('🚀 Storage: FAST fetch - getRecordsBasic...');
+                // Fast endpoint - should complete in < 15 seconds
+                const records = await Promise.race([
+                    sheetsDB.getRecordsBasic(),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Storage fast fetch timeout after 20 seconds')), 20000)
+                    )
+                ]);
+                
+                if (records !== null && records.length >= 0) {
+                    console.log(`✅ Storage: FAST fetched ${records.length} records`);
+                    // Cache to local storage
+                    this.saveRecordsLocal(records);
+                    return records;
+                }
+            } catch (error) {
+                console.error('❌ Storage: Error in fast fetch:', error.message);
+                console.log('⚠️ Storage: Falling back to local storage');
+            }
+        }
+        
+        console.log('📦 Storage: Using local storage');
+        return this.getRecordsLocal();
+    }
+
+    // Get all records (from Google Sheets or local) - SLOW, includes photo processing
+    // Use getRecordsBasic() for faster loading
     async getAllRecords() {
         if (this.useGoogleSheets && this.isOnline) {
             try {
