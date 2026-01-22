@@ -254,6 +254,10 @@ async function loadRecords() {
         allRecords = await storage.getAllRecords();
         console.log(`✅ loadRecords: Loaded ${allRecords.length} records`);
         
+        if (allRecords.length === 0) {
+            console.warn('⚠️ WARNING: No records found! Check if Google Sheets connection is working.');
+        }
+        
         filteredRecords = [...allRecords];
         renderRecords();
     } catch (error) {
@@ -263,10 +267,15 @@ async function loadRecords() {
         allRecords = storage.getRecordsLocal();
         console.log(`📦 loadRecords: Loaded ${allRecords.length} records from local storage`);
         
-        // Show warning that user is viewing limited local data
-        if (allRecords.length > 0) {
+        // Show detailed error message
+        if (allRecords.length === 0) {
             showToast(
-                `⚠️ Menggunakan data lokal (${allRecords.length} records). Data dari Google Sheets sedang dimuat. Silakan refresh halaman untuk data terbaru.`,
+                `❌ Gagal memuat data dari Google Sheets dan tidak ada data lokal tersimpan.\n\nMohon:\n1. Refresh halaman\n2. Cek koneksi internet\n3. Pastikan Google Sheets API sudah terkonfigurasi`,
+                'error'
+            );
+        } else {
+            showToast(
+                `⚠️ Data terbatas (${allRecords.length} records dari cache lokal)\n\nUntuk data lengkap:\n1. Refresh halaman\n2. Tunggu 90 detik saat loading`,
                 'warning'
             );
         }
@@ -507,7 +516,7 @@ async function applySearch() {
     // Load records if not already loaded
     if (allRecords.length === 0) {
         console.log('📋 applySearch: Loading records for first time...');
-        showLoading('Memuat data...');
+        showLoading('⏳ Memuat data dari Google Sheets... (ini mungkin butuh 30-90 detik)');
         await loadRecords();
         hideLoading();
     }
