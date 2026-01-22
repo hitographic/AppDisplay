@@ -341,16 +341,29 @@ function renderAllRecordsAsCardList() {
     if (!recordsToDisplay || recordsToDisplay.length === 0) {
         grid.innerHTML = '';
         emptyState.classList.remove('hidden');
+        hidePagination();
         return;
     }
     
     // Show records as card list
     emptyState.classList.add('hidden');
     
+    // Reset to first page when filter changes
+    if (filteredRecords.length > 0 && isFilterApplied()) {
+        currentPage = 1;
+    }
+    
+    // Calculate pagination
+    const totalPages = Math.ceil(recordsToDisplay.length / recordsPerPage);
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    const paginatedRecords = recordsToDisplay.slice(startIndex, endIndex);
+    
     const userCanEdit = canEdit();
     const userCanValidate = canValidate();
     
-    grid.innerHTML = recordsToDisplay.map(record => {
+    // Render paginated records
+    grid.innerHTML = paginatedRecords.map(record => {
         // Determine validation status indicator
         let validationClass = 'pending';
         if (record.validationStatus === 'valid') {
@@ -401,7 +414,10 @@ function renderAllRecordsAsCardList() {
         `;
     }).join('');
     
-    console.log(`🎨 Displayed ${recordsToDisplay.length} records as card list`);
+    // Display pagination controls
+    renderPagination(totalPages, recordsToDisplay.length);
+    
+    console.log(`🎨 Displayed ${paginatedRecords.length} dari ${recordsToDisplay.length} records (Halaman ${currentPage}/${totalPages})`);
 }
 
 // ==================== PAGINATION FUNCTIONS ====================
