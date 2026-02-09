@@ -229,42 +229,55 @@ async function getFolderIdByName(folderName) {
             let currentFolderId = CONFIG.GOOGLE_FOLDER_ID;
             
             for (const part of parts) {
-                const response = await gapi.client.drive.files.list({
-                    q: `'${currentFolderId}' in parents and name='${part}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                    fields: 'files(id, name)',
-                    pageSize: 1
-                });
-                
-                if (response.result.files && response.result.files.length > 0) {
-                    currentFolderId = response.result.files[0].id;
-                } else {
-                    console.error(`Subfolder "${part}" not found`);
+                try {
+                    const response = await gapi.client.drive.files.list({
+                        q: `'${currentFolderId}' in parents and name='${part}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                        fields: 'files(id, name)',
+                        pageSize: 1
+                    });
+                    
+                    if (response.result.files && response.result.files.length > 0) {
+                        currentFolderId = response.result.files[0].id;
+                    } else {
+                        console.warn(`⚠️ Subfolder "${part}" not found under parent. Using raw photo names instead.`);
+                        return null;
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ Error searching for subfolder "${part}":`, err.message);
                     return null;
                 }
             }
             
             folderIdCache[folderName] = currentFolderId;
-            console.log(`📁 Found folder "${folderName}" with ID: ${currentFolderId}`);
+            console.log(`✅ Found folder "${folderName}" with ID: ${currentFolderId}`);
             return currentFolderId;
         }
         
         // Simple folder name (no subfolder)
-        const response = await gapi.client.drive.files.list({
-            q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-            fields: 'files(id, name)',
-            pageSize: 1
-        });
-        
-        if (response.result.files && response.result.files.length > 0) {
-            const folderId = response.result.files[0].id;
-            folderIdCache[folderName] = folderId;
-            console.log(`📁 Found folder "${folderName}" with ID: ${folderId}`);
-            return folderId;
+        try {
+            const response = await gapi.client.drive.files.list({
+                q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                fields: 'files(id, name)',
+                pageSize: 1
+            });
+            
+            if (response.result.files && response.result.files.length > 0) {
+                const folderId = response.result.files[0].id;
+                folderIdCache[folderName] = folderId;
+                console.log(`✅ Found folder "${folderName}" with ID: ${folderId}`);
+                return folderId;
+            } else {
+                console.warn(`⚠️ Folder "${folderName}" not found. Using raw photo names instead.`);
+                return null;
+            }
+        } catch (err) {
+            console.warn(`⚠️ Error searching for folder "${folderName}":`, err.message);
+            return null;
         }
     } catch (error) {
-        console.error(`Error getting folder ID for ${folderName}:`, error);
+        console.error(`❌ Error getting folder ID for ${folderName}:`, error);
+        return null;
     }
-    return null;
 }
 
 async function loadDropdown(dropdownId, folderName) {
@@ -273,7 +286,9 @@ async function loadDropdown(dropdownId, folderName) {
         const folderId = await getFolderIdByName(folderName);
         
         if (!folderId) {
-            console.error(`Folder "${folderName}" not found`);
+            console.warn(`⚠️ Folder "${folderName}" not found. Dropdown akan kosong - user bisa input manual.`);
+            // Don't fail - let user input manually
+            document.getElementById(dropdownId).innerHTML = '<option value="">-- Tidak ada data --</option>';
             return;
         }
         
