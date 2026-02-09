@@ -1,20 +1,19 @@
 // =====================================================
 // Edit Master Data - JavaScript
 // Manage photos in Google Drive folders
-// Version 1.0
+// Version 1.3 - Hardcoded folder IDs for reliability
 // =====================================================
 
-// Folder configuration
+// Folder configuration with hardcoded Google Drive folder IDs
 const MASTER_FOLDERS = [
-    { name: 'Bumbu', icon: 'fa-pepper-hot', color: '#e74c3c' },
-    { name: 'Bumbu Kuah', icon: 'fa-bowl-food', color: '#e67e22' },
-    { name: 'Five or Six in One', icon: 'fa-cubes', color: '#9b59b6' },
-    { name: 'Kode Etiket', icon: 'fa-tag', color: '#3498db' },
-    { name: 'Kode Karton/Depan', icon: 'fa-box', color: '#1abc9c' },
-    { name: 'Kode Karton/Belakang', icon: 'fa-box-open', color: '#16a085' },
-    { name: 'Kode SI', icon: 'fa-barcode', color: '#34495e' },
-    { name: 'Minyak Bumbu', icon: 'fa-oil-can', color: '#f1c40f' },
-    { name: 'Plakban', icon: 'fa-tape', color: '#95a5a6' }
+    { name: 'Bumbu', icon: 'fa-pepper-hot', color: '#e74c3c', folderId: '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n' },
+    { name: 'Minyak Bumbu', icon: 'fa-oil-can', color: '#f1c40f', folderId: '1AT6PNYBzS-liQnkhhnuZ879aJzW-gqJr' },
+    { name: 'Five or Six in One', icon: 'fa-cubes', color: '#9b59b6', folderId: '1le0FW7i-LnKmK_42jNZqeYXIf3trtoEh' },
+    { name: 'Kode Etiket', icon: 'fa-tag', color: '#3498db', folderId: '1BFC4dPid2CbSucbKNDiZLF2EjVSJFIWm' },
+    { name: 'Kode Karton/Depan', icon: 'fa-box', color: '#1abc9c', folderId: '1Ir9xspi65occGhji0PgzCWcPCzght0go', subfolder: 'Depan' },
+    { name: 'Kode Karton/Belakang', icon: 'fa-box-open', color: '#16a085', folderId: '1Ir9xspi65occGhji0PgzCWcPCzght0go', subfolder: 'Belakang' },
+    { name: 'Kode SI', icon: 'fa-barcode', color: '#34495e', folderId: '1i2MtTqMqAX69xOaeG7OD459bZ8-0Jvoe' },
+    { name: 'Plakban', icon: 'fa-tape', color: '#95a5a6', folderId: '1CJvilkGJc6zGqdzYjeKO4ngZSJx0yfqP' }
 ];
 
 // State
@@ -261,49 +260,44 @@ function isConnected() {
     return gapi.client && gapi.client.getToken && gapi.client.getToken() !== null;
 }
 
-// Get folder ID by name
+// Get folder ID - uses hardcoded IDs from MASTER_FOLDERS config
 async function getFolderId(folderName) {
     try {
-        let parentFolderId = CONFIG.GOOGLE_FOLDER_ID;
-        let actualFolderName = folderName;
+        // Find folder config in MASTER_FOLDERS
+        const folderConfig = MASTER_FOLDERS.find(f => f.name === folderName);
         
-        // Handle nested folders like "Kode Karton/Depan" or "Kode Karton/Belakang"
-        if (folderName.includes('/')) {
-            const parts = folderName.split('/');
-            const parentName = parts[0];
-            actualFolderName = parts[1];
-            
-            // First find parent folder (e.g., "Kode Karton")
-            const parentResponse = await gapi.client.drive.files.list({
-                q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${parentName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                fields: 'files(id, name)',
-                pageSize: 1
-            });
-            
-            if (parentResponse.result.files && parentResponse.result.files.length > 0) {
-                parentFolderId = parentResponse.result.files[0].id;
-                console.log(`Found parent folder "${parentName}" with ID: ${parentFolderId}`);
-            } else {
-                console.error(`Parent folder "${parentName}" not found`);
-                return null;
+        if (!folderConfig) {
+            console.warn(`⚠️ Folder config not found for "${folderName}"`);
+            return null;
+        }
+        
+        let folderId = folderConfig.folderId;
+        
+        // If folder has a subfolder (e.g., Kode Karton -> Depan or Belakang)
+        if (folderConfig.subfolder) {
+            try {
+                const response = await gapi.client.drive.files.list({
+                    q: `'${folderId}' in parents and name='${folderConfig.subfolder}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                    fields: 'files(id, name)',
+                    pageSize: 1
+                });
+                
+                if (response.result.files && response.result.files.length > 0) {
+                    folderId = response.result.files[0].id;
+                    console.log(`✅ Found subfolder "${folderConfig.subfolder}" with ID: ${folderId}`);
+                } else {
+                    console.warn(`⚠️ Subfolder "${folderConfig.subfolder}" not found, using parent folder`);
+                    // Fall back to parent folder
+                }
+            } catch (err) {
+                console.warn(`⚠️ Error searching subfolder "${folderConfig.subfolder}":`, err.message);
             }
         }
         
-        // Now find the actual folder inside parent
-        const response = await gapi.client.drive.files.list({
-            q: `'${parentFolderId}' in parents and name='${actualFolderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-            fields: 'files(id, name)',
-            pageSize: 1
-        });
-        
-        if (response.result.files && response.result.files.length > 0) {
-            console.log(`Found folder "${folderName}" with ID: ${response.result.files[0].id}`);
-            return response.result.files[0].id;
-        } else {
-            console.log(`Folder "${folderName}" not found in parent ${parentFolderId}`);
-        }
+        console.log(`✅ Using folder ID for "${folderName}": ${folderId}`);
+        return folderId;
     } catch (error) {
-        console.error('Error getting folder ID:', error);
+        console.error('❌ Error getting folder ID:', error);
     }
     return null;
 }

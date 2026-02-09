@@ -287,7 +287,6 @@ async function getSubfolderId(parentFolderId, subfolderName) {
         return null;
     }
 }
-}
 
 async function loadDropdown(dropdownId, folderConfig) {
     try {
