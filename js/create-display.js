@@ -1,20 +1,49 @@
 // create-display.js - Simplified version with dropdown selection
-// Version 2.4 - Split karton into kartonDepan and kartonBelakang
+// Version 2.11 - Updated with hardcoded folder IDs for reliability
 
-// Mapping dropdown ID ke nama folder di Google Drive
+// ✅ Mapping dropdown ID ke Folder ID (direct, no name search)
+// This eliminates need to search for folders by name
 const PHOTO_FOLDER_MAP = {
-    bumbu: 'Bumbu',
-    mBumbu: 'Minyak Bumbu',
-    si: 'Kode SI',
-    kartonDepan: 'Kode Karton/Depan',
-    kartonBelakang: 'Kode Karton/Belakang',
-    etiket: 'Kode Etiket',
-    etiketBanded: 'Five or Six in One',
-    plakban: 'Plakban'
+    bumbu: {
+        folderId: '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n',
+        displayName: 'Bumbu'
+    },
+    mBumbu: {
+        folderId: '1AT6PNYBzS-liQnkhhnuZ879aJzW-gqJr',
+        displayName: 'Minyak Bumbu'
+    },
+    si: {
+        folderId: '1i2MtTqMqAX69xOaeG7OD459bZ8-0Jvoe',
+        displayName: 'Kode SI'
+    },
+    kartonDepan: {
+        folderId: '1Ir9xspi65occGhji0PgzCWcPCzght0go',
+        displayName: 'Kode Karton - Depan',
+        isSubfolder: true,
+        subfolder: 'Depan'
+    },
+    kartonBelakang: {
+        folderId: '1Ir9xspi65occGhji0PgzCWcPCzght0go',
+        displayName: 'Kode Karton - Belakang',
+        isSubfolder: true,
+        subfolder: 'Belakang'
+    },
+    etiket: {
+        folderId: '1BFC4dPid2CbSucbKNDiZLF2EjVSJFIWm',
+        displayName: 'Kode Etiket'
+    },
+    etiketBanded: {
+        folderId: '1le0FW7i-LnKmK_42jNZqeYXIf3trtoEh',
+        displayName: 'Five or Six in One'
+    },
+    plakban: {
+        folderId: '1CJvilkGJc6zGqdzYjeKO4ngZSJx0yfqP',
+        displayName: 'Plakban'
+    }
 };
 
-// Cache folder IDs setelah ditemukan
-let folderIdCache = {};
+// Cache untuk subfolder IDs (Depan, Belakang di bawah Kode Karton)
+let subfolderIdCache = {};
 
 let selectedPhotos = {};
 let temporarySave = null;
@@ -197,8 +226,9 @@ async function loadAllDropdowns() {
     try {
         await gapi.client.load('drive', 'v3');
         
-        for (const [key, folderName] of Object.entries(PHOTO_FOLDER_MAP)) {
-            await loadDropdown(key, folderName);
+        // Load all dropdowns using hardcoded folder IDs (no name search)
+        for (const [key, folderConfig] of Object.entries(PHOTO_FOLDER_MAP)) {
+            await loadDropdown(key, folderConfig);
         }
         
         // After loading dropdowns, select existing photos if editing
@@ -214,84 +244,75 @@ async function loadAllDropdowns() {
     }
 }
 
-// Get folder ID by folder name from main folder
-// Support subfolder with format "ParentFolder/SubFolder"
-async function getFolderIdByName(folderName) {
-    // Check cache first
-    if (folderIdCache[folderName]) {
-        return folderIdCache[folderName];
+// ✅ NEW: Get folder ID from config (hardcoded, no name search)
+async function getFolderIdFromConfig(dropdownKey) {
+    if (!PHOTO_FOLDER_MAP[dropdownKey]) {
+        console.error(`❌ Folder config not found for key: ${dropdownKey}`);
+        return null;
+    }
+    
+    const folderConfig = PHOTO_FOLDER_MAP[dropdownKey];
+    const folderId = folderConfig.folderId;
+    
+    console.log(`✅ Using folder ID for "${folderConfig.displayName}": ${folderId}`);
+    return folderId;
+}
+
+// ✅ NEW: Get subfolder ID by searching inside parent folder (for Karton Depan/Belakang)
+async function getSubfolderId(parentFolderId, subfolderName) {
+    const cacheKey = `${parentFolderId}/${subfolderName}`;
+    
+    if (subfolderIdCache[cacheKey]) {
+        return subfolderIdCache[cacheKey];
     }
     
     try {
-        // Check if folderName contains subfolder (e.g., "Kode Karton/Depan")
-        if (folderName.includes('/')) {
-            const parts = folderName.split('/');
-            let currentFolderId = CONFIG.GOOGLE_FOLDER_ID;
-            
-            for (const part of parts) {
-                try {
-                    const response = await gapi.client.drive.files.list({
-                        q: `'${currentFolderId}' in parents and name='${part}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                        fields: 'files(id, name)',
-                        pageSize: 1
-                    });
-                    
-                    if (response.result.files && response.result.files.length > 0) {
-                        currentFolderId = response.result.files[0].id;
-                    } else {
-                        console.warn(`⚠️ Subfolder "${part}" not found under parent. Using raw photo names instead.`);
-                        return null;
-                    }
-                } catch (err) {
-                    console.warn(`⚠️ Error searching for subfolder "${part}":`, err.message);
-                    return null;
-                }
-            }
-            
-            folderIdCache[folderName] = currentFolderId;
-            console.log(`✅ Found folder "${folderName}" with ID: ${currentFolderId}`);
-            return currentFolderId;
-        }
+        const response = await gapi.client.drive.files.list({
+            q: `'${parentFolderId}' in parents and name='${subfolderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id, name)',
+            pageSize: 1
+        });
         
-        // Simple folder name (no subfolder)
-        try {
-            const response = await gapi.client.drive.files.list({
-                q: `'${CONFIG.GOOGLE_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                fields: 'files(id, name)',
-                pageSize: 1
-            });
-            
-            if (response.result.files && response.result.files.length > 0) {
-                const folderId = response.result.files[0].id;
-                folderIdCache[folderName] = folderId;
-                console.log(`✅ Found folder "${folderName}" with ID: ${folderId}`);
-                return folderId;
-            } else {
-                console.warn(`⚠️ Folder "${folderName}" not found. Using raw photo names instead.`);
-                return null;
-            }
-        } catch (err) {
-            console.warn(`⚠️ Error searching for folder "${folderName}":`, err.message);
+        if (response.result.files && response.result.files.length > 0) {
+            const subFolderId = response.result.files[0].id;
+            subfolderIdCache[cacheKey] = subFolderId;
+            console.log(`✅ Found subfolder "${subfolderName}" with ID: ${subFolderId}`);
+            return subFolderId;
+        } else {
+            console.warn(`⚠️ Subfolder "${subfolderName}" not found in parent folder`);
             return null;
         }
-    } catch (error) {
-        console.error(`❌ Error getting folder ID for ${folderName}:`, error);
+    } catch (err) {
+        console.warn(`⚠️ Error searching for subfolder "${subfolderName}":`, err.message);
         return null;
     }
 }
+}
 
-async function loadDropdown(dropdownId, folderName) {
+async function loadDropdown(dropdownId, folderConfig) {
     try {
-        // First, get the folder ID by name
-        const folderId = await getFolderIdByName(folderName);
+        // Get folder ID from config (hardcoded, no search needed)
+        let folderId = await getFolderIdFromConfig(dropdownId);
         
         if (!folderId) {
-            console.warn(`⚠️ Folder "${folderName}" not found. Dropdown akan kosong - user bisa input manual.`);
-            // Don't fail - let user input manually
+            console.warn(`⚠️ Folder config not found for "${dropdownId}"`);
             document.getElementById(dropdownId).innerHTML = '<option value="">-- Tidak ada data --</option>';
             return;
         }
         
+        // If this is a subfolder (e.g., Karton Depan/Belakang), search for it
+        if (folderConfig.isSubfolder && folderConfig.subfolder) {
+            const subFolderId = await getSubfolderId(folderId, folderConfig.subfolder);
+            if (subFolderId) {
+                folderId = subFolderId;
+                console.log(`✅ Using subfolder "${folderConfig.subfolder}": ${folderId}`);
+            } else {
+                console.warn(`⚠️ Subfolder "${folderConfig.subfolder}" not found`);
+                // Try to use parent folder anyway
+            }
+        }
+        
+        // Now get files from the folder
         const response = await gapi.client.drive.files.list({
             q: `'${folderId}' in parents and trashed=false and mimeType contains 'image/'`,
             fields: 'files(id, name, thumbnailLink, webContentLink)',
@@ -300,13 +321,18 @@ async function loadDropdown(dropdownId, folderName) {
         });
         
         const files = response.result.files || [];
+        console.log(`✅ Loaded ${files.length} files for "${folderConfig.displayName}"`);
+        
         folderFiles[dropdownId] = files;
         
         // Setup autocomplete for this input
         setupAutocomplete(dropdownId, files);
         
     } catch (error) {
-        console.error(`Error loading ${dropdownId}:`, error);
+        console.error(`❌ Error loading ${dropdownId}:`, error);
+        const displayName = folderConfig?.displayName || dropdownId;
+        console.warn(`⚠️ Dropdown untuk "${displayName}" akan kosong - user bisa input manual`);
+        document.getElementById(dropdownId).innerHTML = '<option value="">-- Tidak ada data --</option>';
     }
 }
 
