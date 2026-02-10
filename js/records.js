@@ -960,6 +960,10 @@ async function openPreview(recordId) {
     // Show popup with loading state
     popup.classList.remove('hidden');
     
+    // Hide tabs during loading (will be shown dynamically after data loads)
+    const tabsContainer = document.querySelector('.preview-tabs');
+    if (tabsContainer) tabsContainer.style.display = 'none';
+    
     // Show loading in preview content
     const previewContent = document.getElementById('previewContent');
     previewContent.innerHTML = `
@@ -990,11 +994,13 @@ async function openPreview(recordId) {
                 currentPreviewRecord.photos = {};
             }
             
-            // Now show the first tab with real photo data
-            showPreviewTab('bumbu');
+            // 🔥 Dynamic tabs: hide tabs with no data, show only tabs with data
+            updatePreviewTabs(currentPreviewRecord.photos);
+            
         } else {
             console.warn('⚠️ Could not fetch full record, using basic data');
-            // Show message that photos couldn't be loaded
+            // Hide all tabs when no data
+            hideAllPreviewTabs();
             previewContent.innerHTML = `
                 <div class="no-image">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -1019,6 +1025,14 @@ function closePreviewPopup() {
     const popup = document.getElementById('previewPopup');
     popup.classList.add('hidden');
     currentPreviewRecord = null;
+    
+    // Reset all tabs to visible for next open
+    const tabsContainer = document.querySelector('.preview-tabs');
+    if (tabsContainer) tabsContainer.style.display = '';
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.style.display = '';
+        btn.classList.remove('hidden');
+    });
 }
 
 function initPreviewTabs() {
@@ -1036,14 +1050,87 @@ function initPreviewTabs() {
     });
 }
 
+// Helper: Check if photo data has actual content (not null/empty)
+function hasPhotoData(photoValue) {
+    if (!photoValue) return false;
+    if (typeof photoValue === 'string' && photoValue.trim() === '') return false;
+    if (typeof photoValue === 'object') {
+        // Object with at least a name or valid id means there's data in the sheet
+        if (photoValue.name && photoValue.name.trim() !== '') return true;
+        if (photoValue.id && photoValue.id !== null) return true;
+        return false;
+    }
+    return true; // non-empty string
+}
+
+// 🔥 Dynamic tabs: show/hide tabs based on photo data availability
+function updatePreviewTabs(photos) {
+    const allTabs = document.querySelectorAll('.tab-btn');
+    const previewContent = document.getElementById('previewContent');
+    let firstVisibleTab = null;
+    let visibleCount = 0;
+    
+    allTabs.forEach(btn => {
+        const tabId = btn.getAttribute('data-tab');
+        let photoData = photos[tabId];
+        
+        // Fallback for old 'karton' data
+        if (!photoData && tabId === 'karton-depan' && photos['karton']) {
+            photoData = photos['karton'];
+        }
+        
+        if (hasPhotoData(photoData)) {
+            btn.style.display = '';  // Show tab
+            btn.classList.remove('hidden');
+            visibleCount++;
+            if (!firstVisibleTab) firstVisibleTab = tabId;
+        } else {
+            btn.style.display = 'none';  // Hide tab
+            btn.classList.add('hidden');
+            btn.classList.remove('active');
+        }
+    });
+    
+    console.log(`📷 Preview tabs: ${visibleCount} of ${allTabs.length} tabs have data`);
+    
+    if (visibleCount === 0) {
+        // No photos at all - show message
+        previewContent.innerHTML = `
+            <div class="no-image">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #ccc;"></i>
+                <p style="margin-top: 15px; color: #666;">Belum ada foto yang diupload untuk record ini</p>
+            </div>
+        `;
+        // Hide the tabs container
+        const tabsContainer = document.querySelector('.preview-tabs');
+        if (tabsContainer) tabsContainer.style.display = 'none';
+    } else {
+        // Show tabs container
+        const tabsContainer = document.querySelector('.preview-tabs');
+        if (tabsContainer) tabsContainer.style.display = '';
+        
+        // Auto-select first visible tab
+        allTabs.forEach(b => b.classList.remove('active'));
+        const firstBtn = document.querySelector(`.tab-btn[data-tab="${firstVisibleTab}"]`);
+        if (firstBtn) firstBtn.classList.add('active');
+        showPreviewTab(firstVisibleTab);
+    }
+}
+
+// Hide all tabs (used on error)
+function hideAllPreviewTabs() {
+    const tabsContainer = document.querySelector('.preview-tabs');
+    if (tabsContainer) tabsContainer.style.display = 'none';
+}
+
 function showPreviewTab(tabId) {
     const previewContent = document.getElementById('previewContent');
     
     if (!currentPreviewRecord || !currentPreviewRecord.photos) {
         previewContent.innerHTML = `
             <div class="no-image">
-                <i class="fas fa-image"></i>
-                <p>Tidak ada foto</p>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Foto belum diupload</p>
             </div>
         `;
         return;
@@ -1131,28 +1218,31 @@ function showPreviewTab(tabId) {
             `;
         } else if (photo.id || photo.name) {
             // Jika id/name adalah nama file (bukan ID Google Drive valid)
+            // Artinya nama file ada di sheet tapi belum diupload ke Drive
             const fileName = photo.name || photo.id || '';
             previewContent.innerHTML = `
                 <div class="no-image">
-                    <i class="fas fa-image"></i>
-                    <p>Foto ${tabLabel} tidak ditemukan</p>
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Foto belum diupload ke Google Drive</p>
+                    <small style="color: #999; margin-top: 5px; display: block;">File: ${escapeHtml(fileName)}</small>
                 </div>
                 ${captionHtml}
             `;
         } else {
             previewContent.innerHTML = `
                 <div class="no-image">
-                    <i class="fas fa-image"></i>
-                    <p>Foto ${tabLabel} tidak tersedia</p>
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Foto belum diupload</p>
                 </div>
             `;
         }
     } else if (typeof photo === 'string' && photo.length > 0) {
-        // Jika hanya nama file (input manual), tampilkan fallback
+        // Jika hanya nama file (input manual), belum diupload ke Drive
         previewContent.innerHTML = `
             <div class="no-image">
-                <i class="fas fa-image"></i>
-                <p>Foto ${tabLabel} tidak ditemukan</p>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Foto belum diupload ke Google Drive</p>
+                <small style="color: #999; margin-top: 5px; display: block;">File: ${escapeHtml(photo)}</small>
             </div>
             <div class="photo-caption">
                 <strong>${escapeHtml(tabLabel)}:</strong> <span>${escapeHtml(photo)}</span>
@@ -1161,8 +1251,8 @@ function showPreviewTab(tabId) {
     } else {
         previewContent.innerHTML = `
             <div class="no-image">
-                <i class="fas fa-image"></i>
-                <p>Foto ${tabLabel} tidak tersedia</p>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Foto belum diupload</p>
             </div>
         `;
     }
