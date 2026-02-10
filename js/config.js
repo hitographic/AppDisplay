@@ -13,7 +13,10 @@ const CONFIG = {
     GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxskbRPzUvJVqEr3TQoLcNvxknfAVlt-JIfcoeYZ-N8OsWegajeUgCxoytuD5yNd_Pdyw/exec',
     
     // Google Drive API Scopes
-    SCOPES: 'https://www.googleapis.com/auth/drive.file',
+    // drive.file = only files created by this app (CANNOT read existing files!)
+    // drive.readonly = read all files (CAN read existing files)
+    // drive = full access (read + write all files)
+    SCOPES: 'https://www.googleapis.com/auth/drive',
     
     // Discovery Docs
     DISCOVERY_DOCS: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],

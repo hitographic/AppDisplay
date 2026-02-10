@@ -160,6 +160,16 @@ async function checkExistingConnection() {
 
 async function validateToken(accessToken) {
     try {
+        // Check if scope version changed (force re-auth when scope upgraded)
+        const savedScope = localStorage.getItem('validDisplay_driveScope');
+        if (savedScope !== CONFIG.SCOPES) {
+            console.warn('⚠️ Drive scope changed! Old:', savedScope, '→ New:', CONFIG.SCOPES);
+            console.warn('⚠️ Clearing old token - user needs to re-login');
+            localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
+            localStorage.removeItem('validDisplay_driveScope');
+            return false;
+        }
+        
         const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
         return response.ok;
     } catch (error) {

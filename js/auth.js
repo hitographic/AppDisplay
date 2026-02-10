@@ -175,6 +175,7 @@ class Auth {
                         callback: (response) => {
                             if (response.access_token) {
                                 localStorage.setItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN, response.access_token);
+                                localStorage.setItem('validDisplay_driveScope', CONFIG.SCOPES);
                                 window.dispatchEvent(new CustomEvent('googleTokenReceived', { detail: response }));
                             }
                         },

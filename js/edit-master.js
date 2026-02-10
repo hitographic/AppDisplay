@@ -118,6 +118,18 @@ async function initGoogleAPI() {
 function checkExistingConnection() {
     const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
     
+    // Check if scope changed (force re-auth)
+    const savedScope = localStorage.getItem('validDisplay_driveScope');
+    if (token && savedScope !== CONFIG.SCOPES) {
+        console.warn('⚠️ Drive scope changed! Clearing old token for re-auth');
+        console.warn('   Old scope:', savedScope);
+        console.warn('   New scope:', CONFIG.SCOPES);
+        localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
+        localStorage.removeItem('validDisplay_driveScope');
+        updateDriveStatus(false);
+        return;
+    }
+    
     if (token) {
         console.log('🔍 Found existing Google token from records page');
         gapi.client.setToken({ access_token: token });
@@ -184,10 +196,11 @@ async function connectGoogleDrive() {
     try {
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CONFIG.GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive',
+            scope: CONFIG.SCOPES,
             callback: async (response) => {
                 if (response.access_token) {
                     localStorage.setItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN, response.access_token);
+                    localStorage.setItem('validDisplay_driveScope', CONFIG.SCOPES);
                     gapi.client.setToken({ access_token: response.access_token });
                     updateDriveStatus(true);
                     await loadFolderCounts();
