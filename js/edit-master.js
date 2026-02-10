@@ -620,12 +620,15 @@ function closeDeleteModal() {
 async function confirmDelete() {
     if (!editingFile) return;
     
+    // Save reference before closing modal (closeDeleteModal sets editingFile = null)
+    const fileToDelete = { ...editingFile };
+    
     showLoading('Menghapus...');
     closeDeleteModal();
     
     try {
-        await deleteFileFromDrive(editingFile.id);
-        showToast('File berhasil dihapus', 'success');
+        await deleteFileFromDrive(fileToDelete.id);
+        showToast(`File "${fileToDelete.name}" berhasil dihapus`, 'success');
         await refreshCurrentFolder();
     } catch (error) {
         showToast('Error: ' + error.message, 'error');

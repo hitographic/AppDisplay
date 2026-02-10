@@ -490,33 +490,84 @@ function mapPhotoKeyToInputId(key) {
 
 // Select existing photos when editing
 function selectExistingPhotos() {
-    if (!tempData || !tempData.photos) return;
+    if (!tempData) return;
     
-    console.log('📷 Loading existing photos:', tempData.photos);
+    // Build photos from either tempData.photos OR direct photo_* fields in record
+    let photos = {};
     
-    for (const [type, photo] of Object.entries(tempData.photos)) {
-        if (photo && photo.name) {
-            // Map the key to the correct input ID
-            const inputId = mapPhotoKeyToInputId(type);
-            const input = document.getElementById(inputId);
-            
-            console.log(`📷 Processing photo: type=${type}, inputId=${inputId}, name=${photo.name}`);
-            
-            if (input) {
-                // Remove extension from display
-                const displayName = removeExtension(photo.name);
-                input.value = displayName;
-                input.style.borderColor = '#27ae60';
-                input.style.backgroundColor = '#f0fff4';
-                // Store with correct inputId key
-                selectedPhotos[inputId] = {
-                    ...photo,
-                    name: photo.name // Keep original name with extension for lookup
-                };
-                console.log(`✅ Set ${inputId} = ${displayName}`);
-            } else {
-                console.warn(`⚠️ Input not found for: ${inputId}`);
+    if (tempData.photos && typeof tempData.photos === 'object' && Object.keys(tempData.photos).length > 0) {
+        // Format 1: photos object { bumbu: { name: 'ABK-MF-TP', id: '...' }, ... }
+        photos = tempData.photos;
+    } else {
+        // Format 2: flat record fields photo_bumbu, photo_mbumbu, etc. (from getRecordsBasic)
+        const photoFieldMap = {
+            'photo_bumbu': 'bumbu',
+            'photo_mbumbu': 'm-bumbu',
+            'photo_si': 'si',
+            'photo_kartonDepan': 'karton-depan',
+            'photo_kartonBelakang': 'karton-belakang',
+            'photo_etiket': 'etiket',
+            'photo_etiketbanded': 'etiket-banded',
+            'photo_plakban': 'plakban'
+        };
+        
+        for (const [field, photoKey] of Object.entries(photoFieldMap)) {
+            const value = tempData[field];
+            if (value && typeof value === 'string' && value.trim()) {
+                photos[photoKey] = { name: value.trim() };
+            } else if (value && typeof value === 'object' && value.name) {
+                photos[photoKey] = value;
             }
+        }
+    }
+    
+    if (Object.keys(photos).length === 0) {
+        console.log('📷 No existing photos to load');
+        return;
+    }
+    
+    console.log('📷 Loading existing photos:', photos);
+    
+    for (const [type, photo] of Object.entries(photos)) {
+        // Get the photo name - handle both string and object format
+        const photoName = (typeof photo === 'string') ? photo : (photo.name || '');
+        
+        if (!photoName) continue;
+        
+        // Map the key to the correct input ID
+        const inputId = mapPhotoKeyToInputId(type);
+        const input = document.getElementById(inputId);
+        
+        console.log(`📷 Processing photo: type=${type}, inputId=${inputId}, name=${photoName}`);
+        
+        if (input) {
+            // Remove extension from display
+            const displayName = removeExtension(photoName);
+            input.value = displayName;
+            input.style.borderColor = '#27ae60';
+            input.style.backgroundColor = '#f0fff4';
+            
+            // Store selected photo - try to find matching file in loaded folder files
+            const photoObj = (typeof photo === 'object') ? photo : { name: photoName };
+            
+            // Try to match with loaded folder files for ID/thumbnail
+            if (folderFiles[inputId] && folderFiles[inputId].length > 0) {
+                const matchedFile = folderFiles[inputId].find(f => {
+                    const fName = removeExtension(f.name).toLowerCase();
+                    return fName === displayName.toLowerCase();
+                });
+                if (matchedFile) {
+                    photoObj.id = matchedFile.id;
+                    photoObj.name = matchedFile.name;
+                    photoObj.thumbnailLink = matchedFile.thumbnailLink || '';
+                    console.log(`✅ Matched with Drive file: ${matchedFile.name}`);
+                }
+            }
+            
+            selectedPhotos[inputId] = photoObj;
+            console.log(`✅ Set ${inputId} = ${displayName}`);
+        } else {
+            console.warn(`⚠️ Input not found for: ${inputId}`);
         }
     }
     
