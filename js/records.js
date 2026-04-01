@@ -814,10 +814,11 @@ function initForms() {
 }
 
 // Check for duplicate Flavor + Negara combination
+// OPTIMIZED: Use already loaded allRecords instead of fetching again
 async function checkDuplicateFlavorNegara(flavor, negara) {
     try {
-        // Get all existing records
-        const existingRecords = await storage.getAllRecords();
+        // Use already loaded records (allRecords is loaded on page init)
+        const existingRecords = allRecords.length > 0 ? allRecords : await storage.getRecordsBasic();
         
         if (!existingRecords || existingRecords.length === 0) {
             return { isDuplicate: false };
@@ -846,10 +847,11 @@ async function checkDuplicateFlavorNegara(flavor, negara) {
 }
 
 // Check for duplicate Nomor Material
+// OPTIMIZED: Use already loaded allRecords instead of fetching again
 async function checkDuplicateNomorMaterial(nomorMaterial) {
     try {
-        // Get all existing records
-        const existingRecords = await storage.getAllRecords();
+        // Use already loaded records (allRecords is loaded on page init)
+        const existingRecords = allRecords.length > 0 ? allRecords : await storage.getRecordsBasic();
         
         if (!existingRecords || existingRecords.length === 0) {
             return { isDuplicate: false };
@@ -894,12 +896,13 @@ async function proceedToCreateDisplay() {
         return;
     }
 
-    // Check for duplicate Nomor Material
-    showLoading('Memeriksa data duplikat...');
+    // FAST duplicate check using already loaded data
+    // No loading spinner needed - this is instant!
+    console.log('🔍 Checking duplicates using cached data...');
+    
     const nomorMaterialCheck = await checkDuplicateNomorMaterial(nomorMaterial);
     
     if (nomorMaterialCheck.isDuplicate) {
-        hideLoading();
         alert('⚠️ NOMOR MATERIAL DUPLIKAT!\n\n' + nomorMaterialCheck.message);
         showToast('Nomor Material sudah ada', 'error');
         return;
@@ -907,7 +910,6 @@ async function proceedToCreateDisplay() {
 
     // Check for duplicate Flavor + Negara
     const duplicateCheck = await checkDuplicateFlavorNegara(flavor, negara);
-    hideLoading();
     
     if (duplicateCheck.isDuplicate) {
         alert('⚠️ DATA DUPLIKAT!\n\n' + duplicateCheck.message);
