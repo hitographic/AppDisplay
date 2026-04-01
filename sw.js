@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.18.0 - Fixed date prefill format, prevent delete photos from Drive
+// Version 2.19.0 - Added validation badges to cards
 
-const CACHE_NAME = 'mds-track-v2.30.0';
+const CACHE_NAME = 'mds-track-v2.31.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
