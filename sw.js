@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.19.1 - Fixed CSS selector for validation badges
+// Version 2.19.2 - Enhanced validation badge styling
 
-const CACHE_NAME = 'mds-track-v2.31.1';
+const CACHE_NAME = 'mds-track-v2.31.2';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
