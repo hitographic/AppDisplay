@@ -1680,9 +1680,9 @@ document.addEventListener('click', function(e) {
         // Prevent closing Drive Connection popup if user is editor and not connected
         const isDrivePopup = e.target.id === 'driveConnectionPopup';
         const isConnected = auth.hasGoogleToken() && checkConfig();
-        const canEdit = currentPermissions.some(p => p === 'records_editor');
+        const userCanEdit = hasPermission('records_editor');
         
-        if (isDrivePopup && canEdit && !isConnected) {
+        if (isDrivePopup && userCanEdit && !isConnected) {
             // Don't close popup for non-connected editors
             showToast('Harap hubungkan Google Drive terlebih dahulu', 'warning');
             return;
@@ -1701,10 +1701,10 @@ document.addEventListener('keydown', function(e) {
         
         // Only allow closing Drive popup if connected
         const isConnected = auth.hasGoogleToken() && checkConfig();
-        const canEdit = currentPermissions.some(p => p === 'records_editor');
+        const userCanEdit = hasPermission('records_editor');
         
         // If user is editor and not connected, prevent closing popup with ESC
-        if (!canEdit || isConnected) {
+        if (!userCanEdit || isConnected) {
             closeDriveConnectionPopup();
         }
     }
