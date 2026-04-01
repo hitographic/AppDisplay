@@ -594,22 +594,23 @@ body {
     font-size: 0.65rem;
 }
 
-.search-result-flavor .validation-indicator {
+/* Validation indicator dot */
+.search-result-flavor-wrapper .validation-indicator {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
-.search-result-flavor .validation-indicator.valid {
+.search-result-flavor-wrapper .validation-indicator.valid {
     background-color: var(--success-color);
 }
 
-.search-result-flavor .validation-indicator.invalid {
+.search-result-flavor-wrapper .validation-indicator.invalid {
     background-color: var(--danger-color);
 }
 
-.search-result-flavor .validation-indicator.pending {
+.search-result-flavor-wrapper .validation-indicator.pending {
     background-color: var(--warning-color);
 }
 
