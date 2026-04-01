@@ -492,8 +492,189 @@ function handleFileSelect(event) {
     reader.readAsDataURL(file);
 }
 
-// Open camera
+// =====================================================
+// Camera functionality using getUserMedia API
+// =====================================================
+let cameraStream = null;
+let currentFacingMode = 'environment'; // 'environment' = back camera, 'user' = front camera
+
+// Open camera with live video feed
 function openCamera() {
+    const cameraModal = document.getElementById('cameraModal');
+    if (!cameraModal) {
+        // Fallback if camera modal doesn't exist
+        openCameraFallback();
+        return;
+    }
+    
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('getUserMedia not supported, using fallback');
+        openCameraFallback();
+        return;
+    }
+    
+    cameraModal.classList.add('active');
+    startCamera(currentFacingMode);
+}
+
+// Start camera stream
+async function startCamera(facingMode) {
+    const video = document.getElementById('cameraVideo');
+    
+    // Stop any existing stream first
+    stopCameraStream();
+    
+    try {
+        const constraints = {
+            video: {
+                facingMode: facingMode,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        };
+        
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = cameraStream;
+        await video.play();
+        console.log('✅ Camera started with facingMode:', facingMode);
+    } catch (error) {
+        console.error('❌ Camera error:', error);
+        
+        // Try without facingMode constraint
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: false 
+            });
+            video.srcObject = cameraStream;
+            await video.play();
+            console.log('✅ Camera started (without facingMode)');
+        } catch (fallbackError) {
+            console.error('❌ Camera fallback error:', fallbackError);
+            showCameraError(fallbackError);
+        }
+    }
+}
+
+// Show camera error in the modal
+function showCameraError(error) {
+    const video = document.getElementById('cameraVideo');
+    const container = video.parentElement;
+    
+    let errorMsg = 'Tidak dapat mengakses kamera.';
+    if (error.name === 'NotAllowedError') {
+        errorMsg = 'Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser Anda.';
+    } else if (error.name === 'NotFoundError') {
+        errorMsg = 'Kamera tidak ditemukan pada perangkat ini.';
+    } else if (error.name === 'NotReadableError') {
+        errorMsg = 'Kamera sedang digunakan oleh aplikasi lain.';
+    } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        errorMsg = 'Kamera memerlukan koneksi HTTPS.';
+    }
+    
+    // Create error display inside camera container
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'camera-error';
+    errorDiv.id = 'cameraErrorDiv';
+    errorDiv.innerHTML = `
+        <i class="fas fa-video-slash"></i>
+        <h4>${errorMsg}</h4>
+        <p>Anda dapat menggunakan upload foto sebagai alternatif.</p>
+        <button class="btn-fallback" onclick="closeCameraAndUpload()">
+            <i class="fas fa-upload"></i> Upload Foto
+        </button>
+    `;
+    
+    video.style.display = 'none';
+    // Remove existing error div if any
+    const existing = document.getElementById('cameraErrorDiv');
+    if (existing) existing.remove();
+    container.insertBefore(errorDiv, container.querySelector('.camera-controls'));
+    
+    // Hide controls since camera isn't working
+    const controls = container.querySelector('.camera-controls');
+    if (controls) controls.style.display = 'none';
+}
+
+// Switch between front and back camera
+async function switchCamera() {
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    await startCamera(currentFacingMode);
+}
+
+// Capture photo from video
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    
+    if (!video.srcObject || video.readyState < 2) {
+        showToast('Kamera belum siap', 'error');
+        return;
+    }
+    
+    // Set canvas size to video dimensions
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert to data URL
+    selectedImageData = canvas.toDataURL('image/jpeg', 0.85);
+    
+    // Show preview in the edit modal
+    document.getElementById('previewArea').innerHTML = `<img src="${selectedImageData}" alt="Preview" style="max-width:100%; border-radius:8px;">`;
+    
+    // Close camera
+    closeCamera();
+    showToast('Foto berhasil diambil', 'success');
+}
+
+// Close camera and cleanup
+function closeCamera() {
+    stopCameraStream();
+    
+    const cameraModal = document.getElementById('cameraModal');
+    if (cameraModal) {
+        cameraModal.classList.remove('active');
+    }
+    
+    // Reset video and remove error display
+    const video = document.getElementById('cameraVideo');
+    if (video) {
+        video.style.display = 'block';
+    }
+    const errorDiv = document.getElementById('cameraErrorDiv');
+    if (errorDiv) errorDiv.remove();
+    
+    // Show controls again
+    const controls = document.querySelector('.camera-controls');
+    if (controls) controls.style.display = 'flex';
+}
+
+// Stop camera stream
+function stopCameraStream() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    const video = document.getElementById('cameraVideo');
+    if (video) {
+        video.srcObject = null;
+    }
+}
+
+// Close camera and open file upload instead
+function closeCameraAndUpload() {
+    closeCamera();
+    document.getElementById('fileInput').click();
+}
+
+// Fallback for browsers that don't support getUserMedia
+function openCameraFallback() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';

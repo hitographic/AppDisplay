@@ -1439,7 +1439,8 @@ function showToast(message, type = 'info') {
 
 // Show validation info popup (for Editor only)
 function showValidationInfo(recordId) {
-    const record = allRecords.find(r => r.id === recordId);
+    // Use string comparison for ID matching
+    const record = allRecords.find(r => String(r.id) === String(recordId));
     if (!record) {
         showToast('Record tidak ditemukan', 'error');
         return;
@@ -1526,16 +1527,22 @@ function closeValidationInfoModal() {
 }
 
 function openValidationPopup(recordId) {
+    console.log('🔍 openValidationPopup called with recordId:', recordId);
+    
     if (!canValidate()) {
         showToast('Anda tidak memiliki akses untuk validasi', 'error');
         return;
     }
     
-    const record = allRecords.find(r => r.id === recordId);
+    // Convert to string for comparison (ID might be number or string)
+    const record = allRecords.find(r => String(r.id) === String(recordId));
     if (!record) {
+        console.error('❌ Record not found in allRecords. recordId:', recordId, 'allRecords IDs:', allRecords.map(r => r.id));
         showToast('Record tidak ditemukan', 'error');
         return;
     }
+    
+    console.log('✅ Found record:', record.flavor);
     
     currentValidationRecordId = recordId;
     
@@ -1602,6 +1609,8 @@ async function submitValidation() {
     const recordId = document.getElementById('validationRecordId').value;
     const statusRadio = document.querySelector('input[name="validationStatus"]:checked');
     
+    console.log('📤 submitValidation called for recordId:', recordId);
+    
     if (!statusRadio) {
         showToast('Pilih status validasi', 'error');
         return;
@@ -1622,28 +1631,46 @@ async function submitValidation() {
     showLoading('Menyimpan validasi...');
     
     try {
-        // Update record with validation info
-        const record = allRecords.find(r => r.id === recordId);
-        if (record) {
-            record.validationStatus = status;
-            record.validationReason = reason;
-            record.validatedBy = validatorName;
-            record.validatedAt = new Date().toISOString();
-            
-            // Update in storage
-            await storage.updateRecord(recordId, record);
-            
+        // Find record with string comparison
+        const record = allRecords.find(r => String(r.id) === String(recordId));
+        if (!record) {
             hideLoading();
-            showToast(`Record berhasil di-${status === 'valid' ? 'validasi' : 'invalid'}kan`, 'success');
-            closeValidationPopup();
-            
-            // Re-render records
-            renderRecords();
+            showToast('Record tidak ditemukan', 'error');
+            return;
         }
+        
+        // Update validation fields
+        record.validationStatus = status;
+        record.validationReason = reason;
+        record.validatedBy = validatorName;
+        record.validatedAt = new Date().toISOString();
+        
+        console.log('📤 Updating validation:', {
+            id: recordId,
+            status: status,
+            reason: reason,
+            validatedBy: validatorName
+        });
+        
+        // Update in Google Sheets via sheetsDB
+        const result = await sheetsDB.updateRecord(recordId, record);
+        
+        if (!result || result.error) {
+            throw new Error(result?.error || 'Failed to update validation');
+        }
+        
+        console.log('✅ Validation saved:', result);
+        
+        hideLoading();
+        showToast(`Record berhasil di-${status === 'valid' ? 'validasi' : 'invalid'}kan`, 'success');
+        closeValidationPopup();
+        
+        // Re-render records to show updated status
+        renderAllRecordsAsCardList();
     } catch (error) {
         hideLoading();
-        console.error('Error saving validation:', error);
-        showToast('Gagal menyimpan validasi', 'error');
+        console.error('❌ Error saving validation:', error);
+        showToast('Gagal menyimpan validasi: ' + error.message, 'error');
     }
 }
 
