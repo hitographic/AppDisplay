@@ -928,7 +928,9 @@ async function proceedToCreateDisplay() {
         kodeProduksi: []
     };
 
+    console.log('📦 Saving temp data:', tempData);
     storage.saveTempData(tempData);
+    console.log('✅ Temp data saved, navigating to create-display.html');
 
     // Navigate to create display page
     window.location.href = 'create-display.html';
