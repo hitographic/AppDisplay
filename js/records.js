@@ -1,6 +1,7 @@
 // =====================================================
 // VALID DISPLAY - Records Page Script
 // With Permissions and Validation Feature
+// Version 5.8 - Added validation badges and viewer filter
 // =====================================================
 
 let allRecords = [];
@@ -336,7 +337,18 @@ function renderAllRecordsAsCardList() {
     const emptyState = document.getElementById('emptyState');
     
     // Use filteredRecords if filter has been applied, otherwise use allRecords
-    const recordsToDisplay = filteredRecords.length > 0 || isFilterApplied() ? filteredRecords : allRecords;
+    let recordsToDisplay = filteredRecords.length > 0 || isFilterApplied() ? filteredRecords : allRecords;
+    
+    // Check if user is Viewer only (can view but cannot edit or validate)
+    const userCanEdit = canEdit();
+    const userCanValidate = canValidate();
+    const isViewerOnly = !userCanEdit && !userCanValidate && canView();
+    
+    // For Viewer-only users, filter to show only validated records
+    if (isViewerOnly) {
+        recordsToDisplay = recordsToDisplay.filter(record => record.validationStatus === 'valid');
+        console.log(`👁️ Viewer only mode: Showing ${recordsToDisplay.length} validated records`);
+    }
     
     if (!recordsToDisplay || recordsToDisplay.length === 0) {
         grid.innerHTML = '';
@@ -359,17 +371,24 @@ function renderAllRecordsAsCardList() {
     const endIndex = startIndex + recordsPerPage;
     const paginatedRecords = recordsToDisplay.slice(startIndex, endIndex);
     
-    const userCanEdit = canEdit();
-    const userCanValidate = canValidate();
-    
     // Render paginated records
     grid.innerHTML = paginatedRecords.map(record => {
         // Determine validation status indicator
         let validationClass = 'pending';
+        let validationLabel = '';
+        let validationIcon = '';
+        
         if (record.validationStatus === 'valid') {
             validationClass = 'valid';
+            validationLabel = 'Validated';
+            validationIcon = 'fa-check-circle';
         } else if (record.validationStatus === 'invalid') {
             validationClass = 'invalid';
+            validationLabel = 'Invalid';
+            validationIcon = 'fa-times-circle';
+        } else {
+            validationLabel = 'Not Validated';
+            validationIcon = 'fa-clock';
         }
         
         return `
@@ -377,8 +396,11 @@ function renderAllRecordsAsCardList() {
                 <!-- Row 1: Flavor + Actions -->
                 <div class="search-result-row-1">
                     <div class="search-result-flavor-wrapper">
-                        <span class="validation-indicator ${validationClass}" title="${validationClass === 'valid' ? 'Valid' : validationClass === 'invalid' ? 'Invalid' : 'Belum Validasi'}"></span>
+                        <span class="validation-indicator ${validationClass}" title="${validationLabel}"></span>
                         <span class="search-result-flavor">${escapeHtml(record.flavor)}</span>
+                        <span class="validation-badge ${validationClass}">
+                            <i class="fas ${validationIcon}"></i> ${validationLabel}
+                        </span>
                     </div>
                     <div class="search-result-actions">
                         <button class="btn-action view" onclick="openPreview('${record.id}')" title="Lihat">
