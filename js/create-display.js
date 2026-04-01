@@ -762,6 +762,9 @@ async function saveAll() {
         return;
     }
     
+    console.log('📤 saveAll: Starting save process...');
+    console.log('📤 temporarySave:', JSON.stringify(temporarySave, null, 2));
+    
     showLoading(isEditMode ? 'Mengupdate data...' : 'Menyimpan data...');
     
     try {
@@ -778,33 +781,47 @@ async function saveAll() {
             nomorMaterial: temporarySave.nomorMaterial,
             flavor: temporarySave.flavor,
             negara: temporarySave.negara,
-            distributor: temporarySave.distributor,
+            distributor: temporarySave.distributor || '',
             photos: {
-                bumbu: getPhotoName(temporarySave.photos.bumbu),
-                mBumbu: getPhotoName(temporarySave.photos.mBumbu),
-                si: getPhotoName(temporarySave.photos.si),
-                kartonDepan: getPhotoName(temporarySave.photos.kartonDepan),
-                kartonBelakang: getPhotoName(temporarySave.photos.kartonBelakang),
-                etiket: getPhotoName(temporarySave.photos.etiket),
-                etiketBanded: getPhotoName(temporarySave.photos.etiketBanded),
-                plakban: getPhotoName(temporarySave.photos.plakban)
+                bumbu: getPhotoName(temporarySave.photos?.bumbu),
+                mBumbu: getPhotoName(temporarySave.photos?.mBumbu),
+                si: getPhotoName(temporarySave.photos?.si),
+                kartonDepan: getPhotoName(temporarySave.photos?.kartonDepan),
+                kartonBelakang: getPhotoName(temporarySave.photos?.kartonBelakang),
+                etiket: getPhotoName(temporarySave.photos?.etiket),
+                etiketBanded: getPhotoName(temporarySave.photos?.etiketBanded),
+                plakban: getPhotoName(temporarySave.photos?.plakban)
             },
             createdBy: getCurrentUserName(),
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
         
+        console.log('📤 Record to save:', JSON.stringify(record, null, 2));
+        
         // Use GoogleSheetsDB to save (via Google Apps Script)
-        const sheetsDB = new GoogleSheetsDB();
+        const db = new GoogleSheetsDB();
+        console.log('📤 GoogleSheetsDB configured:', db.isConfigured());
+        console.log('📤 WebApp URL:', db.webAppUrl);
+        
         let result;
         
         if (isEditMode) {
-            result = await sheetsDB.updateRecord(temporarySave.id, record);
+            console.log('📤 Updating existing record:', temporarySave.id);
+            result = await db.updateRecord(temporarySave.id, record);
         } else {
-            result = await sheetsDB.addRecord(record);
+            console.log('📤 Adding new record...');
+            result = await db.addRecord(record);
         }
         
-        if (!result || result.error) {
-            throw new Error(result?.error || 'Failed to save data');
+        console.log('📤 Save result:', result);
+        
+        if (!result) {
+            throw new Error('No response from server');
+        }
+        
+        if (result.error) {
+            throw new Error(result.error);
         }
         
         // Clear temp data after successful save
