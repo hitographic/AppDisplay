@@ -1,7 +1,7 @@
 // =====================================================
 // VALID DISPLAY - Records Page Script
 // With Permissions and Validation Feature
-// Version 5.8 - Added validation badges and viewer filter
+// Version 5.9 - Inline badge with emoji for validation status
 // =====================================================
 
 let allRecords = [];
@@ -373,22 +373,19 @@ function renderAllRecordsAsCardList() {
     
     // Render paginated records
     grid.innerHTML = paginatedRecords.map(record => {
-        // Determine validation status indicator
-        let validationClass = 'pending';
-        let validationLabel = '';
-        let validationIcon = '';
+        // Determine validation status with emoji and inline styles
+        let validationLabel = 'NOT VALIDATED';
+        let validationEmoji = '🟡';
+        let badgeStyle = 'background-color: rgba(234, 179, 8, 0.2); color: #b45309; border: 1px solid rgba(234, 179, 8, 0.4);';
         
         if (record.validationStatus === 'valid') {
-            validationClass = 'valid';
-            validationLabel = 'Validated';
-            validationIcon = 'fa-check-circle';
+            validationLabel = 'VALIDATED';
+            validationEmoji = '🟢';
+            badgeStyle = 'background-color: rgba(34, 197, 94, 0.2); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.4);';
         } else if (record.validationStatus === 'invalid') {
-            validationClass = 'invalid';
-            validationLabel = 'Invalid';
-            validationIcon = 'fa-times-circle';
-        } else {
-            validationLabel = 'Not Validated';
-            validationIcon = 'fa-clock';
+            validationLabel = 'INVALID';
+            validationEmoji = '🔴';
+            badgeStyle = 'background-color: rgba(239, 68, 68, 0.2); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.4);';
         }
         
         return `
@@ -396,10 +393,9 @@ function renderAllRecordsAsCardList() {
                 <!-- Row 1: Flavor + Actions -->
                 <div class="search-result-row-1">
                     <div class="search-result-flavor-wrapper">
-                        <span class="validation-indicator ${validationClass}" title="${validationLabel}"></span>
                         <span class="search-result-flavor">${escapeHtml(record.flavor)}</span>
-                        <span class="validation-badge ${validationClass}">
-                            <i class="fas ${validationIcon}"></i> ${validationLabel}
+                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 0.65rem; font-weight: 600; margin-left: 8px; white-space: nowrap; ${badgeStyle}">
+                            ${validationEmoji} ${validationLabel}
                         </span>
                     </div>
                     <div class="search-result-actions">

@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.19.2 - Enhanced validation badge styling
+// Version 2.20.0 - Inline validation badges with emoji
 
-const CACHE_NAME = 'mds-track-v2.31.2';
+const CACHE_NAME = 'mds-track-v2.32.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
