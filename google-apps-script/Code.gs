@@ -255,6 +255,18 @@ function doGet(e) {
       result = handleDeletePhoto(data.fileId);
     } else if (action === 'getPhotoUrl' && e.parameter.fileId) {
       result = handleGetPhotoUrl(e.parameter.fileId);
+    }
+    // Master File CRUD operations via JSONP (for Edit Master page)
+    else if (action === 'listMasterFiles') {
+      var folderName = e.parameter.folderName || (data && data.folderName);
+      var subfolder = e.parameter.subfolder || (data && data.subfolder);
+      result = handleListMasterFiles({ folderName: folderName, subfolder: subfolder });
+    } else if (action === 'uploadMasterFile' && data) {
+      result = handleUploadMasterFile(data);
+    } else if (action === 'renameMasterFile' && data) {
+      result = handleRenameMasterFile(data);
+    } else if (action === 'deleteMasterFile' && data) {
+      result = handleDeleteMasterFile(data);
     } else {
       result = { success: false, error: 'Invalid action' };
     }

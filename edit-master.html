@@ -851,16 +851,14 @@
             <i class="fas fa-arrow-left"></i> Kembali ke Records
         </a>
         
-        <!-- Google Drive Connection Status -->
-        <div class="google-drive-alert" id="driveAlert">
+        <!-- Google Drive Connection Status - Not needed, using Apps Script -->
+        <!-- driveAlert hidden by JS -->
+        <div class="google-drive-alert" id="driveAlert" style="display:none;">
             <i class="fas fa-cloud-upload-alt alert-icon"></i>
             <div class="alert-content">
                 <h3>Login Google Drive untuk CRUD</h3>
                 <p>Upload, Edit, dan Hapus file memerlukan login Google Drive</p>
             </div>
-            <button class="btn-connect-drive" id="connectBtn" onclick="connectGoogleDrive()">
-                <i class="fab fa-google"></i> Login Google
-            </button>
         </div>
         
         <!-- Folder Grid Section -->
@@ -1005,11 +1003,10 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
     <script src="js/config.js"></script>
+    <script src="js/sheets-db.js"></script>
     <script src="js/auth.js?v=1.8"></script>
-    <script src="js/edit-master.js?v=2.0"></script>
+    <script src="js/edit-master.js?v=4.0"></script>
     <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
 </body>
 </html>

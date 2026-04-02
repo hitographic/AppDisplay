@@ -1,7 +1,7 @@
 // =====================================================
 // Edit Master Data - JavaScript
 // Manage photos in Google Drive folders via Apps Script
-// Version 3.0 - Using Apps Script for CRUD (No OAuth required)
+// Version 4.0 - Using sheetsDB (JSONP) for CRUD (No OAuth required)
 // =====================================================
 
 // Folder configuration
@@ -24,19 +24,23 @@ var editingFile = null;
 var selectedImageData = null;
 var folderCache = {};
 
-// Get Apps Script URL from config
-function getAppsScriptUrl() {
-    return CONFIG.GOOGLE_SHEETS_WEBAPP_URL;
-}
-
 // Initialize
 document.addEventListener('DOMContentLoaded', async function() {
     checkAuth();
     checkMasterEditorPermission();
+    hideGoogleDriveAlert();
     renderFolderGrid();
     await loadAllFolderCounts();
-    console.log('Edit Master module loaded (v3.0 - Apps Script CRUD)');
+    console.log('Edit Master module loaded (v4.0 - sheetsDB JSONP CRUD)');
 });
+
+// Hide the Google Drive login alert (not needed anymore)
+function hideGoogleDriveAlert() {
+    var alert = document.getElementById('driveAlert');
+    if (alert) alert.style.display = 'none';
+    var connected = document.getElementById('driveConnected');
+    if (connected) connected.style.display = 'none';
+}
 
 // Check authentication
 function checkAuth() {
@@ -79,79 +83,50 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// Call Apps Script API via iframe (to handle CORS)
-async function callAppsScript(action, data) {
-    data = data || {};
-    
-    return new Promise(function(resolve, reject) {
-        var callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        var timeoutId;
-        
-        // Listen for response via postMessage
-        function handleMessage(event) {
-            try {
-                var result = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (result && result.callbackName === callbackName) {
-                    window.removeEventListener('message', handleMessage);
-                    clearTimeout(timeoutId);
-                    
-                    // Remove iframe
-                    var iframe = document.getElementById('api-iframe-' + callbackName);
-                    if (iframe) iframe.remove();
-                    
-                    console.log('Apps Script response:', result);
-                    resolve(result);
-                }
-            } catch (e) {
-                // Ignore parse errors from other messages
-            }
-        }
-        
-        window.addEventListener('message', handleMessage);
-        
-        // Create form and iframe
-        var iframe = document.createElement('iframe');
-        iframe.id = 'api-iframe-' + callbackName;
-        iframe.name = 'api-iframe-' + callbackName;
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = getAppsScriptUrl();
-        form.target = iframe.name;
-        form.style.display = 'none';
-        
-        // Add data as hidden field
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'data';
-        input.value = JSON.stringify({
-            action: action,
-            callback: callbackName,
-            folderName: data.folderName,
-            subfolder: data.subfolder,
-            photo: data.photo,
-            fileName: data.fileName,
-            fileId: data.fileId,
-            newName: data.newName,
-            mimeType: data.mimeType
-        });
-        form.appendChild(input);
-        
-        document.body.appendChild(form);
-        form.submit();
-        form.remove();
-        
-        // Timeout after 60 seconds (uploads can be slow)
-        timeoutId = setTimeout(function() {
-            window.removeEventListener('message', handleMessage);
-            var iframe = document.getElementById('api-iframe-' + callbackName);
-            if (iframe) iframe.remove();
-            reject(new Error('Request timeout'));
-        }, 60000);
+// =====================================================
+// API CALLS - Using sheetsDB (JSONP, already proven to work)
+// =====================================================
+
+// List files in a master folder (GET via JSONP)
+async function listMasterFiles(folderName, subfolder) {
+    var url = CONFIG.GOOGLE_SHEETS_WEBAPP_URL + '?action=listMasterFiles' +
+        '&folderName=' + encodeURIComponent(folderName) +
+        (subfolder ? '&subfolder=' + encodeURIComponent(subfolder) : '');
+    return await sheetsDB.jsonpRequest(url, 30000);
+}
+
+// Upload file to master folder (via JSONP postRequest)
+async function uploadMasterFileAPI(data) {
+    return await sheetsDB.postRequest({
+        action: 'uploadMasterFile',
+        photo: data.photo,
+        fileName: data.fileName,
+        folderName: data.folderName,
+        subfolder: data.subfolder || null,
+        mimeType: data.mimeType || 'image/jpeg'
     });
 }
+
+// Rename a master file (via JSONP postRequest)
+async function renameMasterFileAPI(fileId, newName) {
+    return await sheetsDB.postRequest({
+        action: 'renameMasterFile',
+        fileId: fileId,
+        newName: newName
+    });
+}
+
+// Delete a master file (via JSONP postRequest)
+async function deleteMasterFileAPI(fileId) {
+    return await sheetsDB.postRequest({
+        action: 'deleteMasterFile',
+        fileId: fileId
+    });
+}
+
+// =====================================================
+// FOLDER & FILE UI
+// =====================================================
 
 // Render folder grid
 function renderFolderGrid() {
@@ -173,18 +148,20 @@ async function loadAllFolderCounts() {
     for (var i = 0; i < MASTER_FOLDERS.length; i++) {
         var folder = MASTER_FOLDERS[i];
         try {
-            var result = await callAppsScript('listMasterFiles', {
-                folderName: folder.folderName || folder.name,
-                subfolder: folder.subfolder || null
-            });
-            if (result.success) {
+            var result = await listMasterFiles(
+                folder.folderName || folder.name,
+                folder.subfolder || null
+            );
+            if (result && result.success) {
                 document.getElementById('count-' + i).textContent = result.count + ' file';
-                folderCache[folder.name] = result.files;
+                folderCache[folder.name] = result.files || [];
             } else {
                 document.getElementById('count-' + i).textContent = 'Error';
+                console.error('Folder ' + folder.name + ' error:', result ? result.error : 'Unknown');
             }
         } catch (error) {
             document.getElementById('count-' + i).textContent = 'Error';
+            console.error('Folder ' + folder.name + ' load error:', error.message);
         }
     }
     console.log('Folder counts loaded');
@@ -201,19 +178,19 @@ async function selectFolder(index) {
     currentFolderConfig = folder;
     document.getElementById('currentFolderName').textContent = folder.name;
     try {
-        if (folderCache[folder.name]) {
+        if (folderCache[folder.name] && folderCache[folder.name].length > 0) {
             currentFiles = folderCache[folder.name];
         } else {
-            var result = await callAppsScript('listMasterFiles', {
-                folderName: folder.folderName || folder.name,
-                subfolder: folder.subfolder || null
-            });
-            if (result.success) {
-                currentFiles = result.files;
+            var result = await listMasterFiles(
+                folder.folderName || folder.name,
+                folder.subfolder || null
+            );
+            if (result && result.success) {
+                currentFiles = result.files || [];
                 folderCache[folder.name] = currentFiles;
             } else {
                 currentFiles = [];
-                showToast('Error: ' + result.error, 'error');
+                showToast('Error: ' + (result ? result.error : 'Unknown'), 'error');
             }
         }
         renderFiles();
@@ -269,6 +246,10 @@ function closeViewModal() {
     document.getElementById('viewModal').classList.remove('active');
 }
 
+// =====================================================
+// ADD / EDIT MODALS
+// =====================================================
+
 function openAddModal() {
     editingFile = null;
     selectedImageData = null;
@@ -310,7 +291,9 @@ function handleFileSelect(event) {
     reader.readAsDataURL(file);
 }
 
-// Camera
+// =====================================================
+// CAMERA
+// =====================================================
 var cameraStream = null;
 var currentFacingMode = 'environment';
 
@@ -414,7 +397,10 @@ function openCameraFallback() {
     input.click();
 }
 
-// CRUD Operations
+// =====================================================
+// CRUD OPERATIONS
+// =====================================================
+
 async function saveFile() {
     var fileName = document.getElementById('fileName').value.trim();
     if (!fileName) { showToast('Masukkan nama file', 'error'); return; }
@@ -423,35 +409,48 @@ async function saveFile() {
     try {
         if (editingFile) {
             if (selectedImageData) {
-                await callAppsScript('deleteMasterFile', { fileId: editingFile.id });
+                // Replace: delete old + upload new
+                console.log('Replacing file:', editingFile.id);
+                await deleteMasterFileAPI(editingFile.id);
                 await uploadNewFile(fileName);
             } else {
-                var result = await callAppsScript('renameMasterFile', { fileId: editingFile.id, newName: fileName });
-                if (!result.success) throw new Error(result.error || 'Rename failed');
+                // Rename only
+                console.log('Renaming file:', editingFile.id, 'to', fileName);
+                var result = await renameMasterFileAPI(editingFile.id, fileName);
+                if (!result || !result.success) throw new Error((result && result.error) || 'Rename failed');
             }
             showToast('File berhasil diupdate', 'success');
         } else {
+            // New file
+            console.log('Uploading new file:', fileName);
             await uploadNewFile(fileName);
             showToast('File berhasil ditambahkan', 'success');
         }
         closeModal();
         await refreshCurrentFolder();
     } catch (error) {
+        console.error('Save error:', error);
         showToast('Error: ' + error.message, 'error');
     }
     hideLoading();
 }
 
 async function uploadNewFile(fileName) {
-    var mimeType = selectedImageData.split(';')[0].split(':')[1];
-    var result = await callAppsScript('uploadMasterFile', {
+    var mimeType = 'image/jpeg';
+    if (selectedImageData.indexOf('image/png') > -1) mimeType = 'image/png';
+    else if (selectedImageData.indexOf('image/gif') > -1) mimeType = 'image/gif';
+    else if (selectedImageData.indexOf('image/webp') > -1) mimeType = 'image/webp';
+
+    console.log('Uploading:', fileName, 'to folder:', currentFolderConfig.folderName || currentFolder);
+    var result = await uploadMasterFileAPI({
         photo: selectedImageData,
         fileName: fileName,
         folderName: currentFolderConfig.folderName || currentFolder,
         subfolder: currentFolderConfig.subfolder || null,
         mimeType: mimeType
     });
-    if (!result.success) throw new Error(result.error || 'Upload failed');
+    console.log('Upload result:', result);
+    if (!result || !result.success) throw new Error((result && result.error) || 'Upload failed');
     return result;
 }
 
@@ -472,12 +471,17 @@ async function confirmDelete() {
     showLoading('Menghapus...');
     closeDeleteModal();
     try {
-        var result = await callAppsScript('deleteMasterFile', { fileId: fileToDelete.id });
-        if (result.success) {
+        console.log('Deleting file:', fileToDelete.id);
+        var result = await deleteMasterFileAPI(fileToDelete.id);
+        console.log('Delete result:', result);
+        if (result && result.success) {
             showToast('File berhasil dihapus', 'success');
             await refreshCurrentFolder();
-        } else throw new Error(result.error || 'Delete failed');
+        } else {
+            throw new Error((result && result.error) || 'Delete failed');
+        }
     } catch (error) {
+        console.error('Delete error:', error);
         showToast('Error: ' + error.message, 'error');
     }
     hideLoading();
@@ -486,12 +490,12 @@ async function confirmDelete() {
 async function refreshCurrentFolder() {
     if (!currentFolder || !currentFolderConfig) return;
     try {
-        var result = await callAppsScript('listMasterFiles', {
-            folderName: currentFolderConfig.folderName || currentFolder,
-            subfolder: currentFolderConfig.subfolder || null
-        });
-        if (result.success) {
-            currentFiles = result.files;
+        var result = await listMasterFiles(
+            currentFolderConfig.folderName || currentFolder,
+            currentFolderConfig.subfolder || null
+        );
+        if (result && result.success) {
+            currentFiles = result.files || [];
             folderCache[currentFolder] = currentFiles;
             for (var i = 0; i < MASTER_FOLDERS.length; i++) {
                 if (MASTER_FOLDERS[i].name === currentFolder) {
@@ -504,7 +508,10 @@ async function refreshCurrentFolder() {
     } catch (error) { console.error('Refresh error:', error); }
 }
 
-// UI Helpers
+// =====================================================
+// UI HELPERS
+// =====================================================
+
 function showLoading(text) {
     document.getElementById('loadingText').textContent = text || 'Memuat...';
     document.getElementById('loadingOverlay').classList.add('active');
