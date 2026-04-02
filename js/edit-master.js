@@ -1,7 +1,7 @@
 // =====================================================
 // Edit Master Data - JavaScript
 // Manage photos in Google Drive folders
-// Version 1.3 - Hardcoded folder IDs for reliability
+// Version 2.0 - OAuth for CRUD operations
 // =====================================================
 
 // Folder configuration with hardcoded Google Drive folder IDs
@@ -23,6 +23,10 @@ let currentFiles = [];
 let editingFile = null;
 let selectedImageData = null;
 let folderCache = {};
+let tokenClient = null;
+let gapiInited = false;
+let gisInited = false;
+let isGoogleConnected = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async function() {
@@ -30,8 +34,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     checkMasterEditorPermission();
     renderFolderGrid();
     
-    // Auto-connect using API key (read-only) - no user OAuth needed
-    await initGoogleAPIReadOnly();
+    // Initialize Google API and GIS for OAuth
+    await initGoogleAPI();
+    initGoogleIdentityServices();
 });
 
 // Check authentication
@@ -85,9 +90,9 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// Initialize Google API with API Key only (read-only, no user OAuth)
-async function initGoogleAPIReadOnly() {
-    console.log('📁 Initializing Google Drive connection (API Key - Read Only)...');
+// Initialize Google API Client
+async function initGoogleAPI() {
+    console.log('📁 Initializing Google API...');
     
     return new Promise((resolve) => {
         if (typeof gapi !== 'undefined') {
@@ -97,11 +102,9 @@ async function initGoogleAPIReadOnly() {
                         apiKey: CONFIG.GOOGLE_API_KEY,
                         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                     });
-                    console.log('✅ Google API (read-only) initialized successfully');
-                    
-                    // Auto-load folder counts
-                    await loadFolderCounts();
-                    
+                    gapiInited = true;
+                    console.log('✅ Google API Client initialized');
+                    maybeEnableButtons();
                     resolve(true);
                 } catch (error) {
                     console.error('❌ Error initializing Google API:', error);
@@ -115,14 +118,94 @@ async function initGoogleAPIReadOnly() {
     });
 }
 
-// Legacy function - keep for backward compatibility
-async function initGoogleAPI() {
-    return initGoogleAPIReadOnly();
+// Initialize Google Identity Services for OAuth
+function initGoogleIdentityServices() {
+    console.log('🔐 Initializing Google Identity Services...');
+    
+    if (typeof google === 'undefined' || !google.accounts) {
+        console.error('❌ Google Identity Services not loaded');
+        return;
+    }
+    
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive',
+        callback: (response) => {
+            if (response.error !== undefined) {
+                console.error('❌ OAuth error:', response);
+                showToast('Login Google gagal: ' + response.error, 'error');
+                return;
+            }
+            console.log('✅ OAuth token received');
+            isGoogleConnected = true;
+            updateConnectionStatus();
+            loadFolderCounts();
+        }
+    });
+    
+    gisInited = true;
+    console.log('✅ Google Identity Services initialized');
+    maybeEnableButtons();
 }
 
-// Check if connected - with API key, always connected for read
+// Enable buttons when both GAPI and GIS are ready
+function maybeEnableButtons() {
+    if (gapiInited && gisInited) {
+        console.log('✅ Both GAPI and GIS ready');
+        // Check if we have a stored token
+        const token = gapi.client.getToken();
+        if (token) {
+            isGoogleConnected = true;
+            updateConnectionStatus();
+            loadFolderCounts();
+        }
+    }
+}
+
+// Connect to Google Drive (OAuth login)
+function connectGoogleDrive() {
+    if (!tokenClient) {
+        showToast('Google Identity Services belum siap', 'error');
+        return;
+    }
+    
+    console.log('🔐 Requesting Google OAuth token...');
+    
+    // Check if we already have a token
+    if (gapi.client.getToken() === null) {
+        // Prompt user to sign in and consent
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        // Skip consent if already authorized before
+        tokenClient.requestAccessToken({ prompt: '' });
+    }
+}
+
+// Update connection status in UI
+function updateConnectionStatus() {
+    const alertEl = document.getElementById('driveAlert');
+    const connectBtn = document.getElementById('connectBtn');
+    
+    if (isGoogleConnected && alertEl) {
+        // Change alert style to connected
+        alertEl.className = 'google-drive-connected';
+        alertEl.innerHTML = `
+            <i class="fas fa-check-circle alert-icon"></i>
+            <div class="alert-content">
+                <h3>Terhubung ke Google Drive</h3>
+                <p>Anda dapat Upload, Edit, dan Hapus file</p>
+            </div>
+            <button class="btn-connected" disabled>
+                <i class="fas fa-check"></i> Terhubung
+            </button>
+        `;
+        showToast('Terhubung ke Google Drive - CRUD aktif', 'success');
+    }
+}
+
+// Check if connected with write access
 function isConnected() {
-    return gapi.client !== undefined;
+    return isGoogleConnected && gapi.client.getToken() !== null;
 }
 
 // Render folder grid
@@ -222,8 +305,10 @@ async function getFilesInFolder(folderId) {
 
 // Select folder
 async function selectFolder(folderName) {
-    if (!isConnected()) {
-        showToast('Hubungkan ke Google Drive terlebih dahulu', 'warning');
+    // For read operations, we can use API key
+    // For write operations, we need OAuth
+    if (!gapiInited) {
+        showToast('Google API belum siap, coba lagi...', 'warning');
         return;
     }
     
@@ -330,6 +415,13 @@ function closeViewModal() {
 
 // Open add modal
 function openAddModal() {
+    // Check if connected with write access
+    if (!isConnected()) {
+        showToast('Login Google Drive dulu untuk menambah file', 'warning');
+        connectGoogleDrive();
+        return;
+    }
+    
     editingFile = null;
     selectedImageData = null;
     document.getElementById('modalTitle').textContent = 'Tambah File Baru';
@@ -343,6 +435,13 @@ function openAddModal() {
 
 // Edit file
 function editFile(fileId, fileName) {
+    // Check if connected with write access
+    if (!isConnected()) {
+        showToast('Login Google Drive dulu untuk edit file', 'warning');
+        connectGoogleDrive();
+        return;
+    }
+    
     editingFile = { id: fileId, name: fileName };
     selectedImageData = null;
     
@@ -674,6 +773,13 @@ async function renameFile(fileId, newName) {
 
 // Delete file
 function deleteFile(fileId, fileName) {
+    // Check if connected with write access
+    if (!isConnected()) {
+        showToast('Login Google Drive dulu untuk hapus file', 'warning');
+        connectGoogleDrive();
+        return;
+    }
+    
     editingFile = { id: fileId, name: fileName };
     document.getElementById('deleteFileName').textContent = fileName;
     document.getElementById('deleteModal').classList.add('active');
@@ -756,4 +862,4 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-console.log('✅ Edit Master module loaded (v1.0)');
+console.log('✅ Edit Master module loaded (v2.0 - OAuth CRUD)');
