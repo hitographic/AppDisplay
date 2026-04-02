@@ -342,7 +342,7 @@ function renderAllRecordsAsCardList() {
                     <div class="search-result-distributor">
                         ${escapeHtml(record.distributor || '-')}
                     </div>
-                    <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
+                    <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.updatedAt || record.tanggal)}</span>
                 </div>
             </div>
         `;
@@ -691,7 +691,7 @@ function renderSearchResultsList(records) {
                     <div class="search-result-distributor">
                         ${escapeHtml(record.distributor || '-')}
                     </div>
-                    <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.tanggal)}</span>
+                    <span class="search-result-meta">${escapeHtml(record.negara)} • ${formatDate(record.updatedAt || record.tanggal)}</span>
                 </div>
             </div>
         `;

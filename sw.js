@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.23.0 - Simplified photo loading messages
+// Version 2.24.0 - Show updatedAt date in record list instead of tanggal
 
-const CACHE_NAME = 'mds-track-v2.35.0';
+const CACHE_NAME = 'mds-track-v2.36.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
