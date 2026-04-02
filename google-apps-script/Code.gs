@@ -332,6 +332,16 @@ function doPost(e) {
       result = handleUploadPhoto(data);
     } else if (action === 'deletePhoto' && data.fileId) {
       result = handleDeletePhoto(data.fileId);
+    }
+    // Master File CRUD operations (for Edit Master page)
+    else if (action === 'uploadMasterFile') {
+      result = handleUploadMasterFile(data);
+    } else if (action === 'renameMasterFile') {
+      result = handleRenameMasterFile(data);
+    } else if (action === 'deleteMasterFile') {
+      result = handleDeleteMasterFile(data);
+    } else if (action === 'listMasterFiles') {
+      result = handleListMasterFiles(data);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -1635,4 +1645,230 @@ function testPhotoUpload() {
   }
   
   Logger.log('=== TEST END ===');
+}
+
+// =====================================================
+// MASTER FILE CRUD HANDLERS
+// For Edit Master page - CRUD files in specific folders
+// =====================================================
+
+// Master folder IDs configuration
+var MASTER_FOLDER_IDS = {
+  'Bumbu': '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n',
+  'Minyak Bumbu': '1AT6PNYBzS-liQnkhhnuZ879aJzW-gqJr',
+  'Five or Six in One': '1le0FW7i-LnKmK_42jNZqeYXIf3trtoEh',
+  'Kode Etiket': '1BFC4dPid2CbSucbKNDiZLF2EjVSJFIWm',
+  'Kode Karton': '1Ir9xspi65occGhji0PgzCWcPCzght0go',
+  'Kode SI': '1i2MtTqMqAX69xOaeG7OD459bZ8-0Jvoe',
+  'Plakban': '1CJvilkGJc6zGqdzYjeKO4ngZSJx0yfqP'
+};
+
+/**
+ * Upload a file to a master folder
+ * data.photo = base64 image data
+ * data.fileName = file name (without extension)
+ * data.folderName = folder name (e.g., 'Bumbu', 'Minyak Bumbu')
+ * data.subfolder = optional subfolder name (e.g., 'Depan', 'Belakang' for Kode Karton)
+ */
+function handleUploadMasterFile(data) {
+  try {
+    if (!data.photo) {
+      return { success: false, error: 'No photo data provided' };
+    }
+    
+    if (!data.folderName) {
+      return { success: false, error: 'Folder name is required' };
+    }
+    
+    // Get folder ID
+    var folderId = MASTER_FOLDER_IDS[data.folderName];
+    if (!folderId) {
+      return { success: false, error: 'Invalid folder name: ' + data.folderName };
+    }
+    
+    var folder = DriveApp.getFolderById(folderId);
+    
+    // Handle subfolder if specified
+    if (data.subfolder) {
+      var subfolders = folder.getFoldersByName(data.subfolder);
+      if (subfolders.hasNext()) {
+        folder = subfolders.next();
+      } else {
+        // Create subfolder if not exists
+        folder = folder.createFolder(data.subfolder);
+      }
+    }
+    
+    // Remove data URL prefix if present
+    var base64Data = data.photo;
+    if (base64Data.indexOf('base64,') > -1) {
+      base64Data = base64Data.split('base64,')[1];
+    }
+    
+    // Determine mime type and extension
+    var mimeType = data.mimeType || 'image/jpeg';
+    var ext = mimeType === 'image/png' ? '.png' : '.jpg';
+    var fileName = (data.fileName || ('file_' + Date.now())) + ext;
+    
+    // Decode base64 to blob
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      mimeType,
+      fileName
+    );
+    
+    // Upload to Drive
+    var file = folder.createFile(blob);
+    
+    // Make file accessible via link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var fileId = file.getId();
+    
+    return {
+      success: true,
+      fileId: fileId,
+      fileName: file.getName(),
+      viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view',
+      directUrl: 'https://lh3.googleusercontent.com/d/' + fileId,
+      thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400'
+    };
+    
+  } catch (error) {
+    Logger.log('Master file upload error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Rename a master file
+ * data.fileId = Google Drive file ID
+ * data.newName = new file name (without extension)
+ */
+function handleRenameMasterFile(data) {
+  try {
+    if (!data.fileId) {
+      return { success: false, error: 'File ID is required' };
+    }
+    if (!data.newName) {
+      return { success: false, error: 'New name is required' };
+    }
+    
+    var file = DriveApp.getFileById(data.fileId);
+    var oldName = file.getName();
+    
+    // Preserve extension
+    var ext = oldName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
+    ext = ext ? ext[0] : '.jpg';
+    
+    var newFullName = data.newName + ext;
+    file.setName(newFullName);
+    
+    return {
+      success: true,
+      fileId: data.fileId,
+      oldName: oldName,
+      newName: newFullName
+    };
+    
+  } catch (error) {
+    Logger.log('Master file rename error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete a master file
+ * data.fileId = Google Drive file ID
+ */
+function handleDeleteMasterFile(data) {
+  try {
+    if (!data.fileId) {
+      return { success: false, error: 'File ID is required' };
+    }
+    
+    var file = DriveApp.getFileById(data.fileId);
+    var fileName = file.getName();
+    file.setTrashed(true);
+    
+    return {
+      success: true,
+      fileId: data.fileId,
+      fileName: fileName,
+      message: 'File deleted successfully'
+    };
+    
+  } catch (error) {
+    Logger.log('Master file delete error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * List files in a master folder
+ * data.folderName = folder name (e.g., 'Bumbu', 'Minyak Bumbu')
+ * data.subfolder = optional subfolder name
+ */
+function handleListMasterFiles(data) {
+  try {
+    if (!data.folderName) {
+      return { success: false, error: 'Folder name is required' };
+    }
+    
+    var folderId = MASTER_FOLDER_IDS[data.folderName];
+    if (!folderId) {
+      return { success: false, error: 'Invalid folder name: ' + data.folderName };
+    }
+    
+    var folder = DriveApp.getFolderById(folderId);
+    
+    // Handle subfolder if specified
+    if (data.subfolder) {
+      var subfolders = folder.getFoldersByName(data.subfolder);
+      if (subfolders.hasNext()) {
+        folder = subfolders.next();
+      } else {
+        return { success: true, files: [], message: 'Subfolder not found' };
+      }
+    }
+    
+    var files = folder.getFiles();
+    var fileList = [];
+    
+    while (files.hasNext()) {
+      var file = files.next();
+      var mimeType = file.getMimeType();
+      
+      // Only include image files
+      if (mimeType.indexOf('image/') === 0) {
+        var fileId = file.getId();
+        fileList.push({
+          id: fileId,
+          name: file.getName(),
+          mimeType: mimeType,
+          createdDate: file.getDateCreated().toISOString(),
+          modifiedDate: file.getLastUpdated().toISOString(),
+          thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400',
+          viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view'
+        });
+      }
+    }
+    
+    // Sort by name
+    fileList.sort(function(a, b) {
+      return a.name.localeCompare(b.name);
+    });
+    
+    return {
+      success: true,
+      folderName: data.folderName,
+      subfolder: data.subfolder || null,
+      files: fileList,
+      count: fileList.length
+    };
+    
+  } catch (error) {
+    Logger.log('List master files error: ' + error.message);
+    return { success: false, error: error.message };
+  }
 }

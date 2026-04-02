@@ -1,52 +1,49 @@
 // =====================================================
 // Edit Master Data - JavaScript
-// Manage photos in Google Drive folders
-// Version 2.0 - OAuth for CRUD operations
+// Manage photos in Google Drive folders via Apps Script
+// Version 3.0 - Using Apps Script for CRUD (No OAuth required)
 // =====================================================
 
-// Folder configuration with hardcoded Google Drive folder IDs
-const MASTER_FOLDERS = [
-    { name: 'Bumbu', icon: 'fa-pepper-hot', color: '#e74c3c', folderId: '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n' },
-    { name: 'Minyak Bumbu', icon: 'fa-oil-can', color: '#f1c40f', folderId: '1AT6PNYBzS-liQnkhhnuZ879aJzW-gqJr' },
-    { name: 'Five or Six in One', icon: 'fa-cubes', color: '#9b59b6', folderId: '1le0FW7i-LnKmK_42jNZqeYXIf3trtoEh' },
-    { name: 'Kode Etiket', icon: 'fa-tag', color: '#3498db', folderId: '1BFC4dPid2CbSucbKNDiZLF2EjVSJFIWm' },
-    { name: 'Kode Karton/Depan', icon: 'fa-box', color: '#1abc9c', folderId: '1Ir9xspi65occGhji0PgzCWcPCzght0go', subfolder: 'Depan' },
-    { name: 'Kode Karton/Belakang', icon: 'fa-box-open', color: '#16a085', folderId: '1Ir9xspi65occGhji0PgzCWcPCzght0go', subfolder: 'Belakang' },
-    { name: 'Kode SI', icon: 'fa-barcode', color: '#34495e', folderId: '1i2MtTqMqAX69xOaeG7OD459bZ8-0Jvoe' },
-    { name: 'Plakban', icon: 'fa-tape', color: '#95a5a6', folderId: '1CJvilkGJc6zGqdzYjeKO4ngZSJx0yfqP' }
+// Folder configuration
+var MASTER_FOLDERS = [
+    { name: 'Bumbu', icon: 'fa-pepper-hot', color: '#e74c3c' },
+    { name: 'Minyak Bumbu', icon: 'fa-oil-can', color: '#f1c40f' },
+    { name: 'Five or Six in One', icon: 'fa-cubes', color: '#9b59b6' },
+    { name: 'Kode Etiket', icon: 'fa-tag', color: '#3498db' },
+    { name: 'Kode Karton/Depan', icon: 'fa-box', color: '#1abc9c', folderName: 'Kode Karton', subfolder: 'Depan' },
+    { name: 'Kode Karton/Belakang', icon: 'fa-box-open', color: '#16a085', folderName: 'Kode Karton', subfolder: 'Belakang' },
+    { name: 'Kode SI', icon: 'fa-barcode', color: '#34495e' },
+    { name: 'Plakban', icon: 'fa-tape', color: '#95a5a6' }
 ];
 
 // State
-let currentFolder = null;
-let currentFolderId = null;
-let currentFiles = [];
-let editingFile = null;
-let selectedImageData = null;
-let folderCache = {};
-let tokenClient = null;
-let gapiInited = false;
-let gisInited = false;
-let isGoogleConnected = false;
+var currentFolder = null;
+var currentFolderConfig = null;
+var currentFiles = [];
+var editingFile = null;
+var selectedImageData = null;
+var folderCache = {};
+
+// Get Apps Script URL from config
+function getAppsScriptUrl() {
+    return CONFIG.GOOGLE_SHEETS_WEBAPP_URL;
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async function() {
     checkAuth();
     checkMasterEditorPermission();
     renderFolderGrid();
-    
-    // Initialize Google API and GIS for OAuth
-    await initGoogleAPI();
-    initGoogleIdentityServices();
+    await loadAllFolderCounts();
+    console.log('Edit Master module loaded (v3.0 - Apps Script CRUD)');
 });
 
 // Check authentication
 function checkAuth() {
-    // Use CONFIG storage key if available, otherwise try common keys
-    const storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
+    var storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
         ? CONFIG.STORAGE_KEYS.USER 
         : 'validDisplay_user';
-    
-    const user = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    var user = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (!user) {
         window.location.href = 'index.html';
         return;
@@ -56,613 +53,312 @@ function checkAuth() {
 
 // Check master_editor permission
 function checkMasterEditorPermission() {
-    const storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
+    var storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
         ? CONFIG.STORAGE_KEYS.USER 
         : 'validDisplay_user';
-    
-    const user = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    
+    var user = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (!user || !user.permissions) {
-        console.warn('⚠️ User tidak memiliki permissions. Redirect ke records.');
         window.location.href = 'records.html';
         return;
     }
-    
-    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
-    const hasMasterEditorAccess = permissions.includes('master_editor') || permissions.includes('user_admin');
-    
+    var permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    var hasMasterEditorAccess = permissions.includes('master_editor') || permissions.includes('user_admin');
     if (!hasMasterEditorAccess) {
-        console.warn('⚠️ User tidak memiliki permission master_editor. Halaman disembunyikan.');
-        // Redirect ke records jika tidak punya akses
         window.location.href = 'records.html';
         return;
     }
-    
-    console.log('✅ User memiliki akses master_editor');
+    console.log('User memiliki akses master_editor');
 }
 
 // Logout
 function logout() {
-    const storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
+    var storageKey = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_KEYS) 
         ? CONFIG.STORAGE_KEYS.USER 
         : 'validDisplay_user';
     localStorage.removeItem(storageKey);
     window.location.href = 'index.html';
 }
 
-// Initialize Google API Client
-async function initGoogleAPI() {
-    console.log('📁 Initializing Google API...');
-    
-    return new Promise((resolve) => {
-        if (typeof gapi !== 'undefined') {
-            gapi.load('client', async () => {
-                try {
-                    await gapi.client.init({
-                        apiKey: CONFIG.GOOGLE_API_KEY,
-                        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-                    });
-                    gapiInited = true;
-                    console.log('✅ Google API Client initialized');
-                    maybeEnableButtons();
-                    resolve(true);
-                } catch (error) {
-                    console.error('❌ Error initializing Google API:', error);
-                    resolve(false);
-                }
-            });
-        } else {
-            console.error('❌ Google API not loaded');
-            resolve(false);
-        }
-    });
-}
-
-// Initialize Google Identity Services for OAuth
-function initGoogleIdentityServices() {
-    console.log('🔐 Initializing Google Identity Services...');
-    
-    if (typeof google === 'undefined' || !google.accounts) {
-        console.error('❌ Google Identity Services not loaded');
-        return;
+// Call Apps Script API
+async function callAppsScript(action, data) {
+    var url = getAppsScriptUrl();
+    data = data || {};
+    try {
+        var response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                action: action,
+                folderName: data.folderName,
+                subfolder: data.subfolder,
+                photo: data.photo,
+                fileName: data.fileName,
+                fileId: data.fileId,
+                newName: data.newName,
+                mimeType: data.mimeType
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Apps Script call error:', error);
+        throw error;
     }
-    
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive',
-        callback: (response) => {
-            if (response.error !== undefined) {
-                console.error('❌ OAuth error:', response);
-                showToast('Login Google gagal: ' + response.error, 'error');
-                return;
-            }
-            console.log('✅ OAuth token received');
-            isGoogleConnected = true;
-            updateConnectionStatus();
-            loadFolderCounts();
-        }
-    });
-    
-    gisInited = true;
-    console.log('✅ Google Identity Services initialized');
-    maybeEnableButtons();
-}
-
-// Enable buttons when both GAPI and GIS are ready
-function maybeEnableButtons() {
-    if (gapiInited && gisInited) {
-        console.log('✅ Both GAPI and GIS ready');
-        // Check if we have a stored token
-        const token = gapi.client.getToken();
-        if (token) {
-            isGoogleConnected = true;
-            updateConnectionStatus();
-            loadFolderCounts();
-        }
-    }
-}
-
-// Connect to Google Drive (OAuth login)
-function connectGoogleDrive() {
-    if (!tokenClient) {
-        showToast('Google Identity Services belum siap', 'error');
-        return;
-    }
-    
-    console.log('🔐 Requesting Google OAuth token...');
-    
-    // Check if we already have a token
-    if (gapi.client.getToken() === null) {
-        // Prompt user to sign in and consent
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else {
-        // Skip consent if already authorized before
-        tokenClient.requestAccessToken({ prompt: '' });
-    }
-}
-
-// Update connection status in UI
-function updateConnectionStatus() {
-    const alertEl = document.getElementById('driveAlert');
-    const connectBtn = document.getElementById('connectBtn');
-    
-    if (isGoogleConnected && alertEl) {
-        // Change alert style to connected
-        alertEl.className = 'google-drive-connected';
-        alertEl.innerHTML = `
-            <i class="fas fa-check-circle alert-icon"></i>
-            <div class="alert-content">
-                <h3>Terhubung ke Google Drive</h3>
-                <p>Anda dapat Upload, Edit, dan Hapus file</p>
-            </div>
-            <button class="btn-connected" disabled>
-                <i class="fas fa-check"></i> Terhubung
-            </button>
-        `;
-        showToast('Terhubung ke Google Drive - CRUD aktif', 'success');
-    }
-}
-
-// Check if connected with write access
-function isConnected() {
-    return isGoogleConnected && gapi.client.getToken() !== null;
 }
 
 // Render folder grid
 function renderFolderGrid() {
-    const grid = document.getElementById('folderGrid');
-    grid.innerHTML = MASTER_FOLDERS.map((folder, index) => `
-        <div class="folder-card" onclick="selectFolder('${folder.name}')" id="folder-${index}">
-            <i class="fas ${folder.icon} folder-icon" style="color: ${folder.color}"></i>
-            <h3>${folder.name}</h3>
-            <span class="file-count" id="count-${index}">- file</span>
-        </div>
-    `).join('');
+    var grid = document.getElementById('folderGrid');
+    var html = '';
+    for (var i = 0; i < MASTER_FOLDERS.length; i++) {
+        var folder = MASTER_FOLDERS[i];
+        html += '<div class="folder-card" onclick="selectFolder(' + i + ')" id="folder-' + i + '">' +
+            '<i class="fas ' + folder.icon + ' folder-icon" style="color: ' + folder.color + '"></i>' +
+            '<h3>' + folder.name + '</h3>' +
+            '<span class="file-count" id="count-' + i + '">- file</span></div>';
+    }
+    grid.innerHTML = html;
 }
 
-// Load folder file counts
-async function loadFolderCounts() {
-    console.log('📂 Loading folder file counts...');
-    
-    for (let i = 0; i < MASTER_FOLDERS.length; i++) {
-        const folder = MASTER_FOLDERS[i];
+// Load all folder counts
+async function loadAllFolderCounts() {
+    console.log('Loading folder file counts...');
+    for (var i = 0; i < MASTER_FOLDERS.length; i++) {
+        var folder = MASTER_FOLDERS[i];
         try {
-            const folderId = await getFolderId(folder.name);
-            if (folderId) {
-                const files = await getFilesInFolder(folderId);
-                document.getElementById(`count-${i}`).textContent = `${files.length} file`;
-                folderCache[folder.name] = { id: folderId, files: files };
+            var result = await callAppsScript('listMasterFiles', {
+                folderName: folder.folderName || folder.name,
+                subfolder: folder.subfolder || null
+            });
+            if (result.success) {
+                document.getElementById('count-' + i).textContent = result.count + ' file';
+                folderCache[folder.name] = result.files;
             } else {
-                document.getElementById(`count-${i}`).textContent = 'Folder tidak ditemukan';
+                document.getElementById('count-' + i).textContent = 'Error';
             }
         } catch (error) {
-            console.error(`Error loading ${folder.name}:`, error);
-            document.getElementById(`count-${i}`).textContent = 'Error';
+            document.getElementById('count-' + i).textContent = 'Error';
         }
     }
-    
-    console.log('✅ Folder counts loaded');
-}
-
-// Get folder ID - uses hardcoded IDs from MASTER_FOLDERS config
-async function getFolderId(folderName) {
-    try {
-        // Find folder config in MASTER_FOLDERS
-        const folderConfig = MASTER_FOLDERS.find(f => f.name === folderName);
-        
-        if (!folderConfig) {
-            console.warn(`⚠️ Folder config not found for "${folderName}"`);
-            return null;
-        }
-        
-        let folderId = folderConfig.folderId;
-        
-        // If folder has a subfolder (e.g., Kode Karton -> Depan or Belakang)
-        if (folderConfig.subfolder) {
-            try {
-                const response = await gapi.client.drive.files.list({
-                    q: `'${folderId}' in parents and name='${folderConfig.subfolder}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                    fields: 'files(id, name)',
-                    pageSize: 1
-                });
-                
-                if (response.result.files && response.result.files.length > 0) {
-                    folderId = response.result.files[0].id;
-                    // Subfolder found - ID hidden for security
-                } else {
-                    console.warn(`⚠️ Subfolder "${folderConfig.subfolder}" not found, using parent folder`);
-                    // Fall back to parent folder
-                }
-            } catch (err) {
-                console.warn(`⚠️ Error searching subfolder "${folderConfig.subfolder}":`, err.message);
-            }
-        }
-        
-        // Folder ID hidden for security
-        return folderId;
-    } catch (error) {
-        console.error('❌ Error getting folder ID:', error);
-    }
-    return null;
-}
-
-// Get files in folder
-async function getFilesInFolder(folderId) {
-    try {
-        const response = await gapi.client.drive.files.list({
-            q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image/')`,
-            fields: 'files(id, name, thumbnailLink, webViewLink, createdTime, modifiedTime)',
-            pageSize: 500,
-            orderBy: 'name'
-        });
-        
-        return response.result.files || [];
-    } catch (error) {
-        console.error('Error getting files:', error);
-        return [];
-    }
+    console.log('Folder counts loaded');
 }
 
 // Select folder
-async function selectFolder(folderName) {
-    // For read operations, we can use API key
-    // For write operations, we need OAuth
-    if (!gapiInited) {
-        showToast('Google API belum siap, coba lagi...', 'warning');
-        return;
-    }
-    
+async function selectFolder(index) {
+    var folder = MASTER_FOLDERS[index];
     showLoading('Memuat file...');
-    
-    // Update UI
-    document.querySelectorAll('.folder-card').forEach(card => card.classList.remove('active'));
-    const folderIndex = MASTER_FOLDERS.findIndex(f => f.name === folderName);
-    if (folderIndex >= 0) {
-        document.getElementById(`folder-${folderIndex}`).classList.add('active');
-    }
-    
-    currentFolder = folderName;
-    document.getElementById('currentFolderName').textContent = folderName;
-    
+    var cards = document.querySelectorAll('.folder-card');
+    for (var c = 0; c < cards.length; c++) cards[c].classList.remove('active');
+    document.getElementById('folder-' + index).classList.add('active');
+    currentFolder = folder.name;
+    currentFolderConfig = folder;
+    document.getElementById('currentFolderName').textContent = folder.name;
     try {
-        // Use cache if available
-        if (folderCache[folderName]) {
-            currentFolderId = folderCache[folderName].id;
-            currentFiles = folderCache[folderName].files;
+        if (folderCache[folder.name]) {
+            currentFiles = folderCache[folder.name];
         } else {
-            currentFolderId = await getFolderId(folderName);
-            if (currentFolderId) {
-                currentFiles = await getFilesInFolder(currentFolderId);
-                folderCache[folderName] = { id: currentFolderId, files: currentFiles };
+            var result = await callAppsScript('listMasterFiles', {
+                folderName: folder.folderName || folder.name,
+                subfolder: folder.subfolder || null
+            });
+            if (result.success) {
+                currentFiles = result.files;
+                folderCache[folder.name] = currentFiles;
             } else {
                 currentFiles = [];
+                showToast('Error: ' + result.error, 'error');
             }
         }
-        
         renderFiles();
         document.getElementById('filesSection').classList.add('active');
     } catch (error) {
         showToast('Error: ' + error.message, 'error');
     }
-    
     hideLoading();
 }
 
 // Render files
 function renderFiles() {
-    const grid = document.getElementById('filesGrid');
-    const searchTerm = document.getElementById('searchFiles').value.toLowerCase();
-    
-    const filteredFiles = currentFiles.filter(file => 
-        file.name.toLowerCase().includes(searchTerm)
-    );
-    
+    var grid = document.getElementById('filesGrid');
+    var searchTerm = document.getElementById('searchFiles').value.toLowerCase();
+    var filteredFiles = [];
+    for (var f = 0; f < currentFiles.length; f++) {
+        if (currentFiles[f].name.toLowerCase().indexOf(searchTerm) >= 0) {
+            filteredFiles.push(currentFiles[f]);
+        }
+    }
     if (filteredFiles.length === 0) {
-        grid.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-folder-open"></i>
-                <h3>${searchTerm ? 'Tidak ada file yang cocok' : 'Folder kosong'}</h3>
-                <p>${searchTerm ? 'Coba kata kunci lain' : 'Klik "Tambah File" untuk menambahkan foto'}</p>
-            </div>
-        `;
+        grid.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i>' +
+            '<h3>' + (searchTerm ? 'Tidak ada file yang cocok' : 'Folder kosong') + '</h3>' +
+            '<p>' + (searchTerm ? 'Coba kata kunci lain' : 'Klik Tambah File untuk menambahkan foto') + '</p></div>';
         return;
     }
-    
-    grid.innerHTML = filteredFiles.map(file => {
-        const fileName = file.name.replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '');
-        
-        return `
-            <div class="file-card">
-                <div class="file-icon">
-                    <i class="fas fa-file-image"></i>
-                </div>
-                <div class="file-info">
-                    <div class="file-name" title="${file.name}">${fileName}</div>
-                </div>
-                <div class="file-actions">
-                    <button class="btn-view" onclick="viewFile('${file.id}', '${file.name}')" title="Lihat">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn-edit" onclick="editFile('${file.id}', '${file.name}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-delete" onclick="deleteFile('${file.id}', '${file.name}')" title="Hapus">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
+    var html = '';
+    for (var i = 0; i < filteredFiles.length; i++) {
+        var file = filteredFiles[i];
+        var fileName = file.name.replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '');
+        var escapedName = file.name.replace(/'/g, "\\'");
+        html += '<div class="file-card"><div class="file-icon"><i class="fas fa-file-image"></i></div>' +
+            '<div class="file-info"><div class="file-name" title="' + file.name + '">' + fileName + '</div></div>' +
+            '<div class="file-actions">' +
+            '<button class="btn-view" onclick="viewFile(\'' + file.id + '\', \'' + escapedName + '\')" title="Lihat"><i class="fas fa-eye"></i></button>' +
+            '<button class="btn-edit" onclick="editFile(\'' + file.id + '\', \'' + escapedName + '\')" title="Edit"><i class="fas fa-edit"></i></button>' +
+            '<button class="btn-delete" onclick="deleteFile(\'' + file.id + '\', \'' + escapedName + '\')" title="Hapus"><i class="fas fa-trash"></i></button>' +
+            '</div></div>';
+    }
+    grid.innerHTML = html;
 }
 
-// Filter files
-function filterFiles() {
-    renderFiles();
-}
+function filterFiles() { renderFiles(); }
 
-// View file
 function viewFile(fileId, fileName) {
-    const imageUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+    var imageUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
     document.getElementById('viewModalTitle').textContent = fileName;
     document.getElementById('viewModalImage').src = imageUrl;
     document.getElementById('viewModal').classList.add('active');
 }
 
-// Close view modal
 function closeViewModal() {
     document.getElementById('viewModal').classList.remove('active');
 }
 
-// Open add modal
 function openAddModal() {
-    // Check if connected with write access
-    if (!isConnected()) {
-        showToast('Login Google Drive dulu untuk menambah file', 'warning');
-        connectGoogleDrive();
-        return;
-    }
-    
     editingFile = null;
     selectedImageData = null;
     document.getElementById('modalTitle').textContent = 'Tambah File Baru';
     document.getElementById('fileName').value = '';
-    document.getElementById('previewArea').innerHTML = `
-        <i class="fas fa-cloud-upload-alt"></i>
-        <p>Klik untuk upload atau ambil foto</p>
-    `;
+    document.getElementById('previewArea').innerHTML = '<i class="fas fa-cloud-upload-alt"></i><p>Klik untuk upload atau ambil foto</p>';
     document.getElementById('editModal').classList.add('active');
 }
 
-// Edit file
 function editFile(fileId, fileName) {
-    // Check if connected with write access
-    if (!isConnected()) {
-        showToast('Login Google Drive dulu untuk edit file', 'warning');
-        connectGoogleDrive();
-        return;
-    }
-    
     editingFile = { id: fileId, name: fileName };
     selectedImageData = null;
-    
-    const baseName = fileName.replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '');
-    const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
-    
+    var baseName = fileName.replace(/\.(jpg|jpeg|png|gif|webp|bmp)$/i, '');
+    var thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400';
     document.getElementById('modalTitle').textContent = 'Edit File';
     document.getElementById('fileName').value = baseName;
-    document.getElementById('previewArea').innerHTML = `<img src="${thumbnailUrl}" alt="${fileName}">`;
+    document.getElementById('previewArea').innerHTML = '<img src="' + thumbnailUrl + '" alt="' + fileName + '">';
     document.getElementById('editModal').classList.add('active');
 }
 
-// Close modal
 function closeModal() {
     document.getElementById('editModal').classList.remove('active');
     editingFile = null;
     selectedImageData = null;
 }
 
-// Handle file select
 function handleFileSelect(event) {
-    const file = event.target.files[0];
+    var file = event.target.files[0];
     if (!file) return;
-    
     if (!file.type.startsWith('image/')) {
         showToast('Pilih file gambar', 'error');
         return;
     }
-    
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function(e) {
         selectedImageData = e.target.result;
-        document.getElementById('previewArea').innerHTML = `<img src="${selectedImageData}" alt="Preview">`;
+        document.getElementById('previewArea').innerHTML = '<img src="' + selectedImageData + '" alt="Preview">';
     };
     reader.readAsDataURL(file);
 }
 
-// =====================================================
-// Camera functionality using getUserMedia API
-// =====================================================
-let cameraStream = null;
-let currentFacingMode = 'environment'; // 'environment' = back camera, 'user' = front camera
+// Camera
+var cameraStream = null;
+var currentFacingMode = 'environment';
 
-// Open camera with live video feed
 function openCamera() {
-    const cameraModal = document.getElementById('cameraModal');
-    if (!cameraModal) {
-        // Fallback if camera modal doesn't exist
+    var cameraModal = document.getElementById('cameraModal');
+    if (!cameraModal || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         openCameraFallback();
         return;
     }
-    
-    // Check if getUserMedia is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.warn('getUserMedia not supported, using fallback');
-        openCameraFallback();
-        return;
-    }
-    
     cameraModal.classList.add('active');
     startCamera(currentFacingMode);
 }
 
-// Start camera stream
 async function startCamera(facingMode) {
-    const video = document.getElementById('cameraVideo');
-    
-    // Stop any existing stream first
+    var video = document.getElementById('cameraVideo');
     stopCameraStream();
-    
     try {
-        const constraints = {
-            video: {
-                facingMode: facingMode,
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
             audio: false
-        };
-        
-        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        });
         video.srcObject = cameraStream;
         await video.play();
-        console.log('✅ Camera started with facingMode:', facingMode);
     } catch (error) {
-        console.error('❌ Camera error:', error);
-        
-        // Try without facingMode constraint
         try {
-            cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                video: true, 
-                audio: false 
-            });
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             video.srcObject = cameraStream;
             await video.play();
-            console.log('✅ Camera started (without facingMode)');
-        } catch (fallbackError) {
-            console.error('❌ Camera fallback error:', fallbackError);
-            showCameraError(fallbackError);
+        } catch (e) {
+            showCameraError(e);
         }
     }
 }
 
-// Show camera error in the modal
 function showCameraError(error) {
-    const video = document.getElementById('cameraVideo');
-    const container = video.parentElement;
-    
-    let errorMsg = 'Tidak dapat mengakses kamera.';
-    if (error.name === 'NotAllowedError') {
-        errorMsg = 'Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser Anda.';
-    } else if (error.name === 'NotFoundError') {
-        errorMsg = 'Kamera tidak ditemukan pada perangkat ini.';
-    } else if (error.name === 'NotReadableError') {
-        errorMsg = 'Kamera sedang digunakan oleh aplikasi lain.';
-    } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        errorMsg = 'Kamera memerlukan koneksi HTTPS.';
-    }
-    
-    // Create error display inside camera container
-    const errorDiv = document.createElement('div');
+    var video = document.getElementById('cameraVideo');
+    var errorMsg = 'Tidak dapat mengakses kamera.';
+    if (error.name === 'NotAllowedError') errorMsg = 'Izin kamera ditolak.';
+    else if (error.name === 'NotFoundError') errorMsg = 'Kamera tidak ditemukan.';
+    var errorDiv = document.createElement('div');
     errorDiv.className = 'camera-error';
     errorDiv.id = 'cameraErrorDiv';
-    errorDiv.innerHTML = `
-        <i class="fas fa-video-slash"></i>
-        <h4>${errorMsg}</h4>
-        <p>Anda dapat menggunakan upload foto sebagai alternatif.</p>
-        <button class="btn-fallback" onclick="closeCameraAndUpload()">
-            <i class="fas fa-upload"></i> Upload Foto
-        </button>
-    `;
-    
+    errorDiv.innerHTML = '<i class="fas fa-video-slash"></i><h4>' + errorMsg + '</h4>' +
+        '<button class="btn-fallback" onclick="closeCameraAndUpload()"><i class="fas fa-upload"></i> Upload Foto</button>';
     video.style.display = 'none';
-    // Remove existing error div if any
-    const existing = document.getElementById('cameraErrorDiv');
+    var existing = document.getElementById('cameraErrorDiv');
     if (existing) existing.remove();
-    container.insertBefore(errorDiv, container.querySelector('.camera-controls'));
-    
-    // Hide controls since camera isn't working
-    const controls = container.querySelector('.camera-controls');
-    if (controls) controls.style.display = 'none';
+    video.parentElement.insertBefore(errorDiv, video.parentElement.querySelector('.camera-controls'));
 }
 
-// Switch between front and back camera
-async function switchCamera() {
+function switchCamera() {
     currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    await startCamera(currentFacingMode);
+    startCamera(currentFacingMode);
 }
 
-// Capture photo from video
 function capturePhoto() {
-    const video = document.getElementById('cameraVideo');
-    const canvas = document.getElementById('cameraCanvas');
-    
+    var video = document.getElementById('cameraVideo');
+    var canvas = document.getElementById('cameraCanvas');
     if (!video.srcObject || video.readyState < 2) {
         showToast('Kamera belum siap', 'error');
         return;
     }
-    
-    // Set canvas size to video dimensions
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Convert to data URL
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
     selectedImageData = canvas.toDataURL('image/jpeg', 0.85);
-    
-    // Show preview in the edit modal
-    document.getElementById('previewArea').innerHTML = `<img src="${selectedImageData}" alt="Preview" style="max-width:100%; border-radius:8px;">`;
-    
-    // Close camera
+    document.getElementById('previewArea').innerHTML = '<img src="' + selectedImageData + '" alt="Preview">';
     closeCamera();
     showToast('Foto berhasil diambil', 'success');
 }
 
-// Close camera and cleanup
 function closeCamera() {
     stopCameraStream();
-    
-    const cameraModal = document.getElementById('cameraModal');
-    if (cameraModal) {
-        cameraModal.classList.remove('active');
-    }
-    
-    // Reset video and remove error display
-    const video = document.getElementById('cameraVideo');
-    if (video) {
-        video.style.display = 'block';
-    }
-    const errorDiv = document.getElementById('cameraErrorDiv');
+    var cameraModal = document.getElementById('cameraModal');
+    if (cameraModal) cameraModal.classList.remove('active');
+    var video = document.getElementById('cameraVideo');
+    if (video) video.style.display = 'block';
+    var errorDiv = document.getElementById('cameraErrorDiv');
     if (errorDiv) errorDiv.remove();
-    
-    // Show controls again
-    const controls = document.querySelector('.camera-controls');
-    if (controls) controls.style.display = 'flex';
 }
 
-// Stop camera stream
 function stopCameraStream() {
     if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
+        var tracks = cameraStream.getTracks();
+        for (var t = 0; t < tracks.length; t++) tracks[t].stop();
         cameraStream = null;
-    }
-    const video = document.getElementById('cameraVideo');
-    if (video) {
-        video.srcObject = null;
     }
 }
 
-// Close camera and open file upload instead
 function closeCameraAndUpload() {
     closeCamera();
     document.getElementById('fileInput').click();
 }
 
-// Fallback for browsers that don't support getUserMedia
 function openCameraFallback() {
-    const input = document.createElement('input');
+    var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.capture = 'environment';
@@ -670,196 +366,117 @@ function openCameraFallback() {
     input.click();
 }
 
-// Save file
+// CRUD Operations
 async function saveFile() {
-    const fileName = document.getElementById('fileName').value.trim();
-    
-    if (!fileName) {
-        showToast('Masukkan nama file', 'error');
-        return;
-    }
-    
-    if (!selectedImageData && !editingFile) {
-        showToast('Pilih gambar terlebih dahulu', 'error');
-        return;
-    }
-    
+    var fileName = document.getElementById('fileName').value.trim();
+    if (!fileName) { showToast('Masukkan nama file', 'error'); return; }
+    if (!selectedImageData && !editingFile) { showToast('Pilih gambar terlebih dahulu', 'error'); return; }
     showLoading('Menyimpan...');
-    
     try {
         if (editingFile) {
-            // Update existing file
             if (selectedImageData) {
-                // Delete old file and upload new one
-                await deleteFileFromDrive(editingFile.id);
-                await uploadFileToDrive(fileName, selectedImageData);
+                await callAppsScript('deleteMasterFile', { fileId: editingFile.id });
+                await uploadNewFile(fileName);
             } else {
-                // Just rename
-                await renameFile(editingFile.id, fileName);
+                var result = await callAppsScript('renameMasterFile', { fileId: editingFile.id, newName: fileName });
+                if (!result.success) throw new Error(result.error || 'Rename failed');
             }
             showToast('File berhasil diupdate', 'success');
         } else {
-            // Upload new file
-            await uploadFileToDrive(fileName, selectedImageData);
+            await uploadNewFile(fileName);
             showToast('File berhasil ditambahkan', 'success');
         }
-        
-        // Refresh folder
         closeModal();
         await refreshCurrentFolder();
-        
     } catch (error) {
         showToast('Error: ' + error.message, 'error');
     }
-    
     hideLoading();
 }
 
-// Upload file to Drive
-async function uploadFileToDrive(fileName, imageData) {
-    // Convert base64 to blob
-    const base64Data = imageData.split(',')[1];
-    const mimeType = imageData.split(';')[0].split(':')[1];
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
-    
-    // Determine extension
-    const ext = mimeType === 'image/png' ? '.png' : '.jpg';
-    const fullFileName = fileName + ext;
-    
-    // Create form data
-    const metadata = {
-        name: fullFileName,
-        parents: [currentFolderId]
-    };
-    
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', blob);
-    
-    // Upload
-    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + gapi.client.getToken().access_token
-        },
-        body: form
+async function uploadNewFile(fileName) {
+    var mimeType = selectedImageData.split(';')[0].split(':')[1];
+    var result = await callAppsScript('uploadMasterFile', {
+        photo: selectedImageData,
+        fileName: fileName,
+        folderName: currentFolderConfig.folderName || currentFolder,
+        subfolder: currentFolderConfig.subfolder || null,
+        mimeType: mimeType
     });
-    
-    if (!response.ok) {
-        throw new Error('Upload failed');
-    }
-    
-    return await response.json();
+    if (!result.success) throw new Error(result.error || 'Upload failed');
+    return result;
 }
 
-// Rename file
-async function renameFile(fileId, newName) {
-    // Get current file to preserve extension
-    const currentFile = currentFiles.find(f => f.id === fileId);
-    const ext = currentFile ? currentFile.name.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)?.[0] || '.jpg' : '.jpg';
-    const fullName = newName + ext;
-    
-    await gapi.client.drive.files.update({
-        fileId: fileId,
-        resource: { name: fullName }
-    });
-}
-
-// Delete file
 function deleteFile(fileId, fileName) {
-    // Check if connected with write access
-    if (!isConnected()) {
-        showToast('Login Google Drive dulu untuk hapus file', 'warning');
-        connectGoogleDrive();
-        return;
-    }
-    
     editingFile = { id: fileId, name: fileName };
     document.getElementById('deleteFileName').textContent = fileName;
     document.getElementById('deleteModal').classList.add('active');
 }
 
-// Close delete modal
 function closeDeleteModal() {
     document.getElementById('deleteModal').classList.remove('active');
     editingFile = null;
 }
 
-// Confirm delete
 async function confirmDelete() {
     if (!editingFile) return;
-    
-    // Save reference before closing modal (closeDeleteModal sets editingFile = null)
-    const fileToDelete = { ...editingFile };
-    
+    var fileToDelete = { id: editingFile.id, name: editingFile.name };
     showLoading('Menghapus...');
     closeDeleteModal();
-    
     try {
-        await deleteFileFromDrive(fileToDelete.id);
-        showToast(`File "${fileToDelete.name}" berhasil dihapus`, 'success');
-        await refreshCurrentFolder();
+        var result = await callAppsScript('deleteMasterFile', { fileId: fileToDelete.id });
+        if (result.success) {
+            showToast('File berhasil dihapus', 'success');
+            await refreshCurrentFolder();
+        } else throw new Error(result.error || 'Delete failed');
     } catch (error) {
         showToast('Error: ' + error.message, 'error');
     }
-    
     hideLoading();
 }
 
-// Delete file from Drive
-async function deleteFileFromDrive(fileId) {
-    await gapi.client.drive.files.delete({ fileId: fileId });
-}
-
-// Refresh current folder
 async function refreshCurrentFolder() {
-    if (!currentFolder || !currentFolderId) return;
-    
-    currentFiles = await getFilesInFolder(currentFolderId);
-    folderCache[currentFolder] = { id: currentFolderId, files: currentFiles };
-    
-    // Update count
-    const folderIndex = MASTER_FOLDERS.findIndex(f => f.name === currentFolder);
-    if (folderIndex >= 0) {
-        document.getElementById(`count-${folderIndex}`).textContent = `${currentFiles.length} file`;
-    }
-    
-    renderFiles();
+    if (!currentFolder || !currentFolderConfig) return;
+    try {
+        var result = await callAppsScript('listMasterFiles', {
+            folderName: currentFolderConfig.folderName || currentFolder,
+            subfolder: currentFolderConfig.subfolder || null
+        });
+        if (result.success) {
+            currentFiles = result.files;
+            folderCache[currentFolder] = currentFiles;
+            for (var i = 0; i < MASTER_FOLDERS.length; i++) {
+                if (MASTER_FOLDERS[i].name === currentFolder) {
+                    document.getElementById('count-' + i).textContent = currentFiles.length + ' file';
+                    break;
+                }
+            }
+            renderFiles();
+        }
+    } catch (error) { console.error('Refresh error:', error); }
 }
 
-// Show loading
+// UI Helpers
 function showLoading(text) {
     document.getElementById('loadingText').textContent = text || 'Memuat...';
     document.getElementById('loadingOverlay').classList.add('active');
 }
 
-// Hide loading
 function hideLoading() {
     document.getElementById('loadingOverlay').classList.remove('active');
 }
 
-// Show toast
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        ${message}
-    `;
+function showToast(message, type) {
+    type = type || 'info';
+    var container = document.getElementById('toast-container');
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    var icon = type === 'success' ? 'check-circle' : (type === 'error' ? 'exclamation-circle' : 'info-circle');
+    toast.innerHTML = '<i class="fas fa-' + icon + '"></i> ' + message;
     container.appendChild(toast);
-    
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
+    setTimeout(function() { toast.classList.add('show'); }, 10);
+    setTimeout(function() {
         toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(function() { toast.remove(); }, 300);
     }, 3000);
 }
-
-console.log('✅ Edit Master module loaded (v2.0 - OAuth CRUD)');
