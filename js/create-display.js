@@ -621,7 +621,7 @@ function saveTemporary() {
     // Get updated fields checkboxes
     const updatedFields = [];
     const updateCheckboxes = ['update_bumbu', 'update_mbumbu', 'update_si', 'update_kartonDepan', 
-                              'update_kartonBelakang', 'update_etiket', 'update_etiketBanded', 'update_plakban'];
+                              'update_kartonBelakang', 'update_etiket', 'update_etiketBanded', 'update_plakban', 'update_kodeProduksi'];
     updateCheckboxes.forEach(id => {
         const checkbox = document.getElementById(id);
         if (checkbox && checkbox.checked) {
