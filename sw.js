@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.26.0 - Add Kode Produksi inputs, Data Update checklist, enhanced validation popups
+// Version 2.27.0 - Auto-connect Google Drive on edit-master page, remove status header
 
-const CACHE_NAME = 'mds-track-v2.38.0';
+const CACHE_NAME = 'mds-track-v2.39.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

@@ -30,11 +30,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     checkMasterEditorPermission();
     renderFolderGrid();
     
-    // Wait for Google API to be ready, then auto-connect
-    await initGoogleAPI();
-    
-    // Check if already connected from records page
-    checkExistingConnection();
+    // Auto-connect using API key (read-only) - no user OAuth needed
+    await initGoogleAPIReadOnly();
 });
 
 // Check authentication
@@ -88,8 +85,10 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// Initialize Google API
-async function initGoogleAPI() {
+// Initialize Google API with API Key only (read-only, no user OAuth)
+async function initGoogleAPIReadOnly() {
+    console.log('📁 Initializing Google Drive connection (API Key - Read Only)...');
+    
     return new Promise((resolve) => {
         if (typeof gapi !== 'undefined') {
             gapi.load('client', async () => {
@@ -98,140 +97,32 @@ async function initGoogleAPI() {
                         apiKey: CONFIG.GOOGLE_API_KEY,
                         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                     });
-                    console.log('✅ Google API initialized');
+                    console.log('✅ Google API (read-only) initialized successfully');
+                    
+                    // Auto-load folder counts
+                    await loadFolderCounts();
+                    
                     resolve(true);
                 } catch (error) {
                     console.error('❌ Error initializing Google API:', error);
-                    updateDriveStatus(false);
                     resolve(false);
                 }
             });
         } else {
             console.error('❌ Google API not loaded');
-            updateDriveStatus(false);
             resolve(false);
         }
     });
 }
 
-// Check existing connection from records page
-function checkExistingConnection() {
-    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-    
-    // Check if scope changed (force re-auth)
-    const savedScope = localStorage.getItem('validDisplay_driveScope');
-    if (token && savedScope !== CONFIG.SCOPES) {
-        console.warn('⚠️ Drive scope changed! Clearing old token for re-auth');
-        console.warn('   Old scope:', savedScope);
-        console.warn('   New scope:', CONFIG.SCOPES);
-        localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-        localStorage.removeItem('validDisplay_driveScope');
-        updateDriveStatus(false);
-        return;
-    }
-    
-    if (token) {
-        console.log('🔍 Found existing Google token from records page');
-        gapi.client.setToken({ access_token: token });
-        
-        // Verify token is still valid
-        gapi.client.drive.about.get({ fields: 'user' })
-            .then(() => {
-                console.log('✅ Token is valid, auto-connected to Google Drive');
-                updateDriveStatus(true);
-                loadFolderCounts();
-            })
-            .catch((error) => {
-                console.log('❌ Token expired or invalid:', error.message);
-                localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-                updateDriveStatus(false);
-            });
-    } else {
-        console.log('ℹ️ No existing Google token found');
-        updateDriveStatus(false);
-    }
+// Legacy function - keep for backward compatibility
+async function initGoogleAPI() {
+    return initGoogleAPIReadOnly();
 }
 
-// Auto-connect to Google Drive if token exists
-async function autoConnectGoogleDrive() {
-    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-    
-    if (token) {
-        console.log('Found existing token, auto-connecting...');
-        gapi.client.setToken({ access_token: token });
-        
-        // Verify token is still valid by making a simple API call
-        try {
-            await gapi.client.drive.about.get({ fields: 'user' });
-            console.log('Token is valid, connected to Google Drive');
-            updateDriveStatus(true);
-            loadFolderCounts();
-        } catch (error) {
-            console.log('Token expired or invalid, need to re-authenticate');
-            localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-            updateDriveStatus(false);
-        }
-    } else {
-        console.log('No token found');
-        updateDriveStatus(false);
-    }
-}
-
-// Check Google Drive connection
-function checkDriveConnection() {
-    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-    if (token) {
-        gapi.client.setToken({ access_token: token });
-        updateDriveStatus(true);
-        loadFolderCounts();
-    } else {
-        updateDriveStatus(false);
-    }
-}
-
-// Connect to Google Drive
-async function connectGoogleDrive() {
-    showLoading('Menghubungkan ke Google Drive...');
-    
-    try {
-        const tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CONFIG.GOOGLE_CLIENT_ID,
-            scope: CONFIG.SCOPES,
-            callback: async (response) => {
-                if (response.access_token) {
-                    localStorage.setItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN, response.access_token);
-                    localStorage.setItem('validDisplay_driveScope', CONFIG.SCOPES);
-                    gapi.client.setToken({ access_token: response.access_token });
-                    updateDriveStatus(true);
-                    await loadFolderCounts();
-                    hideLoading();
-                    showToast('Berhasil terhubung ke Google Drive', 'success');
-                }
-            },
-            error_callback: (error) => {
-                hideLoading();
-                showToast('Gagal menghubungkan: ' + error.message, 'error');
-            }
-        });
-        tokenClient.requestAccessToken();
-    } catch (error) {
-        hideLoading();
-        showToast('Error: ' + error.message, 'error');
-    }
-}
-
-// Update drive status UI
-function updateDriveStatus(connected) {
-    const alertDiv = document.getElementById('googleDriveAlert');
-    const connectedDiv = document.getElementById('googleDriveConnected');
-    
-    if (connected) {
-        alertDiv.style.display = 'none';
-        connectedDiv.style.display = 'flex';
-    } else {
-        alertDiv.style.display = 'flex';
-        connectedDiv.style.display = 'none';
-    }
+// Check if connected - with API key, always connected for read
+function isConnected() {
+    return gapi.client !== undefined;
 }
 
 // Render folder grid
@@ -248,7 +139,7 @@ function renderFolderGrid() {
 
 // Load folder file counts
 async function loadFolderCounts() {
-    if (!isConnected()) return;
+    console.log('📂 Loading folder file counts...');
     
     for (let i = 0; i < MASTER_FOLDERS.length; i++) {
         const folder = MASTER_FOLDERS[i];
@@ -266,6 +157,8 @@ async function loadFolderCounts() {
             document.getElementById(`count-${i}`).textContent = 'Error';
         }
     }
+    
+    console.log('✅ Folder counts loaded');
 }
 
 // Check if connected
