@@ -1487,7 +1487,7 @@ function openValidationPopup(recordId) {
     // Set record info
     document.getElementById('validationRecordInfo').innerHTML = `
         <strong>${escapeHtml(record.flavor)}</strong> - ${escapeHtml(record.negara)}<br>
-        <small>Tanggal: ${formatDate(record.tanggal)}</small>
+        <small>Tanggal Update: ${formatDate(record.updatedAt || record.tanggal)}</small>
     `;
     
     document.getElementById('validationRecordId').value = recordId;
