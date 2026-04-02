@@ -255,7 +255,7 @@ async function getFolderIdFromConfig(dropdownKey) {
     const folderConfig = PHOTO_FOLDER_MAP[dropdownKey];
     const folderId = folderConfig.folderId;
     
-    console.log(`✅ Using folder ID for "${folderConfig.displayName}": ${folderId}`);
+    // Folder ID hidden for security
     return folderId;
 }
 
@@ -277,10 +277,10 @@ async function getSubfolderId(parentFolderId, subfolderName) {
         if (response.result.files && response.result.files.length > 0) {
             const subFolderId = response.result.files[0].id;
             subfolderIdCache[cacheKey] = subFolderId;
-            console.log(`✅ Found subfolder "${subfolderName}" with ID: ${subFolderId}`);
+            // Subfolder ID hidden for security
             return subFolderId;
         } else {
-            console.warn(`⚠️ Subfolder "${subfolderName}" not found in parent folder`);
+            console.warn(`⚠️ Subfolder "${subfolderName}" not found`);
             return null;
         }
     } catch (err) {
@@ -305,7 +305,7 @@ async function loadDropdown(dropdownId, folderConfig) {
             const subFolderId = await getSubfolderId(folderId, folderConfig.subfolder);
             if (subFolderId) {
                 folderId = subFolderId;
-                console.log(`✅ Using subfolder "${folderConfig.subfolder}": ${folderId}`);
+                // Subfolder found
             } else {
                 console.warn(`⚠️ Subfolder "${folderConfig.subfolder}" not found`);
                 // Try to use parent folder anyway

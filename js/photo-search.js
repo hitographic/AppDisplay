@@ -15,11 +15,11 @@ async function getFolderIdByName(folderName) {
         });
         
         if (response.result.files && response.result.files.length > 0) {
-            console.log(`📁 Found folder "${folderName}" with ID: ${response.result.files[0].id}`);
+            // Folder found - ID hidden for security
             return response.result.files[0].id;
         }
     } catch (error) {
-        console.error('Error getting folder ID:', error);
+        console.error('Error getting folder:', error.message);
     }
     return null;
 }

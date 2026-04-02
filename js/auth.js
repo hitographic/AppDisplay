@@ -321,13 +321,11 @@ function debugSystemStatus() {
     console.log('Records in localStorage:', !!records);
     console.log('Number of records:', records ? JSON.parse(records).length : 0);
     
-    // Check Google Sheets config
-    console.log('Google Sheets Web App URL:', CONFIG.GOOGLE_SHEETS_WEBAPP_URL);
+    // Check Google Sheets config (URLs hidden for security)
     console.log('Web App configured:', CONFIG.GOOGLE_SHEETS_WEBAPP_URL && CONFIG.GOOGLE_SHEETS_WEBAPP_URL !== 'YOUR_WEBAPP_URL');
     
     // Check sheetsDB status
     console.log('SheetsDB configured:', sheetsDB?.isConfigured());
-    console.log('SheetsDB URL:', sheetsDB?.webAppUrl);
     
     // Check storage config
     console.log('Storage using Google Sheets:', storage?.useGoogleSheets);

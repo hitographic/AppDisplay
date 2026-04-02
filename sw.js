@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.28.0 - Fix duplicate isConnected function in edit-master.js
+// Version 2.29.0 - Hide sensitive IDs and URLs from console logs for security
 
-const CACHE_NAME = 'mds-track-v2.40.0';
+const CACHE_NAME = 'mds-track-v2.41.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

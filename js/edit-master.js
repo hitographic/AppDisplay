@@ -185,7 +185,7 @@ async function getFolderId(folderName) {
                 
                 if (response.result.files && response.result.files.length > 0) {
                     folderId = response.result.files[0].id;
-                    console.log(`✅ Found subfolder "${folderConfig.subfolder}" with ID: ${folderId}`);
+                    // Subfolder found - ID hidden for security
                 } else {
                     console.warn(`⚠️ Subfolder "${folderConfig.subfolder}" not found, using parent folder`);
                     // Fall back to parent folder
@@ -195,7 +195,7 @@ async function getFolderId(folderName) {
             }
         }
         
-        console.log(`✅ Using folder ID for "${folderName}": ${folderId}`);
+        // Folder ID hidden for security
         return folderId;
     } catch (error) {
         console.error('❌ Error getting folder ID:', error);
