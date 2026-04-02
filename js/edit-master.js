@@ -161,11 +161,6 @@ async function loadFolderCounts() {
     console.log('✅ Folder counts loaded');
 }
 
-// Check if connected
-function isConnected() {
-    return gapi.client && gapi.client.getToken && gapi.client.getToken() !== null;
-}
-
 // Get folder ID - uses hardcoded IDs from MASTER_FOLDERS config
 async function getFolderId(folderName) {
     try {

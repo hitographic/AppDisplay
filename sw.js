@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.27.0 - Auto-connect Google Drive on edit-master page, remove status header
+// Version 2.28.0 - Fix duplicate isConnected function in edit-master.js
 
-const CACHE_NAME = 'mds-track-v2.39.0';
+const CACHE_NAME = 'mds-track-v2.40.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
