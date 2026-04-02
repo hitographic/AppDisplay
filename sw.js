@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.21.0 - Server-side photo upload via Apps Script (No Google OAuth)
+// Version 2.22.0 - Removed Google Drive status headers (auto-connected)
 
-const CACHE_NAME = 'mds-track-v2.33.0';
+const CACHE_NAME = 'mds-track-v2.34.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
