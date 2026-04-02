@@ -79,30 +79,78 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// Call Apps Script API
+// Call Apps Script API via iframe (to handle CORS)
 async function callAppsScript(action, data) {
-    var url = getAppsScriptUrl();
     data = data || {};
-    try {
-        var response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                action: action,
-                folderName: data.folderName,
-                subfolder: data.subfolder,
-                photo: data.photo,
-                fileName: data.fileName,
-                fileId: data.fileId,
-                newName: data.newName,
-                mimeType: data.mimeType
-            })
+    
+    return new Promise(function(resolve, reject) {
+        var callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        var timeoutId;
+        
+        // Listen for response via postMessage
+        function handleMessage(event) {
+            try {
+                var result = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (result && result.callbackName === callbackName) {
+                    window.removeEventListener('message', handleMessage);
+                    clearTimeout(timeoutId);
+                    
+                    // Remove iframe
+                    var iframe = document.getElementById('api-iframe-' + callbackName);
+                    if (iframe) iframe.remove();
+                    
+                    console.log('Apps Script response:', result);
+                    resolve(result);
+                }
+            } catch (e) {
+                // Ignore parse errors from other messages
+            }
+        }
+        
+        window.addEventListener('message', handleMessage);
+        
+        // Create form and iframe
+        var iframe = document.createElement('iframe');
+        iframe.id = 'api-iframe-' + callbackName;
+        iframe.name = 'api-iframe-' + callbackName;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = getAppsScriptUrl();
+        form.target = iframe.name;
+        form.style.display = 'none';
+        
+        // Add data as hidden field
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'data';
+        input.value = JSON.stringify({
+            action: action,
+            callback: callbackName,
+            folderName: data.folderName,
+            subfolder: data.subfolder,
+            photo: data.photo,
+            fileName: data.fileName,
+            fileId: data.fileId,
+            newName: data.newName,
+            mimeType: data.mimeType
         });
-        return await response.json();
-    } catch (error) {
-        console.error('Apps Script call error:', error);
-        throw error;
-    }
+        form.appendChild(input);
+        
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+        
+        // Timeout after 60 seconds (uploads can be slow)
+        timeoutId = setTimeout(function() {
+            window.removeEventListener('message', handleMessage);
+            var iframe = document.getElementById('api-iframe-' + callbackName);
+            if (iframe) iframe.remove();
+            reject(new Error('Request timeout'));
+        }, 60000);
+    });
 }
 
 // Render folder grid
