@@ -1,5 +1,5 @@
 // create-display.js - Simplified version with dropdown selection
-// Version 2.11 - Updated with hardcoded folder IDs for reliability
+// Version 3.0 - Server-side integration via Apps Script (No Google OAuth needed)
 
 // ✅ Mapping dropdown ID ke Folder ID (direct, no name search)
 // This eliminates need to search for folders by name
@@ -56,7 +56,7 @@ let tempData = null;
 document.addEventListener('DOMContentLoaded', async () => {
     loadUserName();
     loadTempData();
-    await initGoogleAPI();
+    await initGoogleDriveServer();
 });
 
 // Load temp data from records page
@@ -110,84 +110,84 @@ function prefillForm() {
     console.log('✅ Form prefilled with temp data');
 }
 
-// Initialize Google API
-async function initGoogleAPI() {
-    return new Promise((resolve) => {
-        gapi.load('client', async () => {
-            try {
-                await gapi.client.init({
-                    apiKey: CONFIG.GOOGLE_API_KEY,
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-                });
-                console.log('✅ Google API initialized');
-                await checkExistingConnection();
-                resolve(true);
-            } catch (error) {
-                console.error('Error initializing Google API:', error);
-                updateDriveStatus(false);
-                resolve(false);
-            }
+// Initialize Google Drive - Server-side via Apps Script (No user OAuth needed)
+async function initGoogleDriveServer() {
+    console.log('📁 Initializing Google Drive connection (Server-Side)...');
+    
+    // Google Drive sekarang dikelola oleh server (Apps Script) untuk UPLOAD
+    // Untuk MEMBACA list file, gunakan API key saja (public read-only)
+    updateDriveStatus(true);
+    
+    // Load file lists from Google Drive via API key (read-only)
+    // Upload akan menggunakan Apps Script (server-side)
+    await loadAllDropdownsViaAPIKey();
+}
+
+// Load dropdowns using API key (read-only, no user OAuth)
+async function loadAllDropdownsViaAPIKey() {
+    showLoading('Memuat data dari Google Drive...');
+    
+    try {
+        // Initialize gapi client with API key only (no user token needed)
+        await new Promise((resolve, reject) => {
+            gapi.load('client', async () => {
+                try {
+                    await gapi.client.init({
+                        apiKey: CONFIG.GOOGLE_API_KEY,
+                        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+                    });
+                    console.log('✅ Google API (read-only) initialized');
+                    resolve(true);
+                } catch (error) {
+                    console.error('Error initializing Google API:', error);
+                    reject(error);
+                }
+            });
         });
-    });
+        
+        // Load all dropdowns using hardcoded folder IDs
+        for (const [key, folderConfig] of Object.entries(PHOTO_FOLDER_MAP)) {
+            await loadDropdown(key, folderConfig);
+        }
+        
+        // After loading dropdowns, select existing photos if editing
+        if (isEditMode && tempData && tempData.photos) {
+            selectExistingPhotos();
+        }
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading dropdowns:', error);
+        showToast('Gagal memuat data dari Google Drive', 'error');
+        hideLoading();
+    }
 }
 
-// Check existing Google Drive connection from localStorage
+// Legacy function - for backwards compatibility
+async function initGoogleAPI() {
+    return initGoogleDriveServer();
+}
+
+// Check existing connection - sekarang selalu connected via server
 async function checkExistingConnection() {
-    try {
-        // Get token from localStorage - it's stored as plain string (access_token only)
-        const accessToken = localStorage.getItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-        
-        if (accessToken) {
-            const isValid = await validateToken(accessToken);
-            
-            if (isValid) {
-                // Set token as object for gapi.client
-                gapi.client.setToken({ access_token: accessToken });
-                updateDriveStatus(true);
-                await loadAllDropdowns();
-                return true;
-            }
-        }
-        
-        updateDriveStatus(false);
-        return false;
-    } catch (error) {
-        console.error('Error checking connection:', error);
-        updateDriveStatus(false);
-        return false;
-    }
+    console.log('✅ Google Drive: Always connected via Apps Script');
+    updateDriveStatus(true);
+    return true;
 }
 
+// validateToken tidak diperlukan lagi - server mengelola auth
 async function validateToken(accessToken) {
-    try {
-        // Check if scope version changed (force re-auth when scope upgraded)
-        const savedScope = localStorage.getItem('validDisplay_driveScope');
-        if (savedScope !== CONFIG.SCOPES) {
-            console.warn('⚠️ Drive scope changed! Old:', savedScope, '→ New:', CONFIG.SCOPES);
-            console.warn('⚠️ Clearing old token - user needs to re-login');
-            localStorage.removeItem(CONFIG.STORAGE_KEYS.GOOGLE_TOKEN);
-            localStorage.removeItem('validDisplay_driveScope');
-            return false;
-        }
-        
-        const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
-        return response.ok;
-    } catch (error) {
-        return false;
-    }
+    // Legacy - selalu return true karena dikelola server
+    return true;
 }
 
 function updateDriveStatus(isConnected) {
     const alertDiv = document.getElementById('googleDriveAlert');
     const connectedDiv = document.getElementById('googleDriveConnected');
     
-    if (isConnected) {
-        alertDiv.style.display = 'none';
-        connectedDiv.style.display = 'flex';
-    } else {
-        alertDiv.style.display = 'flex';
-        connectedDiv.style.display = 'none';
-    }
+    // Selalu tampilkan sebagai terkoneksi karena dikelola server
+    if (alertDiv) alertDiv.style.display = 'none';
+    if (connectedDiv) connectedDiv.style.display = 'flex';
 }
 
 function loadUserName() {
@@ -220,7 +220,8 @@ function getCurrentUserName() {
 }
 
 function connectGoogleDrive() {
-    window.location.href = 'records.html';
+    // Tidak perlu koneksi manual - sudah otomatis via server
+    showToast('Google Drive sudah terkoneksi via server', 'success');
 }
 
 // Fixed: Go back to records.html instead of master.html
@@ -228,30 +229,6 @@ function goBack() {
     // Clear temp data when going back
     localStorage.removeItem(CONFIG.STORAGE_KEYS.TEMP_DATA);
     window.location.href = 'records.html';
-}
-
-async function loadAllDropdowns() {
-    showLoading('Memuat data dari Google Drive...');
-    
-    try {
-        await gapi.client.load('drive', 'v3');
-        
-        // Load all dropdowns using hardcoded folder IDs (no name search)
-        for (const [key, folderConfig] of Object.entries(PHOTO_FOLDER_MAP)) {
-            await loadDropdown(key, folderConfig);
-        }
-        
-        // After loading dropdowns, select existing photos if editing
-        if (isEditMode && tempData && tempData.photos) {
-            selectExistingPhotos();
-        }
-        
-        hideLoading();
-    } catch (error) {
-        console.error('Error loading dropdowns:', error);
-        showToast('Gagal memuat data dari Google Drive', 'error');
-        hideLoading();
-    }
 }
 
 // ✅ NEW: Get folder ID from config (hardcoded, no name search)

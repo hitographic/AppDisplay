@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.20.0 - Inline validation badges with emoji
+// Version 2.21.0 - Server-side photo upload via Apps Script (No Google OAuth)
 
-const CACHE_NAME = 'mds-track-v2.32.0';
+const CACHE_NAME = 'mds-track-v2.33.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

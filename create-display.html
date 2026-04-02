@@ -116,17 +116,11 @@
             </div>
         </div>
 
+        <!-- Google Drive status - selalu terkoneksi via Apps Script -->
         <div id="googleDriveAlert" class="google-drive-alert" style="display: none;">
-            <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <div class="alert-content">
-                <h3>Google Drive: Tidak Terkoneksi</h3>
-                <p>Hubungkan ke Google Drive untuk memilih foto master data.</p>
-            </div>
-            <button class="btn-connect-drive" onclick="connectGoogleDrive()">
-                <i class="fas fa-plug"></i> Hubungkan
-            </button>
+            <!-- Not used anymore - hidden by default -->
         </div>
-        <div id="googleDriveConnected" class="google-drive-connected" style="display: none;">
+        <div id="googleDriveConnected" class="google-drive-connected" style="display: flex;">
             <div class="alert-icon"><i class="fas fa-check-circle"></i></div>
             <div class="alert-content">
                 <h3>Google Drive: Terkoneksi</h3>

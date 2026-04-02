@@ -1,6 +1,6 @@
 // =====================================================
 // VALID DISPLAY - Google Apps Script untuk Google Sheets Database
-// VERSI JSONP - Bypass CORS + User Management
+// VERSI JSONP - Bypass CORS + User Management + Photo Upload
 // =====================================================
 // 
 // SHEETS:
@@ -14,6 +14,10 @@
 // P:photo_etiket, Q:photo_etiketbanded, R:photo_plakban, S:kodeProduksi,
 // T:validationStatus, U:validatedBy, V:validatedAt, W:validationReason
 // =====================================================
+
+// Google Drive Folder ID untuk upload foto
+// Folder utama yang akan berisi subfolder untuk setiap tipe foto
+var DRIVE_FOLDER_ID = '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23';
 
 // Header yang benar untuk Records (23 kolom)
 var CORRECT_HEADERS = ['id', 'tanggal', 'flavor', 'nomorMaterial', 'negara', 'distributor', 'createdAt', 'updatedAt', 
@@ -243,6 +247,14 @@ function doGet(e) {
       result = updateMasterData(data.masterId, data.master);
     } else if (action === 'deleteMaster' && data && data.masterId) {
       result = deleteMasterData(data.masterId);
+    }
+    // Photo upload/delete operations via JSONP
+    else if (action === 'uploadPhoto' && data) {
+      result = handleUploadPhoto(data);
+    } else if (action === 'deletePhoto' && data && data.fileId) {
+      result = handleDeletePhoto(data.fileId);
+    } else if (action === 'getPhotoUrl' && e.parameter.fileId) {
+      result = handleGetPhotoUrl(e.parameter.fileId);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -314,6 +326,12 @@ function doPost(e) {
       result = updateMasterData(data.masterId, data.master);
     } else if (action === 'deleteMaster') {
       result = deleteMasterData(data.masterId);
+    }
+    // Photo upload/delete operations via POST
+    else if (action === 'uploadPhoto') {
+      result = handleUploadPhoto(data);
+    } else if (action === 'deletePhoto' && data.fileId) {
+      result = handleDeletePhoto(data.fileId);
     } else {
       result = { success: false, error: 'Invalid action' };
     }
@@ -1414,6 +1432,202 @@ function testMaster() {
     createdBy: 'Admin'
   });
   Logger.log('Added: ' + JSON.stringify(added));
+  
+  Logger.log('=== TEST END ===');
+}
+
+// =====================================================
+// PHOTO UPLOAD FUNCTIONS (Server-side Google Drive)
+// User tidak perlu login Google - semua upload via akun jasalancer@gmail.com
+// =====================================================
+
+/**
+ * Extract Google Drive file ID from various URL formats
+ */
+function extractDriveFileId(url) {
+  if (!url || typeof url !== 'string') return null;
+  
+  // Format: https://lh3.googleusercontent.com/d/FILE_ID
+  var matchLh3 = url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchLh3) return matchLh3[1];
+  
+  // Format: https://drive.google.com/uc?export=view&id=FILE_ID
+  var match1 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match1) return match1[1];
+  
+  // Format: https://drive.google.com/file/d/FILE_ID/view
+  var match2 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match2) return match2[1];
+  
+  // Format: https://drive.google.com/thumbnail?id=FILE_ID
+  var match3 = url.match(/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+  if (match3) return match3[1];
+  
+  // If it's a plain file ID (long alphanumeric string)
+  if (url.length > 20 && !/[\/\:\.?&]/.test(url)) return url;
+  
+  return null;
+}
+
+/**
+ * Get or create a subfolder in the main photos folder
+ */
+function getOrCreateSubfolder(subfolderName) {
+  try {
+    var parentFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    var subfolders = parentFolder.getFoldersByName(subfolderName);
+    
+    if (subfolders.hasNext()) {
+      return subfolders.next();
+    } else {
+      return parentFolder.createFolder(subfolderName);
+    }
+  } catch (error) {
+    Logger.log('Error getting/creating subfolder: ' + error.message);
+    throw new Error('Failed to access photo folder: ' + error.message);
+  }
+}
+
+/**
+ * Handle photo upload
+ * data.photo = base64 encoded image data (without data:image prefix)
+ * data.fileName = desired file name
+ * data.folder = subfolder name (e.g., 'bumbu', 'si', 'karton', etc.)
+ * data.mimeType = image mime type (default: image/jpeg)
+ */
+function handleUploadPhoto(data) {
+  try {
+    if (!data.photo) {
+      return { success: false, error: 'No photo data provided' };
+    }
+    
+    // Remove data URL prefix if present
+    var base64Data = data.photo;
+    if (base64Data.indexOf('base64,') > -1) {
+      base64Data = base64Data.split('base64,')[1];
+    }
+    
+    // Get target folder
+    var subfolderName = data.folder || 'photos';
+    var targetFolder = getOrCreateSubfolder(subfolderName);
+    
+    // Generate filename if not provided
+    var fileName = data.fileName || ('photo_' + Date.now() + '.jpg');
+    
+    // Decode base64 to blob
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      data.mimeType || 'image/jpeg',
+      fileName
+    );
+    
+    // Upload to Drive
+    var file = targetFolder.createFile(blob);
+    
+    // Make file accessible via link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var fileId = file.getId();
+    var viewUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
+    var directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
+    var thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400';
+    
+    return {
+      success: true,
+      fileId: fileId,
+      viewUrl: viewUrl,
+      directUrl: directUrl,
+      thumbnailUrl: thumbnailUrl,
+      fileName: file.getName()
+    };
+    
+  } catch (error) {
+    Logger.log('Photo upload error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Handle photo deletion
+ * fileId = Google Drive file ID or URL containing the file ID
+ */
+function handleDeletePhoto(fileIdOrUrl) {
+  try {
+    var fileId = extractDriveFileId(fileIdOrUrl);
+    if (!fileId) {
+      // If it's already a plain file ID
+      fileId = fileIdOrUrl;
+    }
+    
+    var file = DriveApp.getFileById(fileId);
+    file.setTrashed(true);
+    
+    return { success: true, message: 'Photo deleted' };
+    
+  } catch (error) {
+    // File may already be deleted or not accessible - silently ignore
+    Logger.log('Could not delete Drive file ' + fileIdOrUrl + ': ' + error.message);
+    return { success: true, message: 'Photo deleted or not found' };
+  }
+}
+
+/**
+ * Get photo URL from file ID
+ */
+function handleGetPhotoUrl(fileId) {
+  try {
+    return {
+      success: true,
+      viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view',
+      directUrl: 'https://lh3.googleusercontent.com/d/' + fileId,
+      thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400'
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get photo as base64 from Google Drive. Used as a CORS proxy.
+ */
+function handleGetPhotoBase64(fileId) {
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    var mimeType = blob.getContentType();
+    var base64 = Utilities.base64Encode(blob.getBytes());
+    
+    return {
+      success: true,
+      base64: 'data:' + mimeType + ';base64,' + base64,
+      mimeType: mimeType,
+      fileName: file.getName()
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Test photo upload function
+function testPhotoUpload() {
+  Logger.log('=== TEST PHOTO UPLOAD ===');
+  
+  // Create a simple test image (1x1 red pixel)
+  var testBase64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAB//2Q==';
+  
+  var result = handleUploadPhoto({
+    photo: testBase64,
+    fileName: 'test_upload.jpg',
+    folder: 'test'
+  });
+  
+  Logger.log('Upload result: ' + JSON.stringify(result));
+  
+  if (result.success && result.fileId) {
+    // Test delete
+    var deleteResult = handleDeletePhoto(result.fileId);
+    Logger.log('Delete result: ' + JSON.stringify(deleteResult));
+  }
   
   Logger.log('=== TEST END ===');
 }

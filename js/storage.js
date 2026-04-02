@@ -224,68 +224,48 @@ class Storage {
         localStorage.removeItem(CONFIG.STORAGE_KEYS.TEMP_DATA);
     }
 
-    // ==================== GOOGLE DRIVE ====================
+    // ==================== GOOGLE DRIVE (Server-side via Apps Script) ====================
+    // User tidak perlu login Google - semua operasi via akun server (jasalancer@gmail.com)
     
-    // Check if Google Drive is ready
+    // Check if Google Drive is ready - ALWAYS ready karena via server
     async isGoogleDriveReady() {
-        const token = auth.getGoogleToken();
-        if (!token) {
-            return false;
-        }
-        
-        if (!checkConfig()) {
-            return false;
-        }
-        
+        // Selalu return true karena upload via Apps Script (server-side)
+        // tidak memerlukan Google OAuth dari user
         return true;
     }
 
-    // Upload file to Google Drive
-    async uploadToGoogleDrive(file, fileName, folderId = null) {
-        const token = auth.getGoogleToken();
-        if (!token) {
-            throw new Error('Google Drive tidak terautentikasi. Silakan login Google terlebih dahulu.');
-        }
-
-        const targetFolderId = folderId || CONFIG.GOOGLE_FOLDER_ID;
-        
-        // Create file metadata
-        const metadata = {
-            name: fileName,
-            mimeType: file.type,
-            parents: [targetFolderId]
-        };
-
-        // Create form data
-        const formData = new FormData();
-        formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        formData.append('file', file);
+    /**
+     * Upload file to Google Drive via Apps Script (server-side)
+     * User tidak perlu login Google
+     * @param {File|Blob} file - File atau Blob untuk diupload
+     * @param {string} fileName - Nama file
+     * @param {string} folderName - Nama subfolder (e.g., 'bumbu', 'si', 'karton')
+     * @returns {Promise<{id: string, name: string, directLink: string}>}
+     */
+    async uploadToGoogleDrive(file, fileName, folderName = 'photos') {
+        console.log('📤 Uploading to Google Drive via Apps Script...');
+        console.log('📁 Folder:', folderName);
+        console.log('📄 File:', fileName);
 
         try {
-            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink,thumbnailLink', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error?.message || 'Upload gagal');
-            }
-
-            const result = await response.json();
+            // Convert file to base64
+            const base64Data = await this.fileToBase64(file);
             
-            // Make file publicly accessible
-            await this.makeFilePublic(result.id);
+            // Upload via sheetsDB (Apps Script)
+            const result = await sheetsDB.uploadPhoto(base64Data, fileName, folderName, file.type || 'image/jpeg');
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Upload gagal');
+            }
+            
+            console.log('✅ Upload berhasil:', result);
             
             return {
-                id: result.id,
-                name: result.name,
-                webViewLink: result.webViewLink,
-                directLink: `https://drive.google.com/uc?export=view&id=${result.id}`,
-                thumbnailLink: result.thumbnailLink
+                id: result.fileId,
+                name: result.fileName || fileName,
+                webViewLink: result.viewUrl,
+                directLink: result.directUrl,
+                thumbnailLink: result.thumbnailUrl
             };
         } catch (error) {
             console.error('Upload error:', error);
@@ -293,118 +273,59 @@ class Storage {
         }
     }
 
-    // Make file publicly accessible
-    async makeFilePublic(fileId) {
-        const token = auth.getGoogleToken();
-        if (!token) return;
-
-        try {
-            await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    role: 'reader',
-                    type: 'anyone'
-                })
-            });
-        } catch (error) {
-            console.error('Error making file public:', error);
-        }
+    /**
+     * Convert File/Blob to base64 string
+     */
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                // Result includes data URL prefix, we'll remove it in Apps Script
+                resolve(reader.result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
 
-    // Create folder in Google Drive
-    async createFolder(folderName, parentFolderId = null) {
-        const token = auth.getGoogleToken();
-        if (!token) {
-            throw new Error('Google Drive tidak terautentikasi');
-        }
-
-        const metadata = {
-            name: folderName,
-            mimeType: 'application/vnd.google-apps.folder',
-            parents: [parentFolderId || CONFIG.GOOGLE_FOLDER_ID]
-        };
+    /**
+     * Delete file from Google Drive via Apps Script (server-side)
+     * User tidak perlu login Google
+     */
+    async deleteFromGoogleDrive(fileIdOrUrl) {
+        console.log('🗑️ Deleting from Google Drive via Apps Script...');
 
         try {
-            const response = await fetch('https://www.googleapis.com/drive/v3/files', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(metadata)
-            });
-
-            if (!response.ok) {
-                throw new Error('Gagal membuat folder');
-            }
-
-            const result = await response.json();
-            
-            // Make folder public
-            await this.makeFilePublic(result.id);
-            
-            return result;
-        } catch (error) {
-            console.error('Create folder error:', error);
-            throw error;
-        }
-    }
-
-    // Delete file from Google Drive
-    async deleteFromGoogleDrive(fileId) {
-        const token = auth.getGoogleToken();
-        if (!token) {
-            throw new Error('Google Drive tidak terautentikasi');
-        }
-
-        try {
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            return response.ok;
+            const result = await sheetsDB.deletePhoto(fileIdOrUrl);
+            return result.success;
         } catch (error) {
             console.error('Delete error:', error);
-            throw error;
+            // Return true anyway - file might already be deleted
+            return true;
         }
     }
 
-    // List files in folder
+    // Legacy functions - kept for compatibility but redirect to new implementation
+    
+    // Make file publicly accessible - NOT NEEDED, Apps Script handles this
+    async makeFilePublic(fileId) {
+        // No-op: Apps Script sudah set sharing permission saat upload
+        console.log('ℹ️ makeFilePublic: Handled by Apps Script');
+        return true;
+    }
+
+    // Create folder in Google Drive - NOT NEEDED, Apps Script handles this
+    async createFolder(folderName, parentFolderId = null) {
+        // No-op: Apps Script membuat folder otomatis jika belum ada
+        console.log('ℹ️ createFolder: Handled by Apps Script');
+        return { id: 'auto', name: folderName };
+    }
+
+    // List files in folder - simplified version
     async listFilesInFolder(folderId = null) {
-        const token = auth.getGoogleToken();
-        if (!token) {
-            return [];
-        }
-
-        const targetFolderId = folderId || CONFIG.GOOGLE_FOLDER_ID;
-
-        try {
-            const response = await fetch(
-                `https://www.googleapis.com/drive/v3/files?q='${targetFolderId}' in parents&fields=files(id,name,mimeType,webViewLink,thumbnailLink,createdTime,modifiedTime)`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error('Gagal mengambil daftar file');
-            }
-
-            const result = await response.json();
-            return result.files || [];
-        } catch (error) {
-            console.error('List files error:', error);
-            return [];
-        }
+        // Return empty array - listing files not needed for this app
+        console.log('ℹ️ listFilesInFolder: Not needed with server-side upload');
+        return [];
     }
 
     // ==================== SYNC OPERATIONS ====================

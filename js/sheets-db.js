@@ -460,6 +460,103 @@ class GoogleSheetsDB {
             return { success: false, error: error.message };
         }
     }
+
+    // =====================================================
+    // PHOTO UPLOAD FUNCTIONS (Server-side via Apps Script)
+    // User tidak perlu login Google - semua upload via server
+    // =====================================================
+
+    /**
+     * Upload photo to Google Drive via Apps Script
+     * @param {string} base64Data - Base64 encoded image data
+     * @param {string} fileName - Desired file name
+     * @param {string} folder - Subfolder name (e.g., 'bumbu', 'si', 'karton')
+     * @param {string} mimeType - Image mime type (default: image/jpeg)
+     * @returns {Promise<{success: boolean, fileId?: string, directUrl?: string, error?: string}>}
+     */
+    async uploadPhoto(base64Data, fileName, folder = 'photos', mimeType = 'image/jpeg') {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            console.log('📤 Uploading photo to Google Drive via Apps Script...');
+            console.log('📁 Folder:', folder);
+            console.log('📄 File:', fileName);
+
+            // Remove data URL prefix if present
+            let cleanBase64 = base64Data;
+            if (cleanBase64.indexOf('base64,') > -1) {
+                cleanBase64 = cleanBase64.split('base64,')[1];
+            }
+
+            const result = await this.postRequest({
+                action: 'uploadPhoto',
+                photo: cleanBase64,
+                fileName: fileName,
+                folder: folder,
+                mimeType: mimeType
+            });
+
+            if (result.success) {
+                console.log('✅ Photo uploaded:', result.fileId);
+                console.log('🔗 Direct URL:', result.directUrl);
+            } else {
+                console.error('❌ Photo upload failed:', result.error);
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Error uploading photo:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Delete photo from Google Drive via Apps Script
+     * @param {string} fileIdOrUrl - Google Drive file ID or URL
+     * @returns {Promise<{success: boolean, error?: string}>}
+     */
+    async deletePhoto(fileIdOrUrl) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            console.log('🗑️ Deleting photo from Google Drive...');
+            
+            const result = await this.postRequest({
+                action: 'deletePhoto',
+                fileId: fileIdOrUrl
+            });
+
+            console.log('✅ Photo deleted:', result);
+            return result;
+        } catch (error) {
+            console.error('Error deleting photo:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Get photo URL from file ID
+     * @param {string} fileId - Google Drive file ID
+     * @returns {Promise<{success: boolean, directUrl?: string, thumbnailUrl?: string, error?: string}>}
+     */
+    async getPhotoUrl(fileId) {
+        if (!this.isConfigured()) {
+            return { success: false, error: 'Not configured' };
+        }
+
+        try {
+            const url = `${this.webAppUrl}?action=getPhotoUrl&fileId=${encodeURIComponent(fileId)}`;
+            const result = await this.jsonpRequest(url);
+            return result;
+        } catch (error) {
+            console.error('Error getting photo URL:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 // Global instance

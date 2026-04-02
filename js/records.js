@@ -1,7 +1,7 @@
 // =====================================================
 // VALID DISPLAY - Records Page Script
 // With Permissions and Validation Feature
-// Version 5.9 - Inline badge with emoji for validation status
+// Version 6.0 - Server-side photo upload via Apps Script (No Google OAuth needed)
 // =====================================================
 
 let allRecords = [];
@@ -127,71 +127,22 @@ function setupPermissionBasedUI() {
         }
     }
 
-    // Show/hide Google Drive alerts only for editors
+    // Google Drive selalu terkoneksi via server (Apps Script)
+    // Tidak perlu login Google untuk user
     if (canEdit()) {
-        updateGoogleDriveAlerts();
+        // Tampilkan status connected untuk editor
+        if (googleDriveConnected) googleDriveConnected.style.display = 'flex';
     } else {
-        // Hide alerts for non-editors
-        if (googleDriveAlert) googleDriveAlert.style.display = 'none';
+        // Sembunyikan status untuk non-editor
         if (googleDriveConnected) googleDriveConnected.style.display = 'none';
-    }
-    
-    // Pastikan popup Google Drive tersembunyi dari awal
-    // Popup akan ditampilkan oleh initGoogleDriveConnection hanya jika diperlukan
-    if (driveConnectionPopup && !driveConnectionPopup.classList.contains('hidden')) {
-        driveConnectionPopup.classList.add('hidden');
     }
 }
 
 async function initGoogleDriveConnection() {
-    try {
-        // Initialize Google API only for editors who need to upload
-        if (canEdit()) {
-            await auth.initGoogleAPI();
-            await auth.initGoogleIdentity();
-
-            // Listen for token received event
-            window.addEventListener('googleTokenReceived', () => {
-                showToast('Google Drive terkoneksi!', 'success');
-                updateDriveStatus(true);
-                updateGoogleDriveAlerts();
-                closeDriveConnectionPopup(true); // Force close after connect
-            });
-
-            // Check connection status
-            const hasToken = auth.hasGoogleToken();
-            const hasConfig = checkConfig();
-            const connected = hasToken && hasConfig;
-            
-            console.log('Drive connection check:', { hasToken, hasConfig, connected });
-            
-            updateDriveStatus(connected);
-            updateGoogleDriveAlerts();
-
-            // Auto show popup HANYA jika belum terkoneksi
-            if (!connected) {
-                console.log('Google Drive belum terkoneksi - menampilkan popup');
-                setTimeout(() => {
-                    showDriveConnectionPopup();
-                }, 500);
-            } else {
-                console.log('Google Drive sudah terkoneksi - popup tidak ditampilkan');
-            }
-        }
-    } catch (error) {
-        console.error('Error initializing Google:', error);
-        updateDriveStatus(false);
-        if (canEdit()) {
-            updateGoogleDriveAlerts();
-            // Show popup even on error for editors (only if not connected)
-            const connected = auth.hasGoogleToken() && checkConfig();
-            if (!connected) {
-                setTimeout(() => {
-                    showDriveConnectionPopup();
-                }, 500);
-            }
-        }
-    }
+    // Google Drive sekarang selalu terkoneksi via Apps Script (server-side)
+    // User tidak perlu login Google lagi
+    console.log('📁 Google Drive: Auto-connected via Apps Script (server-side)');
+    updateDriveStatus(true);
 }
 
 // Update Google Drive status display
@@ -202,55 +153,20 @@ function updateDriveStatus(connected) {
     
     if (!statusDiv || !statusText || !btnConnect) return;
     
-    if (connected) {
-        statusDiv.classList.remove('disconnected');
-        statusDiv.classList.add('connected');
-        statusText.textContent = 'Google Drive: Terkoneksi ✓';
-        btnConnect.innerHTML = '<i class="fas fa-check"></i> Terhubung';
-        btnConnect.classList.add('connected');
-        btnConnect.disabled = true;
-    } else {
-        statusDiv.classList.remove('connected');
-        statusDiv.classList.add('disconnected');
-        statusText.textContent = 'Google Drive: Tidak Terkoneksi';
-        btnConnect.innerHTML = '<i class="fas fa-link"></i> Koneksikan';
-        btnConnect.classList.remove('connected');
-        btnConnect.disabled = false;
-    }
+    // Selalu tampilkan sebagai terkoneksi via Apps Script
+    statusDiv.classList.remove('disconnected');
+    statusDiv.classList.add('connected');
+    statusText.textContent = 'Google Drive: Terkoneksi ✓';
+    btnConnect.innerHTML = '<i class="fas fa-check"></i> Terhubung';
+    btnConnect.classList.add('connected');
+    btnConnect.disabled = true;
 }
 
-// Connect to Google Drive
+// Connect to Google Drive - sekarang tidak perlu karena dikelola server
 async function connectGoogleDrive() {
-    if (!checkConfig()) {
-        showToast('Konfigurasi Google API belum lengkap', 'error');
-        return;
-    }
-    
-    showLoading('Menghubungkan ke Google Drive...');
-    
-    try {
-        // Initialize if not already
-        if (!auth.tokenClient) {
-            await auth.initGoogleAPI();
-            await auth.initGoogleIdentity();
-        }
-        
-        // Request Google token
-        await auth.requestGoogleToken();
-        
-        // Check if successful
-        if (auth.hasGoogleToken()) {
-            updateDriveStatus(true);
-            showToast('Google Drive berhasil terkoneksi!', 'success');
-        } else {
-            showToast('Gagal mendapatkan akses Google Drive', 'error');
-        }
-    } catch (error) {
-        console.error('Error connecting Google Drive:', error);
-        showToast('Gagal koneksi: ' + error.message, 'error');
-    }
-    
-    hideLoading();
+    // Google Drive sekarang otomatis terkoneksi via Apps Script
+    showToast('Google Drive sudah terkoneksi via server', 'success');
+    updateDriveStatus(true);
 }
 
 async function loadRecords() {
@@ -1732,156 +1648,51 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ==================== GOOGLE DRIVE CONNECTION POPUP ====================
+// ==================== GOOGLE DRIVE STATUS (Server-Side Upload via Apps Script) ====================
+// NOTE: Google Drive sekarang dikelola oleh server (Apps Script), user tidak perlu login Google
 
 function updateGoogleDriveAlerts() {
+    // Selalu tampilkan sebagai terkoneksi karena upload via server
     const googleDriveAlert = document.getElementById('googleDriveAlert');
     const googleDriveConnected = document.getElementById('googleDriveConnected');
     
-    const isConnected = auth.hasGoogleToken() && checkConfig();
-    
-    if (isConnected) {
-        if (googleDriveAlert) googleDriveAlert.style.display = 'none';
-        if (googleDriveConnected) googleDriveConnected.style.display = 'flex';
-    } else {
-        if (googleDriveAlert) googleDriveAlert.style.display = 'flex';
-        if (googleDriveConnected) googleDriveConnected.style.display = 'none';
-    }
+    if (googleDriveAlert) googleDriveAlert.style.display = 'none';
+    if (googleDriveConnected) googleDriveConnected.style.display = 'flex';
 }
 
+// Legacy functions - sekarang tidak diperlukan tapi tetap ada untuk backwards compatibility
 function showDriveConnectionPopup() {
-    // Double check - jangan tampilkan popup jika sudah terkoneksi
-    const isConnected = auth.hasGoogleToken() && checkConfig();
-    if (isConnected) {
-        console.log('showDriveConnectionPopup: Sudah terkoneksi, popup tidak ditampilkan');
-        return;
-    }
-    
-    const popup = document.getElementById('driveConnectionPopup');
-    if (popup) {
-        popup.classList.remove('hidden');
-        updateDrivePopupButtons();
-    }
+    // Tidak perlu popup - sudah otomatis terkoneksi via server
+    console.log('showDriveConnectionPopup: Tidak diperlukan - upload via Apps Script');
 }
 
 function openDriveConnectionPopup() {
-    showDriveConnectionPopup();
+    // Tidak perlu popup
+    console.log('openDriveConnectionPopup: Tidak diperlukan - upload via Apps Script');
 }
 
 function closeDriveConnectionPopup(force = false) {
     const popup = document.getElementById('driveConnectionPopup');
-    const isConnected = auth.hasGoogleToken() && checkConfig();
-    
-    // Force close atau sudah terkoneksi
-    if ((force || isConnected) && popup) {
-        popup.classList.add('hidden');
-    } else if (!isConnected && !force) {
-        showToast('Harap hubungkan Google Drive terlebih dahulu', 'warning');
-    }
+    if (popup) popup.classList.add('hidden');
 }
 
 function updateDrivePopupButtons() {
-    const connectBtn = document.getElementById('btnConnectDrivePopup');
-    const disconnectBtn = document.getElementById('btnDisconnectDrivePopup');
-    const skipBtn = document.getElementById('btnSkipDrive');
-    const statusDiv = document.getElementById('driveConnectStatus');
-    
-    const isConnected = auth.hasGoogleToken() && checkConfig();
-    
-    if (connectBtn && disconnectBtn) {
-        if (isConnected) {
-            connectBtn.style.display = 'none';
-            disconnectBtn.style.display = 'block';
-            if (skipBtn) skipBtn.style.display = 'none';
-            
-            if (statusDiv) {
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#d4edda';
-                statusDiv.style.color = '#155724';
-                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Terhubung dengan Google Drive';
-            }
-        } else {
-            connectBtn.style.display = 'block';
-            disconnectBtn.style.display = 'none';
-            if (skipBtn) skipBtn.style.display = 'block';
-            
-            if (statusDiv) {
-                statusDiv.style.display = 'none';
-            }
-        }
-    }
+    // Tidak perlu - selalu terkoneksi via server
 }
 
 async function connectGoogleDriveFromPopup() {
-    try {
-        const connectBtn = document.getElementById('btnConnectDrivePopup');
-        const statusDiv = document.getElementById('driveConnectStatus');
-        
-        if (connectBtn) {
-            connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan...';
-            connectBtn.disabled = true;
-        }
-
-        if (statusDiv) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fff3cd';
-            statusDiv.style.color = '#856404';
-            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan ke Google Drive...';
-        }
-
-        // Request Google Drive access
-        await auth.requestGoogleToken();
-        
-        // Update UI
-        showToast('Google Drive berhasil terkoneksi!', 'success');
-        updateGoogleDriveAlerts();
-        updateDrivePopupButtons();
-        
-        // Close popup after successful connection
-        setTimeout(() => {
-            closeDriveConnectionPopup();
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Error connecting Google Drive:', error);
-        showToast('Gagal menghubungkan Google Drive: ' + error.message, 'error');
-        
-        const connectBtn = document.getElementById('btnConnectDrivePopup');
-        const statusDiv = document.getElementById('driveConnectStatus');
-        
-        if (connectBtn) {
-            connectBtn.innerHTML = '<i class="fas fa-link"></i> Menunggu koneksi...';
-            connectBtn.disabled = false;
-        }
-        
-        if (statusDiv) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#f8d7da';
-            statusDiv.style.color = '#721c24';
-            statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Gagal terhubung. Silakan coba lagi.';
-        }
-    }
+    // Tidak perlu koneksi manual - otomatis via Apps Script
+    showToast('Google Drive sudah terkoneksi via server', 'success');
+    closeDriveConnectionPopup(true);
 }
 
 function disconnectGoogleDriveFromPopup() {
-    if (confirm('Apakah Anda yakin ingin memutuskan koneksi Google Drive?\n\nFoto yang sudah diupload tetap tersimpan, tapi foto baru akan disimpan lokal saja.')) {
-        // Clear Google token
-        auth.clearGoogleToken();
-        
-        // Update UI
-        showToast('Google Drive terputus', 'info');
-        updateGoogleDriveAlerts();
-        updateDrivePopupButtons();
-        
-        // Show popup again since disconnected
-        showDriveConnectionPopup();
-    }
+    // Tidak bisa disconnect - dikelola oleh server
+    showToast('Google Drive dikelola oleh server dan tidak bisa diputus', 'info');
 }
 
 function skipGoogleDriveConnection() {
-    if (confirm('Jika melewati koneksi Google Drive, foto hanya akan tersimpan di browser (temporary).\n\nAnda masih bisa menghubungkan Google Drive nanti. Lanjutkan?')) {
-        closeDriveConnectionPopup();
-        showToast('Foto akan disimpan lokal saja (tidak permanen)', 'info');
-    }
+    // Tidak perlu skip - otomatis terkoneksi
+    closeDriveConnectionPopup(true);
 }
 
