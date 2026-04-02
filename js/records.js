@@ -907,7 +907,7 @@ async function openPreview(recordId) {
     previewContent.innerHTML = `
         <div class="loading-preview">
             <i class="fas fa-spinner fa-spin fa-3x"></i>
-            <p>Memuat foto dari Google Drive...</p>
+            <p>Memuat foto...</p>
         </div>
     `;
     
@@ -1161,7 +1161,7 @@ function showPreviewTab(tabId) {
             previewContent.innerHTML = `
                 <div class="no-image">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Foto belum diupload ke Google Drive</p>
+                    <p>Foto belum diupload</p>
                     <small style="color: #999; margin-top: 5px; display: block;">File: ${escapeHtml(fileName)}</small>
                 </div>
                 ${captionHtml}
@@ -1179,7 +1179,7 @@ function showPreviewTab(tabId) {
         previewContent.innerHTML = `
             <div class="no-image">
                 <i class="fas fa-cloud-upload-alt"></i>
-                <p>Foto belum diupload ke Google Drive</p>
+                <p>Foto belum diupload</p>
                 <small style="color: #999; margin-top: 5px; display: block;">File: ${escapeHtml(photo)}</small>
             </div>
             <div class="photo-caption">

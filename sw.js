@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.22.0 - Removed Google Drive status headers (auto-connected)
+// Version 2.23.0 - Simplified photo loading messages
 
-const CACHE_NAME = 'mds-track-v2.34.0';
+const CACHE_NAME = 'mds-track-v2.35.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
