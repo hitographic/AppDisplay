@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
-// Version 2.25.0 - Show updatedAt in validation popup instead of tanggal
+// Version 2.26.0 - Add Kode Produksi inputs, Data Update checklist, enhanced validation popups
 
-const CACHE_NAME = 'mds-track-v2.37.0';
+const CACHE_NAME = 'mds-track-v2.38.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',

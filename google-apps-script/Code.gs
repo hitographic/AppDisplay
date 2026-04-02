@@ -4,27 +4,27 @@
 // =====================================================
 // 
 // SHEETS:
-// 1. Records - Data display produk (22 kolom)
+// 1. Records - Data display produk (24 kolom)
 // 2. Users - Data user (NIK, password, name, role)
 //
-// STRUKTUR RECORDS (23 kolom):
+// STRUKTUR RECORDS (24 kolom):
 // A:id, B:tanggal, C:flavor, D:nomorMaterial, E:negara, F:distributor, G:createdAt, H:updatedAt,
 // I:createdBy, J:updatedBy,
 // K:photo_bumbu, L:photo_mbumbu, M:photo_si, N:photo_kartonDepan, O:photo_kartonBelakang,
 // P:photo_etiket, Q:photo_etiketbanded, R:photo_plakban, S:kodeProduksi,
-// T:validationStatus, U:validatedBy, V:validatedAt, W:validationReason
+// T:validationStatus, U:validatedBy, V:validatedAt, W:validationReason, X:updatedFields
 // =====================================================
 
 // Google Drive Folder ID untuk upload foto
 // Folder utama yang akan berisi subfolder untuk setiap tipe foto
 var DRIVE_FOLDER_ID = '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23';
 
-// Header yang benar untuk Records (23 kolom)
+// Header yang benar untuk Records (24 kolom)
 var CORRECT_HEADERS = ['id', 'tanggal', 'flavor', 'nomorMaterial', 'negara', 'distributor', 'createdAt', 'updatedAt', 
                        'createdBy', 'updatedBy',
                        'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_kartonDepan', 'photo_kartonBelakang',
                        'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi',
-                       'validationStatus', 'validatedBy', 'validatedAt', 'validationReason'];
+                       'validationStatus', 'validatedBy', 'validatedAt', 'validationReason', 'updatedFields'];
 
 // Spreadsheet ID - otomatis dari spreadsheet yang aktif
 function getSpreadsheet() {
@@ -707,11 +707,11 @@ function parsePhotoValue(value, photoKey) {
 }
 
 // Get all records
-// Struktur 23 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), distributor(5), createdAt(6), updatedAt(7),
+// Struktur 24 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), distributor(5), createdAt(6), updatedAt(7),
 //                    createdBy(8), updatedBy(9),
 //                    photo_bumbu(10), photo_mbumbu(11), photo_si(12), photo_kartonDepan(13), photo_kartonBelakang(14),
 //                    photo_etiket(15), photo_etiketbanded(16), photo_plakban(17), kodeProduksi(18),
-//                    validationStatus(19), validatedBy(20), validatedAt(21), validationReason(22)
+//                    validationStatus(19), validatedBy(20), validatedAt(21), validationReason(22), updatedFields(23)
 function getAllRecordsData() {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
@@ -749,7 +749,8 @@ function getAllRecordsData() {
         validationStatus: row[19] || '',
         validatedBy: row[20] || '',
         validatedAt: row[21] || '',
-        validationReason: row[22] || ''
+        validationReason: row[22] || '',
+        updatedFields: row[23] ? safeJsonParse(row[23]) : []
       });
     }
   }
@@ -800,7 +801,8 @@ function getRecordsBasicData() {
         validationStatus: row[19] || '',
         validatedBy: row[20] || '',
         validatedAt: row[21] || '',
-        validationReason: row[22] || ''
+        validationReason: row[22] || '',
+        updatedFields: row[23] ? safeJsonParse(row[23]) : []
       });
     }
   }
@@ -852,7 +854,8 @@ function getRecordByIdData(id) {
           validationStatus: row[19] || '',
           validatedBy: row[20] || '',
           validatedAt: row[21] || '',
-          validationReason: row[22] || ''
+          validationReason: row[22] || '',
+          updatedFields: row[23] ? safeJsonParse(row[23]) : []
         }
       };
     }
@@ -862,10 +865,10 @@ function getRecordByIdData(id) {
 }
 
 // Add new record - returns data object
-// Struktur 23 kolom: id, tanggal, flavor, nomorMaterial, negara, distributor, createdAt, updatedAt, createdBy, updatedBy,
+// Struktur 24 kolom: id, tanggal, flavor, nomorMaterial, negara, distributor, createdAt, updatedAt, createdBy, updatedBy,
 //                    photo_bumbu, photo_mbumbu, photo_si, photo_kartonDepan, photo_kartonBelakang,
 //                    photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi,
-//                    validationStatus, validatedBy, validatedAt, validationReason
+//                    validationStatus, validatedBy, validatedAt, validationReason, updatedFields
 function addRecordData(record) {
   const sheet = getRecordsSheet();
   
@@ -903,7 +906,8 @@ function addRecordData(record) {
     record.validationStatus || '',
     record.validatedBy || '',
     record.validatedAt || '',
-    record.validationReason || ''
+    record.validationReason || '',
+    record.updatedFields ? JSON.stringify(record.updatedFields) : '[]'
   ];
   
   sheet.appendRow(row);
@@ -912,11 +916,11 @@ function addRecordData(record) {
 }
 
 // Update record - returns data object
-// Struktur 23 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), distributor(5), createdAt(6), updatedAt(7),
+// Struktur 24 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), distributor(5), createdAt(6), updatedAt(7),
 //                    createdBy(8), updatedBy(9),
 //                    photo_bumbu(10), photo_mbumbu(11), photo_si(12), photo_kartonDepan(13), photo_kartonBelakang(14),
 //                    photo_etiket(15), photo_etiketbanded(16), photo_plakban(17), kodeProduksi(18),
-//                    validationStatus(19), validatedBy(20), validatedAt(21), validationReason(22)
+//                    validationStatus(19), validatedBy(20), validatedAt(21), validationReason(22), updatedFields(23)
 function updateRecordData(recordId, updatedRecord) {
   const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
@@ -987,7 +991,8 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.validationStatus !== undefined ? updatedRecord.validationStatus : (data[i][19] || ''),
         updatedRecord.validatedBy !== undefined ? updatedRecord.validatedBy : (data[i][20] || ''),
         updatedRecord.validatedAt !== undefined ? updatedRecord.validatedAt : (data[i][21] || ''),
-        updatedRecord.validationReason !== undefined ? updatedRecord.validationReason : (data[i][22] || '')
+        updatedRecord.validationReason !== undefined ? updatedRecord.validationReason : (data[i][22] || ''),
+        updatedRecord.updatedFields ? JSON.stringify(updatedRecord.updatedFields) : (data[i][23] || '[]')
       ];
       
       sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);

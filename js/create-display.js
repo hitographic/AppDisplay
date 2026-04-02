@@ -107,6 +107,20 @@ function prefillForm() {
         selectedPhotos = { ...tempData.photos };
     }
     
+    // Prefill Kode Produksi
+    if (tempData.kodeProduksi && Array.isArray(tempData.kodeProduksi)) {
+        tempData.kodeProduksi.forEach((kp, index) => {
+            const input = document.getElementById(`kodeProduksi${index + 1}`);
+            if (input && kp) input.value = kp;
+        });
+    }
+    
+    // Prefill Updated Fields checkboxes (for edit mode reference)
+    if (tempData.updatedFields && Array.isArray(tempData.updatedFields)) {
+        // Don't pre-check - let user re-select what they're updating this time
+        console.log('📋 Previous updated fields:', tempData.updatedFields);
+    }
+    
     console.log('✅ Form prefilled with temp data');
 }
 
@@ -595,6 +609,26 @@ function saveTemporary() {
         return;
     }
     
+    // Get Kode Produksi values
+    const kodeProduksi = [];
+    for (let i = 1; i <= 3; i++) {
+        const kpValue = document.getElementById(`kodeProduksi${i}`)?.value.trim();
+        if (kpValue) {
+            kodeProduksi.push(kpValue);
+        }
+    }
+    
+    // Get updated fields checkboxes
+    const updatedFields = [];
+    const updateCheckboxes = ['update_bumbu', 'update_mbumbu', 'update_si', 'update_kartonDepan', 
+                              'update_kartonBelakang', 'update_etiket', 'update_etiketBanded', 'update_plakban'];
+    updateCheckboxes.forEach(id => {
+        const checkbox = document.getElementById(id);
+        if (checkbox && checkbox.checked) {
+            updatedFields.push(checkbox.value);
+        }
+    });
+    
     // Mapping between input IDs and possible keys in selectedPhotos
     // (from Google Sheets data which uses dash format)
     const photoKeyMapping = {
@@ -648,6 +682,8 @@ function saveTemporary() {
         distributor,
         tanggal,
         photos: { ...selectedPhotos },
+        kodeProduksi: kodeProduksi,
+        updatedFields: updatedFields,
         isEdit: isEditMode
     };
     
@@ -769,6 +805,8 @@ async function saveAll() {
                 etiketBanded: getPhotoName(temporarySave.photos?.etiketBanded),
                 plakban: getPhotoName(temporarySave.photos?.plakban)
             },
+            kodeProduksi: temporarySave.kodeProduksi || [],
+            updatedFields: temporarySave.updatedFields || [],
             createdBy: getCurrentUserName(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()

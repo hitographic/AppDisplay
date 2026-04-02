@@ -1484,10 +1484,25 @@ function openValidationPopup(recordId) {
     
     currentValidationRecordId = recordId;
     
+    // Build updated fields display
+    let updatedFieldsHtml = '';
+    if (record.updatedFields && Array.isArray(record.updatedFields) && record.updatedFields.length > 0) {
+        updatedFieldsHtml = `
+            <div style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 8px; font-size: 12px;">
+                <strong><i class="fas fa-clipboard-check"></i> Data yang diupdate:</strong><br>
+                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                    ${record.updatedFields.map(field => `<span style="background: #4caf50; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;"><i class="fas fa-check"></i> ${escapeHtml(field)}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
     // Set record info
     document.getElementById('validationRecordInfo').innerHTML = `
         <strong>${escapeHtml(record.flavor)}</strong> - ${escapeHtml(record.negara)}<br>
-        <small>Tanggal Update: ${formatDate(record.updatedAt || record.tanggal)}</small>
+        <small>Tanggal Update: ${formatDate(record.updatedAt || record.tanggal)}</small><br>
+        <small>Diupdate oleh: <strong>${escapeHtml(record.updatedBy || record.createdBy || '-')}</strong></small>
+        ${updatedFieldsHtml}
     `;
     
     document.getElementById('validationRecordId').value = recordId;

@@ -176,6 +176,66 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Kode Produksi Section -->
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                <h3 style="margin: 0 0 15px 0; font-size: 1rem;"><i class="fas fa-industry"></i> Kode Produksi</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px;">Kode Produksi 1</label>
+                        <input type="text" id="kodeProduksi1" placeholder="Masukkan kode produksi..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px;">Kode Produksi 2</label>
+                        <input type="text" id="kodeProduksi2" placeholder="Masukkan kode produksi..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px;">Kode Produksi 3</label>
+                        <input type="text" id="kodeProduksi3" placeholder="Masukkan kode produksi..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data yang Diupdate Section -->
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                <h3 style="margin: 0 0 15px 0; font-size: 1rem;"><i class="fas fa-clipboard-check"></i> Data yang Diupdate</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Centang item yang diupdate/diubah untuk ditampilkan ke validator</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_bumbu" value="Bumbu" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-pepper-hot" style="color: #e31e24; margin-right: 5px;"></i> Bumbu</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_mbumbu" value="M. Bumbu" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-oil-can" style="color: #e31e24; margin-right: 5px;"></i> M. Bumbu</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_si" value="SI" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-barcode" style="color: #e31e24; margin-right: 5px;"></i> SI</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_kartonDepan" value="Karton Depan" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-box" style="color: #e31e24; margin-right: 5px;"></i> Karton Depan</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_kartonBelakang" value="Karton Belakang" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-box-open" style="color: #e31e24; margin-right: 5px;"></i> Karton Belakang</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_etiket" value="Etiket" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-tag" style="color: #e31e24; margin-right: 5px;"></i> Etiket</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_etiketBanded" value="Etiket Banded" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-cubes" style="color: #e31e24; margin-right: 5px;"></i> Etiket Banded</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                        <input type="checkbox" id="update_plakban" value="Plakban" style="width: 18px; height: 18px; accent-color: #e31e24;">
+                        <span><i class="fas fa-tape" style="color: #e31e24; margin-right: 5px;"></i> Plakban</span>
+                    </label>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 25px; flex-wrap: wrap;">
                 <button onclick="saveTemporary()" style="background: #f39c12; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
                     <i class="fas fa-save"></i> Simpan Sementara
