@@ -1,848 +1,1051 @@
 // =====================================================
 // VALID DISPLAY - Google Apps Script Backend
-// COPY PASTE SEMUA KODE INI KE Google Apps Script
+// Pattern: INSPECTA-style unified request handler
+// Deploy: Execute as ME, Access: Anyone
+// No user login needed for CRUD - all via server
+// =====================================================
+//
+// SHEETS:
+// 1. Records - Data display produk (24 kolom)
+// 2. Users - Data user (NIK, password, name, role)
+// 3. Master - Data master produk
+//
+// STRUKTUR RECORDS (24 kolom):
+// A:id, B:tanggal, C:flavor, D:nomorMaterial, E:negara, F:distributor, G:createdAt, H:updatedAt,
+// I:createdBy, J:updatedBy,
+// K:photo_bumbu, L:photo_mbumbu, M:photo_si, N:photo_kartonDepan, O:photo_kartonBelakang,
+// P:photo_etiket, Q:photo_etiketbanded, R:photo_plakban, S:kodeProduksi,
+// T:validationStatus, U:validatedBy, V:validatedAt, W:validationReason, X:updatedFields
 // =====================================================
 
-// Spreadsheet ID - Ganti dengan ID spreadsheet Anda
-const   SPREADSHEET_ID = '1cCQY-y__0g956Zy7dNTZhYTz5zDL5FSkUw7V8tObtVg';
+// ===== CONFIGURATION =====
+var SPREADSHEET_ID = '1cCQY-y__0g956Zy7dNTZhYTz5zDL5FSkUw7V8tObtVg';
+var DRIVE_FOLDER_ID = '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23';
 
-// Sheet names
-const SHEET_USERS = 'Users';
-const SHEET_RECORDS = 'Records';
+// Header yang benar untuk Records (24 kolom)
+var CORRECT_HEADERS = ['id', 'tanggal', 'flavor', 'nomorMaterial', 'negara', 'distributor', 'createdAt', 'updatedAt', 
+                       'createdBy', 'updatedBy',
+                       'photo_bumbu', 'photo_mbumbu', 'photo_si', 'photo_kartonDepan', 'photo_kartonBelakang',
+                       'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi',
+                       'validationStatus', 'validatedBy', 'validatedAt', 'validationReason', 'updatedFields'];
 
-// =====================================================
-// MAIN HANDLER - doGet untuk JSONP
-// Supports both read AND write operations via GET (for CORS bypass)
-// =====================================================
+// ===== CORS & UNIFIED REQUEST HANDLING =====
+// Both GET and POST go through the same handler (INSPECTA pattern)
 function doGet(e) {
-  const action = e.parameter.action || '';
-  const callback = e.parameter.callback || 'callback';
-  
-  let result;
-  
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
   try {
-    // Parse data parameter if exists (for write operations)
-    let data = {};
-    if (e.parameter.data) {
+    var params = e.parameter || {};
+    var action = params.action;
+    var callback = params.callback; // JSONP support (optional)
+    
+    // Parse POST body if present
+    var postData = {};
+    if (e.postData && e.postData.contents) {
       try {
-        data = JSON.parse(e.parameter.data);
-      } catch(err) {
-        Logger.log('Failed to parse data parameter: ' + err);
+        postData = JSON.parse(e.postData.contents);
+      } catch (err) {
+        postData = {};
       }
+      // If action is in POST body, use it
+      if (postData.action) action = postData.action;
     }
     
-    Logger.log('doGet action: ' + action);
+    // Also parse data parameter (for JSONP write operations)
+    var data = {};
+    if (params.data) {
+      try {
+        data = JSON.parse(params.data);
+      } catch (err) {}
+      if (data.action) action = data.action;
+    }
     
-    switch(action) {
+    // Merge all sources: postData > data > params
+    var merged = {};
+    for (var k in params) merged[k] = params[k];
+    for (var k in data) merged[k] = data[k];
+    for (var k in postData) merged[k] = postData[k];
+    
+    var result;
+    
+    switch (action) {
+      // ===== AUTH =====
       case 'login':
-        result = handleLogin(e.parameter.nik, e.parameter.password);
+        result = loginUser(merged.nik || params.nik, merged.password || params.password);
         break;
+        
+      // ===== USERS =====
       case 'getUsers':
-        result = getUsers();
+        result = getAllUsersData();
         break;
-      case 'getRecords':
+      case 'getUser':
+        result = getUserByNik(merged.nik || params.nik);
+        break;
+      case 'addUser':
+        result = addUserData(merged.user || merged);
+        break;
+      case 'updateUser':
+        result = updateUserData(merged.nik, merged.user || merged);
+        break;
+      case 'deleteUser':
+        result = deleteUserData(merged.nik);
+        break;
+        
+      // ===== RECORDS =====
       case 'getAll':
-        result = getAllRecords();
+        result = getAllRecordsData();
+        break;
+      case 'getRecordsBasic':
+        result = getRecordsBasicData();
         break;
       case 'get':
-        result = getRecordById(e.parameter.id);
-        break;
-      // Write operations via GET (for CORS bypass)
-      case 'add':
-      case 'addRecord':
-        Logger.log('Adding record via GET: ' + JSON.stringify(data).substring(0, 300));
-        result = addRecord(data.record || data);
-        break;
-      case 'update':
-      case 'updateRecord':
-        // Support multiple ways to pass id
-        const updateId = data.recordId || data.id || e.parameter.id || e.parameter.recordId;
-        Logger.log('Updating record via GET, id: ' + updateId);
-        result = updateRecord(updateId, data.record || data);
-        break;
-      case 'delete':
-      case 'deleteRecord':
-        const deleteId = data.recordId || data.id || e.parameter.id || e.parameter.recordId;
-        result = deleteRecord(deleteId);
-        break;
-      case 'validateRecord':
-        const validateId = data.recordId || data.id || e.parameter.id || e.parameter.recordId;
-        result = validateRecord(validateId, data.validation || data);
-        break;
-      case 'addUser':
-        Logger.log('addUser data: ' + JSON.stringify(data).substring(0, 500));
-        result = addUser(data.user || data);
-        break;
-      case 'updateUser':
-        const updateUserNik = data.nik || e.parameter.nik;
-        Logger.log('updateUser NIK: ' + updateUserNik);
-        Logger.log('updateUser data: ' + JSON.stringify(data).substring(0, 500));
-        Logger.log('updateUser data.user: ' + JSON.stringify(data.user));
-        result = updateUser(updateUserNik, data.user || data);
-        break;
-      case 'deleteUser':
-        const deleteUserNik = data.nik || e.parameter.nik;
-        result = deleteUser(deleteUserNik);
-        break;
-      case 'bulkAddUsers':
-        result = bulkAddUsers(data.users || data);
-        break;
-      default:
-        result = { success: false, error: 'Unknown action: ' + action };
-    }
-  } catch(error) {
-    Logger.log('doGet error: ' + error.toString());
-    result = { success: false, error: error.toString() };
-  }
-  
-  Logger.log('doGet result: ' + JSON.stringify(result).substring(0, 200));
-  
-  // Return JSONP response
-  const jsonOutput = JSON.stringify(result);
-  return ContentService.createTextOutput(callback + '(' + jsonOutput + ')')
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
-}
-
-// =====================================================
-// MAIN HANDLER - doPost untuk Create/Update/Delete
-// =====================================================
-function doPost(e) {
-  let result;
-  let callbackName = '';
-  
-  try {
-    let data;
-    
-    // Log raw request for debugging
-    Logger.log('=== POST Request Debug ===');
-    Logger.log('e.parameter: ' + JSON.stringify(e.parameter || {}));
-    Logger.log('e.parameters: ' + JSON.stringify(e.parameters || {}));
-    Logger.log('e.postData: ' + JSON.stringify(e.postData || {}));
-    
-    // Parse data from different sources
-    if (e.postData && e.postData.contents) {
-      Logger.log('Parsing from postData.contents');
-      data = JSON.parse(e.postData.contents);
-    } else if (e.parameter && e.parameter.data) {
-      Logger.log('Parsing from e.parameter.data');
-      data = JSON.parse(e.parameter.data);
-    } else if (e.parameters && e.parameters.data && e.parameters.data[0]) {
-      Logger.log('Parsing from e.parameters.data[0]');
-      data = JSON.parse(e.parameters.data[0]);
-    } else {
-      Logger.log('No data found in request');
-      data = {};
-    }
-    
-    callbackName = data.callback || '';
-    const action = data.action || '';
-    
-    Logger.log('POST action: ' + action);
-    Logger.log('POST data: ' + JSON.stringify(data).substring(0, 500));
-    
-    switch(action) {
-      case 'addUser':
-        result = addUser(data.user);
-        break;
-      case 'updateUser':
-        result = updateUser(data.nik, data.user);
-        break;
-      case 'deleteUser':
-        result = deleteUser(data.nik);
-        break;
-      case 'bulkAddUsers':
-        result = bulkAddUsers(data.users);
+        result = getRecordByIdData(merged.id || params.id);
         break;
       case 'add':
       case 'addRecord':
-        result = addRecord(data.record);
+        result = addRecordData(merged.record || merged);
         break;
       case 'update':
       case 'updateRecord':
-        result = updateRecord(data.recordId || data.id, data.record);
+        result = updateRecordData(merged.recordId || merged.id, merged.record || merged);
         break;
       case 'delete':
       case 'deleteRecord':
-        result = deleteRecord(data.recordId || data.id);
+        result = deleteRecordData(merged.recordId || merged.id);
         break;
       case 'validateRecord':
-        result = validateRecord(data.id, data.validation);
+        result = validateRecordData(merged.id || merged.recordId, merged.validation || merged);
         break;
+        
+      // ===== MASTER DATA =====
+      case 'getMaster':
+        result = getAllMasterData();
+        break;
+      case 'getMasterByFlavor':
+        result = getMasterByFlavor(merged.flavor || params.flavor);
+        break;
+      case 'addMaster':
+        result = addMasterData(merged.master || merged);
+        break;
+      case 'updateMaster':
+        result = updateMasterData(merged.masterId || merged.id, merged.master || merged);
+        break;
+      case 'deleteMaster':
+        result = deleteMasterData(merged.masterId || merged.id);
+        break;
+        
+      // ===== PHOTO UPLOAD =====
+      case 'uploadPhoto':
+        result = handleUploadPhoto(merged);
+        break;
+      case 'deletePhoto':
+        result = handleDeletePhoto(merged.fileId);
+        break;
+      case 'getPhotoUrl':
+        result = handleGetPhotoUrl(merged.fileId || params.fileId);
+        break;
+      case 'getPhotoBase64':
+        result = handleGetPhotoBase64(merged);
+        break;
+        
+      // ===== MASTER FILE CRUD =====
+      case 'listMasterFiles':
+        result = handleListMasterFiles(merged);
+        break;
+      case 'uploadMasterFile':
+        result = handleUploadMasterFile(merged);
+        break;
+      case 'renameMasterFile':
+        result = handleRenameMasterFile(merged);
+        break;
+      case 'deleteMasterFile':
+        result = handleDeleteMasterFile(merged);
+        break;
+        
+      // ===== UTILITY =====
+      case 'fixStructure':
+        result = fixRecordsStructure();
+        break;
+        
       default:
         result = { success: false, error: 'Unknown action: ' + action };
     }
-  } catch(error) {
-    Logger.log('POST error: ' + error.toString());
-    result = { success: false, error: error.toString() };
+    
+    // Return JSONP if callback parameter exists, otherwise plain JSON
+    if (callback) {
+      return ContentService
+        .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    var errorResult = { success: false, error: error.toString() };
+    var cb = (e.parameter || {}).callback;
+    
+    if (cb) {
+      return ContentService
+        .createTextOutput(cb + '(' + JSON.stringify(errorResult) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(errorResult))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  Logger.log('POST result: ' + JSON.stringify(result));
-  
-  // Send postMessage for iframe communication
-  const html = `
-    <script>
-      window.parent.postMessage(${JSON.stringify({...result, callbackName: callbackName})}, '*');
-    </script>
-  `;
-  return HtmlService.createHtmlOutput(html);
 }
 
-// =====================================================
-// USER FUNCTIONS
-// =====================================================
+// ===== UTILITY FUNCTIONS (INSPECTA pattern) =====
 
-// Login user
-function handleLogin(nik, password) {
-  if (!nik || !password) {
-    return { success: false, error: 'NIK dan Password harus diisi' };
-  }
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+function getSheet(name) {
+  var ss = getSpreadsheet();
+  return ss.getSheetByName(name);
+}
+
+function generateId(prefix) {
+  return (prefix || 'ID') + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+}
+
+function nowISO() {
+  return new Date().toISOString();
+}
+
+// Fungsi untuk memperbaiki struktur sheet Records - JALANKAN INI DULU!
+function fixRecordsStructure() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
   
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_USERS);
-  
-  // Create Users sheet if not exists
   if (!sheet) {
-    sheet = createUsersSheet(ss);
+    // Buat sheet baru dengan struktur yang benar
+    sheet = ss.insertSheet('Records');
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { success: true, message: 'Sheet Records dibuat baru dengan struktur yang benar' };
   }
   
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  // Perbaiki header dulu
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
   
-  // Find column indexes
-  const nikCol = headers.indexOf('nik');
-  const passwordCol = headers.indexOf('password');
-  const nameCol = headers.indexOf('name');
-  const roleCol = headers.indexOf('role');
-  const permissionsCol = headers.indexOf('permissions');
+  return { success: true, message: 'Header diperbaiki. Jalankan migrateOldData() untuk migrasi data lama.' };
+}
+
+// FUNGSI MIGRASI DATA - Jalankan ini untuk memperbaiki data lama dari 14 kolom ke 16 kolom
+function migrateOldData() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
   
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (String(row[nikCol]) === String(nik) && String(row[passwordCol]) === String(password)) {
-      return {
-        success: true,
+  if (!sheet) {
+    return { success: false, error: 'Sheet Records tidak ditemukan' };
+  }
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return { success: true, message: 'Tidak ada data untuk dimigrasi' };
+  }
+  
+  var migratedCount = 0;
+  
+  // Loop setiap baris data (mulai dari baris 2)
+  for (var i = 2; i <= lastRow; i++) {
+    var row = sheet.getRange(i, 1, 1, 16).getValues()[0];
+    var cellG = String(row[6]); // Kolom G (index 6)
+    
+    // Cek apakah kolom G berisi data foto (struktur lama) atau createdBy (struktur baru)
+    // Data foto biasanya dimulai dengan '{' atau kosong, createdBy berisi nama atau kosong
+    if (cellG.startsWith('{') || cellG.startsWith('[')) {
+      // Ini data struktur lama - perlu migrasi
+      // Struktur lama: id, tanggal, flavor, negara, createdAt, updatedAt, photo_bumbu, photo_mbumbu, photo_si, photo_karton, photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi
+      // Struktur baru: id, tanggal, flavor, negara, createdAt, updatedAt, createdBy, updatedBy, photo_bumbu, photo_mbumbu, photo_si, photo_karton, photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi
+      
+      var oldData = sheet.getRange(i, 1, 1, 14).getValues()[0];
+      
+      var newRow = [
+        oldData[0],  // id
+        oldData[1],  // tanggal
+        oldData[2],  // flavor
+        oldData[3],  // negara
+        oldData[4],  // createdAt
+        oldData[5],  // updatedAt
+        '',          // createdBy (baru - kosong)
+        '',          // updatedBy (baru - kosong)
+        oldData[6],  // photo_bumbu (dari kolom G lama)
+        oldData[7],  // photo_mbumbu (dari kolom H lama)
+        oldData[8],  // photo_si (dari kolom I lama)
+        oldData[9],  // photo_karton (dari kolom J lama)
+        oldData[10], // photo_etiket (dari kolom K lama)
+        oldData[11], // photo_etiketbanded (dari kolom L lama)
+        oldData[12], // photo_plakban (dari kolom M lama)
+        oldData[13]  // kodeProduksi (dari kolom N lama)
+      ];
+      
+      // Update baris dengan data yang sudah dimigrasi
+      sheet.getRange(i, 1, 1, 16).setValues([newRow]);
+      migratedCount++;
+      
+      Logger.log('Migrated row ' + i + ': ' + oldData[0]);
+    }
+  }
+  
+  return { 
+    success: true, 
+    message: 'Migrasi selesai. ' + migratedCount + ' baris data berhasil dimigrasi ke struktur baru.' 
+  };
+}
+
+// Fungsi untuk menghapus semua data dan memulai dari awal (HATI-HATI!)
+function resetRecordsSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
+  
+  if (sheet) {
+    // Hapus sheet lama
+    ss.deleteSheet(sheet);
+  }
+  
+  // Buat sheet baru
+  sheet = ss.insertSheet('Records');
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+  sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  
+  return { success: true, message: 'Sheet Records berhasil direset dengan struktur baru' };
+}
+
+function getRecordsSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Records');
+  
+  // Jika sheet "Records" belum ada, buat otomatis
+  if (!sheet) {
+    sheet = ss.insertSheet('Records');
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setValues([CORRECT_HEADERS]);
+    sheet.getRange(1, 1, 1, CORRECT_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  
+  return sheet;
+}
+
+// Get or create Users sheet
+function getUsersSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Users');
+  
+  // Jika sheet "Users" belum ada, buat otomatis dengan default users
+  if (!sheet) {
+    sheet = ss.insertSheet('Users');
+    var headers = ['nik', 'password', 'name', 'role', 'permissions', 'createdAt', 'updatedAt'];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    
+    // Add default users
+    var defaultUsers = [
+      ['50086913', 'Ind0f00d25', 'Admin User', 'admin', 'user_admin|records_viewer|records_editor|records_validator|master_editor', new Date().toISOString(), new Date().toISOString()],
+      ['12345678', 'viewer123', 'Viewer User', 'field', 'records_viewer', new Date().toISOString(), new Date().toISOString()],
+      ['11111111', 'lihat123', 'Staff View', 'supervisor', 'records_viewer|records_validator', new Date().toISOString(), new Date().toISOString()]
+    ];
+    sheet.getRange(2, 1, defaultUsers.length, defaultUsers[0].length).setValues(defaultUsers);
+  }
+  
+  return sheet;
+}
+
+// OLD doGet/doPost REMOVED - now using unified handleRequest() above
+
+// =====================================================
+// USER MANAGEMENT FUNCTIONS
+// =====================================================
+
+// Login user - verify credentials
+function loginUser(nik, password) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == nik && data[i][1] == password) {
+      // Parse permissions
+      var permissionsStr = data[i][4] ? String(data[i][4]).trim() : '';
+      var permissions = [];
+      if (permissionsStr) {
+        permissions = permissionsStr.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+      }
+      
+      return { 
+        success: true, 
         user: {
-          nik: row[nikCol],
-          name: row[nameCol] || 'User',
-          role: row[roleCol] || 'field',
-          permissions: row[permissionsCol] || ''
+          nik: data[i][0],
+          name: data[i][2],
+          role: data[i][3],
+          permissions: permissions
         }
       };
     }
   }
-  
-  return { success: false, error: 'NIK atau Password salah!' };
+  return { success: false, error: 'NIK atau password salah' };
 }
 
 // Get all users
-function getUsers() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_USERS);
+function getAllUsersData() {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
   
-  if (!sheet) {
-    sheet = createUsersSheet(ss);
+  if (data.length <= 1) {
+    return { success: true, users: [] };
   }
   
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  
-  const users = [];
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (!row[0]) continue; // Skip empty rows
-    
-    const user = {};
-    headers.forEach((header, index) => {
-      user[header] = row[index] || '';
-    });
-    users.push(user);
+  var users = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (row[0]) {
+      // Parse permissions from pipe-separated string (e.g., "perm1|perm2|perm3")
+      var permissionsStr = row[4] ? String(row[4]).trim() : '';
+      var permissions = [];
+      if (permissionsStr) {
+        permissions = permissionsStr.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+      }
+      
+      users.push({
+        nik: row[0],
+        password: row[1], // Include password for admin view
+        name: row[2],
+        role: row[3],
+        permissions: permissions,
+        createdAt: row[5],
+        updatedAt: row[6]
+      });
+    }
   }
   
   return { success: true, users: users };
 }
 
+// Get user by NIK
+function getUserByNik(nik) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == nik) {
+      // Parse permissions
+      var permissionsStr = data[i][4] ? String(data[i][4]).trim() : '';
+      var permissions = [];
+      if (permissionsStr) {
+        permissions = permissionsStr.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+      }
+      
+      return { 
+        success: true, 
+        user: {
+          nik: data[i][0],
+          name: data[i][2],
+          role: data[i][3],
+          permissions: permissions
+        }
+      };
+    }
+  }
+  return { success: false, error: 'User not found' };
+}
+
 // Add new user
-function addUser(user) {
-  if (!user || !user.nik || !user.name || !user.password) {
-    return { success: false, error: 'Data user tidak lengkap' };
-  }
-  
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_USERS);
-  
-  if (!sheet) {
-    sheet = createUsersSheet(ss);
-  }
+function addUserData(user) {
+  var sheet = getUsersSheet();
   
   // Check if NIK already exists
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const nikCol = headers.indexOf('nik');
-  
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][nikCol]) === String(user.nik)) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == user.nik) {
       return { success: false, error: 'NIK sudah terdaftar' };
     }
   }
   
-  // Build row based on headers
-  const now = new Date().toISOString();
-  const row = [];
+  // Convert permissions array to pipe-separated string
+  var permissionsStr = '';
+  if (user.permissions && Array.isArray(user.permissions)) {
+    permissionsStr = user.permissions.join('|');
+  }
   
-  headers.forEach(header => {
-    switch(header) {
-      case 'nik':
-        row.push(user.nik);
-        break;
-      case 'password':
-        row.push(user.password);
-        break;
-      case 'name':
-        row.push(user.name);
-        break;
-      case 'role':
-        row.push(user.role || 'field');
-        break;
-      case 'permissions':
-        row.push(user.permissions || 'records_viewer');
-        break;
-      case 'createdAt':
-        row.push(now);
-        break;
-      case 'updatedAt':
-        row.push(now);
-        break;
-      default:
-        row.push('');
-    }
-  });
+  var row = [
+    user.nik,
+    user.password,
+    user.name,
+    user.role || 'field',
+    permissionsStr,
+    new Date().toISOString(),
+    new Date().toISOString()
+  ];
   
   sheet.appendRow(row);
-  
-  return { success: true, message: 'User berhasil ditambahkan' };
+  return { success: true, message: 'User berhasil ditambahkan', nik: user.nik };
 }
 
 // Update user
-function updateUser(nik, userData) {
-  Logger.log('=== updateUser called ===');
-  Logger.log('NIK: ' + nik);
-  Logger.log('userData: ' + JSON.stringify(userData));
+function updateUserData(nik, updatedUser) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
   
-  if (!nik || !userData) {
-    return { success: false, error: 'Data tidak lengkap' };
-  }
+  Logger.log('updateUserData called with nik=' + nik + ', updatedUser=' + JSON.stringify(updatedUser));
   
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_USERS);
-  
-  if (!sheet) {
-    return { success: false, error: 'Sheet Users tidak ditemukan' };
-  }
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  
-  Logger.log('Headers: ' + headers.join(', '));
-  
-  // Find column indexes dynamically
-  const nikCol = headers.indexOf('nik');
-  const passwordCol = headers.indexOf('password');
-  const nameCol = headers.indexOf('name');
-  const roleCol = headers.indexOf('role');
-  const permissionsCol = headers.indexOf('permissions');
-  const updatedAtCol = headers.indexOf('updatedAt');
-  
-  Logger.log('Column indexes: nik=' + nikCol + ', password=' + passwordCol + ', name=' + nameCol + ', role=' + roleCol + ', permissions=' + permissionsCol + ', updatedAt=' + updatedAtCol);
-  
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][nikCol]) === String(nik)) {
-      Logger.log('Found user at row ' + (i + 1));
-      Logger.log('Current data: ' + data[i].join(' | '));
-      
-      // Update using column indexes
-      if (userData.password && passwordCol >= 0) {
-        sheet.getRange(i + 1, passwordCol + 1).setValue(userData.password);
-        Logger.log('Updated password');
-      }
-      if (userData.name && nameCol >= 0) {
-        sheet.getRange(i + 1, nameCol + 1).setValue(userData.name);
-        Logger.log('Updated name to: ' + userData.name);
-      }
-      if (userData.role && roleCol >= 0) {
-        sheet.getRange(i + 1, roleCol + 1).setValue(userData.role);
-        Logger.log('Updated role to: ' + userData.role);
-      }
-      if (userData.permissions && permissionsCol >= 0) {
-        sheet.getRange(i + 1, permissionsCol + 1).setValue(userData.permissions);
-        Logger.log('Updated permissions to: ' + userData.permissions);
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == nik) {
+      // Handle permissions - can be string (pipe-separated) or array
+      var permissionsStr = '';
+      if (updatedUser.permissions) {
+        if (Array.isArray(updatedUser.permissions)) {
+          // If it's an array, join it
+          permissionsStr = updatedUser.permissions.join('|');
+        } else if (typeof updatedUser.permissions === 'string') {
+          // If it's already a string, use it directly
+          permissionsStr = String(updatedUser.permissions).trim();
+        }
+      } else if (data[i][4]) {
+        // If no permissions provided, keep existing
+        permissionsStr = String(data[i][4]);
       }
       
-      // Update timestamp
-      if (updatedAtCol >= 0) {
-        sheet.getRange(i + 1, updatedAtCol + 1).setValue(new Date().toISOString());
-        Logger.log('Updated updatedAt');
-      }
+      Logger.log('Updating user ' + nik + ' with permissions: ' + permissionsStr);
       
-      SpreadsheetApp.flush(); // Force save
+      var row = [
+        nik, // NIK tidak bisa diubah
+        updatedUser.password || data[i][1],
+        updatedUser.name || data[i][2],
+        updatedUser.role || data[i][3],
+        permissionsStr,
+        data[i][5], // Keep original createdAt
+        new Date().toISOString()
+      ];
       
-      Logger.log('Update complete!');
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+      Logger.log('User updated successfully');
       return { success: true, message: 'User berhasil diupdate' };
     }
   }
   
-  return { success: false, error: 'User tidak ditemukan' };
+  Logger.log('User not found: ' + nik);
+  return { success: false, error: 'User not found' };
 }
 
 // Delete user
-function deleteUser(nik) {
-  if (!nik) {
-    return { success: false, error: 'NIK tidak boleh kosong' };
-  }
+function deleteUserData(nik) {
+  var sheet = getUsersSheet();
+  var data = sheet.getDataRange().getValues();
   
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_USERS);
+  // Prevent deleting last admin
+  var adminCount = 0;
+  var targetRow = -1;
+  var targetIsAdmin = false;
   
-  if (!sheet) {
-    return { success: false, error: 'Sheet Users tidak ditemukan' };
-  }
-  
-  const data = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(nik)) {
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'User berhasil dihapus' };
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][3] === 'admin') adminCount++;
+    if (data[i][0] == nik) {
+      targetRow = i + 1;
+      targetIsAdmin = data[i][3] === 'admin';
     }
   }
   
-  return { success: false, error: 'User tidak ditemukan' };
-}
-
-// Bulk add users
-function bulkAddUsers(users) {
-  if (!users || !Array.isArray(users) || users.length === 0) {
-    return { success: false, error: 'Data users kosong' };
+  if (targetRow === -1) {
+    return { success: false, error: 'User not found' };
   }
   
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_USERS);
-  
-  if (!sheet) {
-    sheet = createUsersSheet(ss);
+  if (targetIsAdmin && adminCount <= 1) {
+    return { success: false, error: 'Tidak bisa menghapus admin terakhir' };
   }
   
-  let added = 0;
-  let skipped = 0;
-  const existingNiks = sheet.getDataRange().getValues().slice(1).map(row => String(row[0]));
-  
-  users.forEach(user => {
-    if (!user.nik || !user.name || !user.password) {
-      skipped++;
-      return;
-    }
-    
-    if (existingNiks.includes(String(user.nik))) {
-      skipped++;
-      return;
-    }
-    
-    sheet.appendRow([
-      user.nik,
-      user.password,
-      user.name,
-      user.role || 'field',
-      user.permissions || ''
-    ]);
-    added++;
-  });
-  
-  return { 
-    success: true, 
-    message: `${added} user ditambahkan, ${skipped} dilewati`,
-    added: added,
-    skipped: skipped
-  };
-}
-
-// Create Users sheet with default structure
-function createUsersSheet(ss) {
-  const sheet = ss.insertSheet(SHEET_USERS);
-  
-  // Set headers
-  const headers = ['nik', 'password', 'name', 'role', 'permissions'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4a90d9').setFontColor('white');
-  
-  // Add default admin user
-  sheet.appendRow([
-    'admin',
-    'admin123',
-    'Administrator',
-    'admin',
-    'user_admin|records_viewer|records_editor|records_validator'
-  ]);
-  
-  // Format
-  sheet.setFrozenRows(1);
-  sheet.autoResizeColumns(1, headers.length);
-  
-  return sheet;
+  sheet.deleteRow(targetRow);
+  return { success: true, message: 'User berhasil dihapus' };
 }
 
 // =====================================================
-// RECORD FUNCTIONS
+// RECORDS MANAGEMENT FUNCTIONS
 // =====================================================
 
-// Get all records - compatible with existing sheet structure
-function getAllRecords() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RECORDS);
-  
-  if (!sheet) {
-    Logger.log('Sheet Records not found');
-    return { success: true, records: [] };
+// Mapping kolom foto ke folder Google Drive
+// PENTING: Ganti FOLDER_ID dengan ID folder sebenarnya di Google Drive Anda
+var PHOTO_FOLDER_IDS = {
+  photo_bumbu: null,       // Folder "Bumbu" - akan diisi otomatis atau manual
+  photo_mbumbu: null,      // Folder "Minyak Bumbu"
+  photo_si: null,          // Folder "Kode SI"
+  photo_kartonDepan: null, // Folder "Kode Karton/Depan"
+  photo_kartonBelakang: null, // Folder "Kode Karton/Belakang"
+  photo_etiket: null,      // Folder "Kode Etiket"
+  photo_etiketbanded: null,// Folder "Five or Six in One"
+  photo_plakban: null      // Folder "Plakban"
+};
+
+// Nama folder di Google Drive untuk setiap kolom foto
+var PHOTO_FOLDER_NAMES = {
+  photo_bumbu: 'Bumbu',
+  photo_mbumbu: 'Minyak Bumbu',
+  photo_si: 'Kode SI',
+  photo_kartonDepan: 'Kode Karton/Depan',
+  photo_kartonBelakang: 'Kode Karton/Belakang',
+  photo_etiket: 'Kode Etiket',
+  photo_etiketbanded: 'Five or Six in One',
+  photo_plakban: 'Plakban'
+};
+
+// ID folder utama AppDisplay_Data (ambil dari config atau hardcode)
+var MAIN_FOLDER_ID = '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23';
+
+// Cache folder IDs untuk performa
+var folderIdCache = {};
+
+// Fungsi untuk mendapatkan ID folder berdasarkan nama
+// Support subfolder dengan format "ParentFolder/SubFolder"
+function getFolderIdByName(folderName) {
+  if (folderIdCache[folderName]) {
+    return folderIdCache[folderName];
   }
   
+  try {
+    var mainFolder = DriveApp.getFolderById(MAIN_FOLDER_ID);
+    
+    // Check if folderName contains subfolder (e.g., "Kode Karton/Depan")
+    if (folderName.includes('/')) {
+      var parts = folderName.split('/');
+      var currentFolder = mainFolder;
+      
+      for (var i = 0; i < parts.length; i++) {
+        var folders = currentFolder.getFoldersByName(parts[i]);
+        if (folders.hasNext()) {
+          currentFolder = folders.next();
+        } else {
+          return null;
+        }
+      }
+      
+      folderIdCache[folderName] = currentFolder.getId();
+      return currentFolder.getId();
+    }
+    
+    // Simple folder name (no subfolder)
+    var folders = mainFolder.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      var folder = folders.next();
+      folderIdCache[folderName] = folder.getId();
+      return folder.getId();
+    }
+  } catch (e) {
+    Logger.log('Error getting folder: ' + e.message);
+  }
+  return null;
+}
+
+// Fungsi untuk mencari file di folder berdasarkan nama (dengan atau tanpa ekstensi)
+function findFileInFolder(folderName, fileName) {
+  if (!fileName || fileName.trim() === '') return null;
+  
+  var folderId = getFolderIdByName(folderName);
+  if (!folderId) return null;
+  
+  try {
+    var folder = DriveApp.getFolderById(folderId);
+    var files = folder.getFiles();
+    
+    // Normalisasi nama file (hapus ekstensi jika ada)
+    var searchName = fileName.trim();
+    var searchNameNoExt = searchName.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+    
+    while (files.hasNext()) {
+      var file = files.next();
+      var name = file.getName();
+      var nameNoExt = name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+      
+      // Cocokkan nama dengan atau tanpa ekstensi (case-insensitive)
+      if (name.toLowerCase() === searchName.toLowerCase() || 
+          nameNoExt.toLowerCase() === searchNameNoExt.toLowerCase()) {
+        return {
+          id: file.getId(),
+          name: file.getName(),
+          directLink: 'https://lh3.googleusercontent.com/d/' + file.getId()
+        };
+      }
+    }
+  } catch (e) {
+    Logger.log('Error finding file: ' + e.message);
+  }
+  return null;
+}
+
+// Parse photo value - bisa JSON object atau nama file string
+function parsePhotoValue(value, photoKey) {
+  if (!value || value === '') return null;
+  
+  var strValue = String(value).trim();
+  
+  // Coba parse sebagai JSON dulu
+  try {
+    var parsed = JSON.parse(strValue);
+    if (parsed && typeof parsed === 'object' && parsed.id) {
+      return parsed;
+    }
+  } catch (e) {
+    // Bukan JSON, lanjut ke nama file
+  }
+  
+  // Jika bukan JSON, anggap sebagai nama file dan cari di folder
+  var folderName = PHOTO_FOLDER_NAMES[photoKey];
+  if (folderName) {
+    var fileData = findFileInFolder(folderName, strValue);
+    if (fileData) {
+      return fileData;
+    }
+    // Jika tidak ketemu, return object dengan nama saja
+    return { name: strValue, id: null, directLink: null };
+  }
+  
+  return null;
+}
+
+// Get all records
+// Struktur 24 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), distributor(5), createdAt(6), updatedAt(7),
+//                    createdBy(8), updatedBy(9),
+//                    photo_bumbu(10), photo_mbumbu(11), photo_si(12), photo_kartonDepan(13), photo_kartonBelakang(14),
+//                    photo_etiket(15), photo_etiketbanded(16), photo_plakban(17), kodeProduksi(18),
+//                    validationStatus(19), validatedBy(20), validatedAt(21), validationReason(22), updatedFields(23)
+function getAllRecordsData() {
+  const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
+  
   if (data.length <= 1) {
-    Logger.log('No data in Records sheet');
     return { success: true, records: [] };
   }
-  
-  const headers = data[0];
-  Logger.log('Headers: ' + headers.join(', '));
   
   const records = [];
-  
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (!row[0]) continue; // Skip empty rows
-    
-    // Map row data to record object
-    const record = {};
-    headers.forEach((header, index) => {
-      // Convert header to camelCase for frontend compatibility
-      const key = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      
-      let value = row[index];
-      
-      // Parse JSON strings (for photos object)
-      if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
-        try {
-          value = JSON.parse(value);
-        } catch(e) {
-          // Keep as string if not valid JSON
-        }
-      }
-      
-      record[key] = value || '';
-    });
-    
-    // Also keep original header names for compatibility
-    headers.forEach((header, index) => {
-      record[header] = row[index] || '';
-    });
-    
-    // Parse photos from individual columns into photos object
-    record.photos = {};
-    const photoTypes = ['bumbu', 'mbumbu', 'si', 'karton', 'etiket', 'etiketbanded', 'plakban'];
-    photoTypes.forEach(type => {
-      const colName = 'photo_' + type;
-      const value = record[colName];
-      if (value) {
-        // Check if it's a JSON object or a file ID
-        if (typeof value === 'object') {
-          record.photos[type === 'mbumbu' ? 'm-bumbu' : (type === 'etiketbanded' ? 'etiket-banded' : type)] = value;
-        } else if (typeof value === 'string' && value.length > 5) {
-          // Assume it's a file ID
-          record.photos[type === 'mbumbu' ? 'm-bumbu' : (type === 'etiketbanded' ? 'etiket-banded' : type)] = {
-            id: value,
-            directLink: 'https://lh3.googleusercontent.com/d/' + value
-          };
-        }
-      }
-    });
-    
-    // Parse kodeProduksi
-    if (record.kodeProduksi || record.kode_produksi) {
-      const kodeValue = record.kodeProduksi || record.kode_produksi;
-      if (typeof kodeValue === 'string') {
-        try {
-          record.kodeProduksi = JSON.parse(kodeValue);
-        } catch(e) {
-          record.kodeProduksi = [kodeValue];
-        }
-      }
+    if (row[0]) { // Jika ada ID
+      records.push({
+        id: row[0],
+        tanggal: row[1],
+        flavor: row[2],
+        nomorMaterial: row[3] || '',
+        negara: row[4],
+        distributor: row[5] || '',
+        createdAt: row[6],
+        updatedAt: row[7],
+        createdBy: row[8] || '',
+        updatedBy: row[9] || '',
+        photos: {
+          bumbu: parsePhotoValue(row[10], 'photo_bumbu'),
+          'm-bumbu': parsePhotoValue(row[11], 'photo_mbumbu'),
+          si: parsePhotoValue(row[12], 'photo_si'),
+          'karton-depan': parsePhotoValue(row[13], 'photo_kartonDepan'),
+          'karton-belakang': parsePhotoValue(row[14], 'photo_kartonBelakang'),
+          etiket: parsePhotoValue(row[15], 'photo_etiket'),
+          'etiket-banded': parsePhotoValue(row[16], 'photo_etiketbanded'),
+          plakban: parsePhotoValue(row[17], 'photo_plakban')
+        },
+        kodeProduksi: row[18] ? safeJsonParse(row[18]) : [],
+        validationStatus: row[19] || '',
+        validatedBy: row[20] || '',
+        validatedAt: row[21] || '',
+        validationReason: row[22] || '',
+        updatedFields: row[23] ? safeJsonParse(row[23]) : []
+      });
     }
-    
-    records.push(record);
   }
   
-  Logger.log('Found ' + records.length + ' records');
   return { success: true, records: records };
 }
 
-// Get single record by ID
-function getRecordById(id) {
-  if (!id) {
-    return { success: false, error: 'ID required' };
+// =====================================================
+// FAST ENDPOINT - Get records WITHOUT photo processing
+// Returns basic data only, photos as raw string (no Google Drive access)
+// This is MUCH FASTER than getAllRecordsData() which processes 8 photos per record
+// =====================================================
+function getRecordsBasicData() {
+  const sheet = getRecordsSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) {
+    return { success: true, records: [] };
   }
   
-  const result = getAllRecords();
-  if (result.success && result.records) {
-    const record = result.records.find(r => String(r.id) === String(id));
-    if (record) {
-      return { success: true, record: record };
+  const records = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0]) { // Jika ada ID
+      records.push({
+        id: row[0],
+        tanggal: row[1],
+        flavor: row[2],
+        nomorMaterial: row[3] || '',
+        negara: row[4],
+        distributor: row[5] || '',
+        createdAt: row[6],
+        updatedAt: row[7],
+        createdBy: row[8] || '',
+        updatedBy: row[9] || '',
+        // Store raw photo values - NO parsePhotoValue() = NO Google Drive access!
+        photos: {
+          bumbu: row[10] || '',
+          'm-bumbu': row[11] || '',
+          si: row[12] || '',
+          'karton-depan': row[13] || '',
+          'karton-belakang': row[14] || '',
+          etiket: row[15] || '',
+          'etiket-banded': row[16] || '',
+          plakban: row[17] || ''
+        },
+        kodeProduksi: row[18] ? safeJsonParse(row[18]) : [],
+        validationStatus: row[19] || '',
+        validatedBy: row[20] || '',
+        validatedAt: row[21] || '',
+        validationReason: row[22] || '',
+        updatedFields: row[23] ? safeJsonParse(row[23]) : []
+      });
     }
   }
+  
+  return { success: true, records: records };
+}
+
+// Safe JSON parse
+function safeJsonParse(str) {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return null;
+  }
+}
+
+// Get record by ID
+function getRecordByIdData(id) {
+  const sheet = getRecordsSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) {
+      const row = data[i];
+      return { 
+        success: true, 
+        record: {
+          id: row[0],
+          tanggal: row[1],
+          flavor: row[2],
+          nomorMaterial: row[3] || '',
+          negara: row[4],
+          distributor: row[5] || '',
+          createdAt: row[6],
+          updatedAt: row[7],
+          createdBy: row[8] || '',
+          updatedBy: row[9] || '',
+          photos: {
+            bumbu: parsePhotoValue(row[10], 'photo_bumbu'),
+            'm-bumbu': parsePhotoValue(row[11], 'photo_mbumbu'),
+            si: parsePhotoValue(row[12], 'photo_si'),
+            'karton-depan': parsePhotoValue(row[13], 'photo_kartonDepan'),
+            'karton-belakang': parsePhotoValue(row[14], 'photo_kartonBelakang'),
+            etiket: parsePhotoValue(row[15], 'photo_etiket'),
+            'etiket-banded': parsePhotoValue(row[16], 'photo_etiketbanded'),
+            plakban: parsePhotoValue(row[17], 'photo_plakban')
+          },
+          kodeProduksi: row[18] ? safeJsonParse(row[18]) : [],
+          validationStatus: row[19] || '',
+          validatedBy: row[20] || '',
+          validatedAt: row[21] || '',
+          validationReason: row[22] || '',
+          updatedFields: row[23] ? safeJsonParse(row[23]) : []
+        }
+      };
+    }
+  }
+  
   return { success: false, error: 'Record not found' };
 }
 
-// Add new record - compatible with existing sheet structure
-function addRecord(record) {
-  if (!record) {
-    return { success: false, error: 'Data record tidak valid' };
+// Add new record - returns data object
+// Struktur 24 kolom: id, tanggal, flavor, nomorMaterial, negara, distributor, createdAt, updatedAt, createdBy, updatedBy,
+//                    photo_bumbu, photo_mbumbu, photo_si, photo_kartonDepan, photo_kartonBelakang,
+//                    photo_etiket, photo_etiketbanded, photo_plakban, kodeProduksi,
+//                    validationStatus, validatedBy, validatedAt, validationReason, updatedFields
+function addRecordData(record) {
+  const sheet = getRecordsSheet();
+  
+  // Helper to get photo name (string only, no JSON)
+  function getPhotoName(photo) {
+    if (!photo) return '';
+    if (typeof photo === 'string') return photo;
+    if (typeof photo === 'object' && photo.name) {
+      // Remove extension if present
+      return photo.name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+    }
+    return '';
   }
   
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_RECORDS);
+  const row = [
+    record.id,
+    record.tanggal,
+    record.flavor,
+    record.nomorMaterial || '',
+    record.negara,
+    record.distributor || '',
+    record.createdAt || new Date().toISOString(),
+    record.updatedAt || new Date().toISOString(),
+    record.createdBy || '',
+    record.updatedBy || '',
+    getPhotoName(record.photos?.bumbu) || getPhotoName(record.photos?.['bumbu']),
+    getPhotoName(record.photos?.mBumbu) || getPhotoName(record.photos?.['m-bumbu']),
+    getPhotoName(record.photos?.si),
+    getPhotoName(record.photos?.kartonDepan) || getPhotoName(record.photos?.['karton-depan']),
+    getPhotoName(record.photos?.kartonBelakang) || getPhotoName(record.photos?.['karton-belakang']),
+    getPhotoName(record.photos?.etiket),
+    getPhotoName(record.photos?.etiketBanded) || getPhotoName(record.photos?.['etiket-banded']),
+    getPhotoName(record.photos?.plakban),
+    record.kodeProduksi ? JSON.stringify(record.kodeProduksi) : '[]',
+    record.validationStatus || '',
+    record.validatedBy || '',
+    record.validatedAt || '',
+    record.validationReason || '',
+    record.updatedFields ? JSON.stringify(record.updatedFields) : '[]'
+  ];
   
-  if (!sheet) {
-    return { success: false, error: 'Sheet Records tidak ditemukan. Mohon buat sheet Records terlebih dahulu.' };
-  }
-  
-  // Get headers
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  Logger.log('Headers for add: ' + headers.join(', '));
-  
-  // Generate ID if not exists
-  if (!record.id) {
-    record.id = 'REC' + Date.now();
-  }
-  
-  // Set timestamps
-  const now = new Date().toISOString();
-  record.createdAt = record.createdAt || now;
-  record.updatedAt = now;
-  
-  // Set default validation status
-  record.validationStatus = record.validationStatus || 'pending';
-  record.validatedBy = record.validatedBy || '';
-  record.validatedAt = record.validatedAt || '';
-  record.validationReason = record.validationReason || '';
-  
-  // Build row based on headers
-  const row = headers.map(header => {
-    // Check various formats of the key
-    let value = record[header];
-    
-    // Try camelCase version
-    if (value === undefined) {
-      const camelKey = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      value = record[camelKey];
-    }
-    
-    // Handle photo columns
-    if (header.startsWith('photo_') && record.photos) {
-      const photoType = header.replace('photo_', '');
-      const mappedType = photoType === 'mbumbu' ? 'm-bumbu' : (photoType === 'etiketbanded' ? 'etiket-banded' : photoType);
-      const photoData = record.photos[mappedType];
-      if (photoData) {
-        // Store just the file ID for simplicity
-        value = photoData.id || JSON.stringify(photoData);
-      }
-    }
-    
-    // Handle kodeProduksi
-    if (header === 'kodeProduksi' || header === 'kode_produksi') {
-      if (Array.isArray(record.kodeProduksi)) {
-        value = JSON.stringify(record.kodeProduksi);
-      } else {
-        value = record.kodeProduksi || '';
-      }
-    }
-    
-    // Convert objects to JSON string
-    if (value && typeof value === 'object') {
-      value = JSON.stringify(value);
-    }
-    
-    return value || '';
-  });
-  
-  Logger.log('Adding row: ' + row.join(' | '));
   sheet.appendRow(row);
   
-  return { success: true, message: 'Record berhasil ditambahkan', id: record.id };
+  return { success: true, message: 'Record added', id: record.id };
 }
 
-// Update record - compatible with existing sheet structure
-function updateRecord(id, recordData) {
-  if (!id || !recordData) {
-    return { success: false, error: 'Data tidak lengkap' };
-  }
-  
-  Logger.log('Updating record: ' + id);
-  Logger.log('Data: ' + JSON.stringify(recordData).substring(0, 500));
-  
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RECORDS);
-  
-  if (!sheet) {
-    return { success: false, error: 'Sheet Records tidak ditemukan' };
-  }
-  
+// Update record - returns data object
+// Struktur 24 kolom: id(0), tanggal(1), flavor(2), nomorMaterial(3), negara(4), distributor(5), createdAt(6), updatedAt(7),
+//                    createdBy(8), updatedBy(9),
+//                    photo_bumbu(10), photo_mbumbu(11), photo_si(12), photo_kartonDepan(13), photo_kartonBelakang(14),
+//                    photo_etiket(15), photo_etiketbanded(16), photo_plakban(17), kodeProduksi(18),
+//                    validationStatus(19), validatedBy(20), validatedAt(21), validationReason(22), updatedFields(23)
+function updateRecordData(recordId, updatedRecord) {
+  const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const idCol = headers.indexOf('id');
   
-  if (idCol === -1) {
-    return { success: false, error: 'Kolom id tidak ditemukan' };
+  // Helper to get photo name (string only, no JSON)
+  function getPhotoName(photo) {
+    if (!photo) return '';
+    if (typeof photo === 'string') return photo;
+    if (typeof photo === 'object' && photo.name) {
+      return photo.name.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+    }
+    return '';
   }
+  
+  // Helper to get photo value - returns new value if key exists (even if empty), otherwise existing value
+  function getPhotoValue(photos, key, altKey, existingValue) {
+    if (photos && (key in photos)) {
+      return getPhotoName(photos[key]);
+    }
+    if (photos && altKey && (altKey in photos)) {
+      return getPhotoName(photos[altKey]);
+    }
+    return existingValue || '';
+  }
+  
+  Logger.log('=== UPDATE RECORD START ===');
+  Logger.log('Looking for recordId: ' + recordId);
+  Logger.log('Full updatedRecord: ' + JSON.stringify(updatedRecord));
   
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idCol]) === String(id)) {
-      Logger.log('Found record at row ' + (i + 1));
+    if (String(data[i][0]) === String(recordId)) {
+      const rowIndex = i + 1;
       
-      // Update each column
-      headers.forEach((header, colIndex) => {
-        if (header === 'id' || header === 'createdAt' || header === 'created_at') {
-          return; // Don't update these
-        }
-        
-        let value = recordData[header];
-        
-        // Try camelCase version
-        if (value === undefined) {
-          const camelKey = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-          value = recordData[camelKey];
-        }
-        
-        // Handle photo columns
-        if (header.startsWith('photo_') && recordData.photos) {
-          const photoType = header.replace('photo_', '');
-          const mappedType = photoType === 'mbumbu' ? 'm-bumbu' : (photoType === 'etiketbanded' ? 'etiket-banded' : photoType);
-          const photoData = recordData.photos[mappedType];
-          if (photoData) {
-            value = photoData.id || JSON.stringify(photoData);
-          }
-        }
-        
-        // Handle kodeProduksi
-        if (header === 'kodeProduksi' || header === 'kode_produksi') {
-          if (Array.isArray(recordData.kodeProduksi)) {
-            value = JSON.stringify(recordData.kodeProduksi);
-          }
-        }
-        
-        // Set updatedAt
-        if (header === 'updatedAt' || header === 'updated_at') {
-          value = new Date().toISOString();
-        }
-        
-        // Convert objects to JSON string
-        if (value && typeof value === 'object') {
-          value = JSON.stringify(value);
-        }
-        
-        if (value !== undefined) {
-          sheet.getRange(i + 1, colIndex + 1).setValue(value);
-        }
-      });
+      Logger.log('Found record at row: ' + rowIndex);
       
-      return { success: true, message: 'Record berhasil diupdate' };
+      const photos = updatedRecord.photos || {};
+      const photoBumbu = getPhotoValue(photos, 'bumbu', null, data[i][10]);
+      const photoMBumbu = getPhotoValue(photos, 'mBumbu', 'm-bumbu', data[i][11]);
+      const photoSi = getPhotoValue(photos, 'si', null, data[i][12]);
+      const photoKartonDepan = getPhotoValue(photos, 'kartonDepan', 'karton-depan', data[i][13]);
+      const photoKartonBelakang = getPhotoValue(photos, 'kartonBelakang', 'karton-belakang', data[i][14]);
+      const photoEtiket = getPhotoValue(photos, 'etiket', null, data[i][15]);
+      const photoEtiketBanded = getPhotoValue(photos, 'etiketBanded', 'etiket-banded', data[i][16]);
+      const photoPlakban = getPhotoValue(photos, 'plakban', null, data[i][17]);
+      
+      Logger.log('Photo values - bumbu: "' + photoBumbu + '", kartonDepan: "' + photoKartonDepan + '", kartonBelakang: "' + photoKartonBelakang + '"');
+      
+      const row = [
+        recordId,
+        updatedRecord.tanggal || data[i][1],
+        updatedRecord.flavor || data[i][2],
+        updatedRecord.nomorMaterial || data[i][3] || '',
+        updatedRecord.negara || data[i][4],
+        updatedRecord.distributor || data[i][5] || '',
+        data[i][6],
+        new Date().toISOString(),
+        updatedRecord.createdBy || data[i][8] || '',
+        updatedRecord.updatedBy || updatedRecord.createdBy || data[i][9] || '',
+        photoBumbu,
+        photoMBumbu,
+        photoSi,
+        photoKartonDepan,
+        photoKartonBelakang,
+        photoEtiket,
+        photoEtiketBanded,
+        photoPlakban,
+        updatedRecord.kodeProduksi ? JSON.stringify(updatedRecord.kodeProduksi) : (data[i][18] || '[]'),
+        updatedRecord.validationStatus !== undefined ? updatedRecord.validationStatus : (data[i][19] || ''),
+        updatedRecord.validatedBy !== undefined ? updatedRecord.validatedBy : (data[i][20] || ''),
+        updatedRecord.validatedAt !== undefined ? updatedRecord.validatedAt : (data[i][21] || ''),
+        updatedRecord.validationReason !== undefined ? updatedRecord.validationReason : (data[i][22] || ''),
+        updatedRecord.updatedFields ? JSON.stringify(updatedRecord.updatedFields) : (data[i][23] || '[]')
+      ];
+      
+      sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+      
+      Logger.log('Record updated successfully');
+      return { success: true, message: 'Record updated', rowIndex: rowIndex };
     }
   }
   
-  return { success: false, error: 'Record tidak ditemukan' };
+  Logger.log('Record not found: ' + recordId);
+  return { success: false, error: 'Record not found: ' + recordId };
 }
 
-// Delete record
-function deleteRecord(id) {
-  if (!id) {
-    return { success: false, error: 'ID tidak boleh kosong' };
-  }
-  
-  Logger.log('Deleting record: ' + id);
-  
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RECORDS);
-  
-  if (!sheet) {
-    return { success: false, error: 'Sheet Records tidak ditemukan' };
-  }
-  
+// Delete record - returns data object
+function deleteRecordData(recordId) {
+  const sheet = getRecordsSheet();
   const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const idCol = headers.indexOf('id');
-  
-  if (idCol === -1) {
-    return { success: false, error: 'Kolom id tidak ditemukan' };
-  }
   
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idCol]) === String(id)) {
-      sheet.deleteRow(i + 1);
-      Logger.log('Deleted row ' + (i + 1));
-      return { success: true, message: 'Record berhasil dihapus' };
+    if (String(data[i][0]) === String(recordId)) {
+      sheet.deleteRow(i + 1); // 1-indexed
+      return { success: true, message: 'Record deleted' };
     }
   }
   
-  return { success: false, error: 'Record tidak ditemukan' };
+  return { success: false, error: 'Record not found' };
 }
 
 // Validate record
-function validateRecord(id, validation) {
-  if (!id || !validation) {
+function validateRecordData(recordId, validation) {
+  if (!recordId || !validation) {
     return { success: false, error: 'Data validasi tidak lengkap' };
   }
   
-  Logger.log('Validating record: ' + id);
-  Logger.log('Validation data: ' + JSON.stringify(validation));
+  var sheet = getRecordsSheet();
+  var data = sheet.getDataRange().getValues();
   
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RECORDS);
-  
-  if (!sheet) {
-    return { success: false, error: 'Sheet Records tidak ditemukan' };
-  }
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const idCol = headers.indexOf('id');
-  
-  // Try both camelCase and snake_case column names
-  let statusCol = headers.indexOf('validationStatus');
-  if (statusCol === -1) statusCol = headers.indexOf('validation_status');
-  
-  let validatedByCol = headers.indexOf('validatedBy');
-  if (validatedByCol === -1) validatedByCol = headers.indexOf('validated_by');
-  
-  let validatedAtCol = headers.indexOf('validatedAt');
-  if (validatedAtCol === -1) validatedAtCol = headers.indexOf('validated_at');
-  
-  let reasonCol = headers.indexOf('validationReason');
-  if (reasonCol === -1) reasonCol = headers.indexOf('validation_reason');
-  
-  Logger.log('Column indexes - status:' + statusCol + ', validatedBy:' + validatedByCol + ', validatedAt:' + validatedAtCol + ', reason:' + reasonCol);
-  
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idCol]) === String(id)) {
-      Logger.log('Found record at row ' + (i + 1));
-      
-      if (statusCol >= 0) {
-        sheet.getRange(i + 1, statusCol + 1).setValue(validation.status || 'valid');
-        Logger.log('Set status: ' + (validation.status || 'valid'));
-      }
-      if (validatedByCol >= 0) {
-        sheet.getRange(i + 1, validatedByCol + 1).setValue(validation.validatedBy || '');
-        Logger.log('Set validatedBy: ' + (validation.validatedBy || ''));
-      }
-      if (validatedAtCol >= 0) {
-        sheet.getRange(i + 1, validatedAtCol + 1).setValue(new Date().toISOString());
-      }
-      if (reasonCol >= 0) {
-        sheet.getRange(i + 1, reasonCol + 1).setValue(validation.reason || '');
-      }
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(recordId)) {
+      var rowIndex = i + 1;
+      // validationStatus = col 20, validatedBy = col 21, validatedAt = col 22, validationReason = col 23
+      sheet.getRange(rowIndex, 20).setValue(validation.status || 'valid');
+      sheet.getRange(rowIndex, 21).setValue(validation.validatedBy || '');
+      sheet.getRange(rowIndex, 22).setValue(nowISO());
+      sheet.getRange(rowIndex, 23).setValue(validation.reason || '');
       
       return { success: true, message: 'Record berhasil divalidasi' };
     }
@@ -851,397 +1054,860 @@ function validateRecord(id, validation) {
   return { success: false, error: 'Record tidak ditemukan' };
 }
 
-// Create Records sheet with default structure
-function createRecordsSheet(ss) {
-  const sheet = ss.insertSheet(SHEET_RECORDS);
+// Test function
+function testGetAll() {
+  const result = getAllRecordsData();
+  Logger.log(JSON.stringify(result));
+}
+
+// Test fungsi pencarian file - jalankan ini untuk debug
+function testFindFile() {
+  Logger.log('=== TEST FIND FILE ===');
   
-  // Set headers - sesuaikan dengan kebutuhan aplikasi
-  // PENTING: Urutan kolom harus sesuai dengan yang digunakan di sheets-db.js
-  const headers = [
-    'id',
-    'flavor',
-    'nomorMaterial',
-    'negara',
-    'kode_produksi',
-    'foto_bumbu',
-    'foto_si',
-    'foto_etiket',
-    'created_by',
-    'created_at',
-    'validation_status',
-    'validated_by',
-    'validated_at',
-    'validation_reason'
-  ];
+  // Test folder ID
+  Logger.log('MAIN_FOLDER_ID: ' + MAIN_FOLDER_ID);
   
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4a90d9').setFontColor('white');
+  try {
+    var mainFolder = DriveApp.getFolderById(MAIN_FOLDER_ID);
+    Logger.log('Main folder name: ' + mainFolder.getName());
+    
+    // List semua subfolder
+    var subfolders = mainFolder.getFolders();
+    Logger.log('Subfolders:');
+    while (subfolders.hasNext()) {
+      var folder = subfolders.next();
+      Logger.log('  - ' + folder.getName() + ' (ID: ' + folder.getId() + ')');
+    }
+    
+    // Test cari folder Bumbu
+    var bumbuFolderId = getFolderIdByName('Bumbu');
+    Logger.log('Bumbu folder ID: ' + bumbuFolderId);
+    
+    if (bumbuFolderId) {
+      var bumbuFolder = DriveApp.getFolderById(bumbuFolderId);
+      var files = bumbuFolder.getFiles();
+      Logger.log('Files in Bumbu folder:');
+      while (files.hasNext()) {
+        var file = files.next();
+        Logger.log('  - ' + file.getName() + ' (ID: ' + file.getId() + ')');
+      }
+      
+      // Test cari file spesifik
+      var testResult = findFileInFolder('Bumbu', 'GSS MG O HS');
+      Logger.log('Search result for "GSS MG O HS": ' + JSON.stringify(testResult));
+    }
+    
+  } catch (e) {
+    Logger.log('ERROR: ' + e.message);
+  }
   
-  sheet.setFrozenRows(1);
-  sheet.autoResizeColumns(1, headers.length);
+  Logger.log('=== TEST END ===');
+}
+
+// =====================================================
+// MASTER DATA MANAGEMENT FUNCTIONS
+// =====================================================
+// STRUKTUR MASTER (11 kolom):
+// A:id, B:negara, C:flavor, D:keterangan, E:distributor,
+// F:bumbu, G:minyakBumbu, H:kodeSI, I:kodeEtiket, J:kodeKarton, K:fiveOrSixInOne, L:plakban
+// M:createdAt, N:updatedAt, O:createdBy, P:updatedBy
+
+// Header untuk Master sheet
+var MASTER_HEADERS = ['id', 'negara', 'flavor', 'keterangan', 'distributor',
+                      'bumbu', 'minyakBumbu', 'kodeSI', 'kodeEtiket', 'kodeKarton', 
+                      'fiveOrSixInOne', 'plakban',
+                      'createdAt', 'updatedAt', 'createdBy', 'updatedBy'];
+
+// Get or create Master sheet
+function getMasterSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Master');
+  
+  // Jika sheet "Master" belum ada, buat otomatis
+  if (!sheet) {
+    sheet = ss.insertSheet('Master');
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setValues([MASTER_HEADERS]);
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
   
   return sheet;
 }
 
-// =====================================================
-// UTILITY: Test function - Run this first to setup
-// =====================================================
-function setupDatabase() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  
-  // Create Users sheet if not exists
-  if (!ss.getSheetByName(SHEET_USERS)) {
-    createUsersSheet(ss);
-    Logger.log('Users sheet created');
-  } else {
-    // Fix existing Users sheet
-    fixUsersSheet();
-  }
-  
-  // Create Records sheet if not exists
-  if (!ss.getSheetByName(SHEET_RECORDS)) {
-    createRecordsSheet(ss);
-    Logger.log('Records sheet created');
-  }
-  
-  Logger.log('Database setup complete!');
-}
-
-// =====================================================
-// FIX EXISTING USERS SHEET - Run this to add permissions column
-// =====================================================
-function fixUsersSheet() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_USERS);
+// Fix Master sheet structure
+function fixMasterStructure() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('Master');
   
   if (!sheet) {
-    Logger.log('Sheet Users tidak ditemukan!');
-    return;
+    sheet = ss.insertSheet('Master');
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setValues([MASTER_HEADERS]);
+    sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { success: true, message: 'Sheet Master dibuat baru dengan struktur yang benar' };
   }
   
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  // Perbaiki header
+  sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setValues([MASTER_HEADERS]);
+  sheet.getRange(1, 1, 1, MASTER_HEADERS.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
   
-  Logger.log('Current headers: ' + headers.join(', '));
-  
-  // Check if permissions column exists
-  let permCol = headers.indexOf('permissions');
-  
-  if (permCol === -1) {
-    // Add permissions column
-    const lastCol = headers.length + 1;
-    sheet.getRange(1, lastCol).setValue('permissions');
-    sheet.getRange(1, lastCol).setFontWeight('bold').setBackground('#4a90d9').setFontColor('white');
-    permCol = lastCol - 1;
-    Logger.log('Kolom permissions ditambahkan di kolom ' + lastCol);
-    
-    // Set default permissions based on role
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const roleCol = headers.indexOf('role');
-      const role = roleCol >= 0 ? row[roleCol] : 'field';
-      
-      let defaultPerms = 'records_viewer';
-      if (role === 'admin') {
-        defaultPerms = 'user_admin|records_viewer|records_editor|records_validator';
-      } else if (role === 'manager') {
-        defaultPerms = 'records_viewer|records_editor|records_validator';
-      } else if (role === 'supervisor') {
-        defaultPerms = 'records_viewer|records_validator';
-      } else if (role === 'field') {
-        defaultPerms = 'records_viewer|records_editor';
-      } else if (role === 'viewer') {
-        defaultPerms = 'records_viewer';
-      }
-      
-      sheet.getRange(i + 1, lastCol).setValue(defaultPerms);
-      Logger.log('User ' + row[0] + ' (' + role + '): ' + defaultPerms);
-    }
-  } else {
-    Logger.log('Kolom permissions sudah ada di posisi ' + (permCol + 1));
-  }
-  
-  // Ensure role column exists and has correct values
-  let roleCol = headers.indexOf('role');
-  if (roleCol === -1) {
-    Logger.log('PERINGATAN: Kolom role tidak ditemukan!');
-  } else {
-    // Check and fix role values
-    for (let i = 1; i < data.length; i++) {
-      const currentRole = data[i][roleCol];
-      // Convert 'viewer' to 'field' or keep valid roles
-      const validRoles = ['admin', 'manager', 'supervisor', 'field'];
-      if (!validRoles.includes(currentRole)) {
-        const newRole = currentRole === 'viewer' ? 'field' : 'field';
-        sheet.getRange(i + 1, roleCol + 1).setValue(newRole);
-        Logger.log('Role user ' + data[i][0] + ' diubah dari "' + currentRole + '" ke "' + newRole + '"');
-      }
-    }
-  }
-  
-  sheet.autoResizeColumns(1, sheet.getLastColumn());
-  Logger.log('Fix Users sheet selesai!');
+  return { success: true, message: 'Header Master diperbaiki' };
 }
 
-// =====================================================
-// MIGRATE DATA - Convert old structure to new
-// =====================================================
-function migrateUsersData() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_USERS);
-  
-  if (!sheet) {
-    Logger.log('Sheet Users tidak ditemukan!');
-    return;
-  }
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  
-  Logger.log('=== MIGRASI DATA USERS ===');
-  Logger.log('Headers saat ini: ' + headers.join(' | '));
-  
-  // Expected headers
-  const expectedHeaders = ['nik', 'password', 'name', 'role', 'permissions'];
-  
-  // Check current structure
-  Logger.log('');
-  Logger.log('Struktur yang diharapkan: ' + expectedHeaders.join(' | '));
-  Logger.log('');
-  
-  // Map current columns
-  const colMap = {};
-  headers.forEach((h, i) => {
-    colMap[h.toLowerCase()] = i;
-  });
-  
-  Logger.log('Mapping kolom:');
-  Logger.log(JSON.stringify(colMap));
-  
-  // Check for permissions column
-  if (!('permissions' in colMap)) {
-    Logger.log('');
-    Logger.log('>>> JALANKAN fixUsersSheet() untuk menambahkan kolom permissions');
-  }
-  
-  Logger.log('');
-  Logger.log('=== DATA USERS ===');
-  for (let i = 1; i < data.length; i++) {
-    Logger.log('Row ' + i + ': ' + data[i].join(' | '));
-  }
+// Normalize header names (lowercase, remove non-alphanum)
+function normalizeMasterHeader(header) {
+  return String(header || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
-// =====================================================
-// INSTRUCTIONS - CARA SETUP:
-// =====================================================
-/*
-1. Buka Google Sheets, buat spreadsheet baru
-2. Copy ID spreadsheet dari URL (bagian setelah /d/ dan sebelum /edit)
-3. Ganti SPREADSHEET_ID di baris 8 dengan ID tersebut
-4. Buka Extensions > Apps Script
-5. Hapus semua kode default, paste semua kode ini
-6. Klik Run > setupDatabase (untuk membuat sheet Users dan Records)
-7. Deploy > New Deployment
-   - Type: Web app
-   - Execute as: Me
-   - Who has access: Anyone
-8. Copy URL deployment, paste ke js/config.js
-
-STRUKTUR SHEET USERS:
-| nik | password | name | role | permissions |
-
-CONTOH DATA:
-| admin | admin123 | Administrator | admin | user_admin|records_viewer|records_editor|records_validator |
-| 12345 | pass123  | John Doe      | field | records_viewer|records_editor |
-
-ROLE OPTIONS: admin, manager, supervisor, field
-
-PERMISSION OPTIONS:
-- user_admin: Dapat mengelola user
-- records_viewer: Dapat melihat records
-- records_editor: Dapat CRUD records  
-- records_validator: Dapat validasi records
-
-Format permissions: dipisahkan dengan | (pipe)
-*/
-
-// =====================================================
-// DEBUG: Check Users sheet structure
-// =====================================================
-function debugUsersSheet() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_USERS);
-  
-  if (!sheet) {
-    Logger.log('❌ Sheet Users tidak ditemukan!');
-    return;
+// Resolve master column indexes by header name with fallbacks
+function getMasterColumnIndexes(sheet) {
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
+  var headerMap = {};
+  for (var i = 0; i < headerRow.length; i++) {
+    var key = normalizeMasterHeader(headerRow[i]);
+    if (key) headerMap[key] = i;
   }
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  
-  Logger.log('');
-  Logger.log('=== STRUKTUR SHEET USERS ===');
-  Logger.log('Total columns: ' + headers.length);
-  Logger.log('');
-  Logger.log('Headers:');
-  headers.forEach((header, index) => {
-    Logger.log('  Column ' + (index + 1) + ': ' + header);
-  });
-  
-  Logger.log('');
-  Logger.log('=== DATA USERS ===');
-  for (let i = 1; i < data.length; i++) {
-    Logger.log('');
-    Logger.log('User ' + (i) + ':');
-    headers.forEach((header, index) => {
-      Logger.log('  ' + header + ': ' + data[i][index]);
-    });
-  }
-  
-  Logger.log('');
-  Logger.log('=== Expected Structure ===');
-  Logger.log('Column 1: nik');
-  Logger.log('Column 2: password');
-  Logger.log('Column 3: name');
-  Logger.log('Column 4: role');
-  Logger.log('Column 5: permissions');
-}
 
-// =====================================================
-// TEST FUNCTIONS - Run these to verify setup
-// =====================================================
-
-function testAddRecord() {
-  const testRecord = {
-    id: 'TEST_' + Date.now(),
-    tanggal: new Date().toISOString().split('T')[0],
-    flavor: 'Test Flavor',
-    negara: 'Indonesia',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    createdBy: 'Test User',
-    updatedBy: 'Test User',
-    photos: {
-      'bumbu': { id: 'test123', name: 'test.jpg' }
-    },
-    kodeProduksi: ['KODE001', 'KODE002']
+  // Legacy fallback indexes (without id column)
+  var legacy = {
+    negara: 0,
+    flavor: 1,
+    keterangan: 2,
+    distributor: 3,
+    bumbu: 4,
+    minyakbumbu: 5,
+    kodesi: 6,
+    kodeetiket: 7,
+    kodekarton: 8,
+    fiveorsixinone: 9,
+    plakban: 10,
+    createdat: 11,
+    updatedat: 12,
+    createdby: 13,
+    updatedby: 14
   };
+
+  function pickIndex(nameKey) {
+    if (headerMap[nameKey] !== undefined) return headerMap[nameKey];
+    if (legacy[nameKey] !== undefined) return legacy[nameKey];
+    return -1;
+  }
+
+  return {
+    id: pickIndex('id'),
+    negara: pickIndex('negara'),
+    flavor: pickIndex('flavor'),
+    keterangan: pickIndex('keterangan'),
+    distributor: pickIndex('distributor'),
+    bumbu: pickIndex('bumbu'),
+    minyakBumbu: pickIndex('minyakbumbu'),
+    kodeSI: pickIndex('kodesi'),
+    kodeEtiket: pickIndex('kodeetiket'),
+    kodeKarton: pickIndex('kodekarton'),
+    fiveOrSixInOne: pickIndex('fiveorsixinone'),
+    plakban: pickIndex('plakban'),
+    createdAt: pickIndex('createdat'),
+    updatedAt: pickIndex('updatedat'),
+    createdBy: pickIndex('createdby'),
+    updatedBy: pickIndex('updatedby')
+  };
+}
+
+// Get all Master Data
+// MASTER_HEADERS: id(0), negara(1), flavor(2), keterangan(3), distributor(4),
+//                 bumbu(5), minyakBumbu(6), kodeSI(7), kodeEtiket(8), kodeKarton(9),
+//                 fiveOrSixInOne(10), plakban(11), createdAt(12), updatedAt(13), createdBy(14), updatedBy(15)
+function getAllMasterData() {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
   
-  Logger.log('Testing addRecord...');
-  const result = addRecord(testRecord);
-  Logger.log('Result: ' + JSON.stringify(result));
-  return result;
-}
+  if (data.length <= 1) {
+    return { success: true, data: [] };
+  }
 
-function testGetAllRecords() {
-  Logger.log('Testing getAllRecords...');
-  const result = getAllRecords();
-  Logger.log('Found ' + (result.records ? result.records.length : 0) + ' records');
-  Logger.log('Result: ' + JSON.stringify(result).substring(0, 1000));
-  return result;
-}
-
-// Alias for addRecord (handleAdd)
-function handleAdd(record) {
-  return addRecord(record);
-}
-
-// Test adding record from web
-function testAddFromWeb() {
-  const result = addRecord({
-    tanggal: "2025-01-06",
-    flavor: "TEST-WEB-" + Date.now(),
-    negara: "Indonesia", 
-    kodeProduksi: "TEST123",
-    photo_bumbu: "https://example.com/photo.jpg"
-  });
-  Logger.log('Result: ' + JSON.stringify(result));
-  return result;
-}
-
-function testCheckHeaders() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RECORDS);
-  
-  if (!sheet) {
-    Logger.log('Sheet Records tidak ditemukan!');
-    return;
+  var idx = getMasterColumnIndexes(sheet);
+  var masters = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var negaraValue = idx.negara >= 0 ? row[idx.negara] : '';
+    if (negaraValue) {
+      var idValue = idx.id >= 0 ? row[idx.id] : (i + '');
+      masters.push({
+        id: String(idValue || ''),
+        negara: row[idx.negara] || '',
+        flavor: idx.flavor >= 0 ? (row[idx.flavor] || '') : '',
+        keterangan: idx.keterangan >= 0 ? (row[idx.keterangan] || '') : '',
+        distributor: idx.distributor >= 0 ? (row[idx.distributor] || '') : '',
+        bumbu: idx.bumbu >= 0 ? (row[idx.bumbu] || '') : '',
+        minyakBumbu: idx.minyakBumbu >= 0 ? (row[idx.minyakBumbu] || '') : '',
+        kodeSI: idx.kodeSI >= 0 ? (row[idx.kodeSI] || '') : '',
+        kodeEtiket: idx.kodeEtiket >= 0 ? (row[idx.kodeEtiket] || '') : '',
+        kodeKarton: idx.kodeKarton >= 0 ? (row[idx.kodeKarton] || '') : '',
+        fiveOrSixInOne: idx.fiveOrSixInOne >= 0 ? (row[idx.fiveOrSixInOne] || '') : '',
+        plakban: idx.plakban >= 0 ? (row[idx.plakban] || '') : '',
+        createdAt: idx.createdAt >= 0 ? (row[idx.createdAt] || '') : '',
+        updatedAt: idx.updatedAt >= 0 ? (row[idx.updatedAt] || '') : '',
+        createdBy: idx.createdBy >= 0 ? (row[idx.createdBy] || '') : '',
+        updatedBy: idx.updatedBy >= 0 ? (row[idx.updatedBy] || '') : ''
+      });
+    }
   }
   
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  Logger.log('Current headers in Records sheet:');
-  headers.forEach((h, i) => {
-    Logger.log((i + 1) + '. ' + h);
-  });
-  
-  return headers;
+  return { success: true, data: masters };
 }
 
-// =====================================================
-// FIX RECORDS SHEET - Add validation columns
-// =====================================================
-function fixRecordsSheet() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RECORDS);
+// Get Master by Flavor
+function getMasterByFlavor(flavor) {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  var idx = getMasterColumnIndexes(sheet);
+  var target = String(flavor || '').toLowerCase();
   
-  if (!sheet) {
-    Logger.log('Sheet Records tidak ditemukan!');
-    return;
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var rowFlavor = idx.flavor >= 0 ? String(row[idx.flavor] || '').toLowerCase() : '';
+    if (rowFlavor && rowFlavor === target) {
+      var idValue = idx.id >= 0 ? row[idx.id] : (i + '');
+      return {
+        success: true,
+        master: {
+          id: String(idValue || ''),
+          negara: idx.negara >= 0 ? (row[idx.negara] || '') : '',
+          flavor: idx.flavor >= 0 ? (row[idx.flavor] || '') : '',
+          keterangan: idx.keterangan >= 0 ? (row[idx.keterangan] || '') : '',
+          distributor: idx.distributor >= 0 ? (row[idx.distributor] || '') : '',
+          bumbu: idx.bumbu >= 0 ? (row[idx.bumbu] || '') : '',
+          minyakBumbu: idx.minyakBumbu >= 0 ? (row[idx.minyakBumbu] || '') : '',
+          kodeSI: idx.kodeSI >= 0 ? (row[idx.kodeSI] || '') : '',
+          kodeEtiket: idx.kodeEtiket >= 0 ? (row[idx.kodeEtiket] || '') : '',
+          kodeKarton: idx.kodeKarton >= 0 ? (row[idx.kodeKarton] || '') : '',
+          fiveOrSixInOne: idx.fiveOrSixInOne >= 0 ? (row[idx.fiveOrSixInOne] || '') : '',
+          plakban: idx.plakban >= 0 ? (row[idx.plakban] || '') : '',
+          createdAt: idx.createdAt >= 0 ? (row[idx.createdAt] || '') : '',
+          updatedAt: idx.updatedAt >= 0 ? (row[idx.updatedAt] || '') : '',
+          createdBy: idx.createdBy >= 0 ? (row[idx.createdBy] || '') : '',
+          updatedBy: idx.updatedBy >= 0 ? (row[idx.updatedBy] || '') : ''
+        }
+      };
+    }
   }
   
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  Logger.log('Current headers: ' + headers.join(', '));
+  return { success: false, error: 'Master not found' };
+}
+
+// Add Master Data
+function addMasterData(master) {
+  var sheet = getMasterSheet();
   
-  // Validation columns to add
-  const validationColumns = [
-    'validationStatus',
-    'validatedBy', 
-    'validatedAt',
-    'validationReason'
+  // Generate new ID
+  var data = sheet.getDataRange().getValues();
+  var maxId = 0;
+  for (var i = 1; i < data.length; i++) {
+    var currentId = parseInt(data[i][0]) || 0;
+    if (currentId > maxId) maxId = currentId;
+  }
+  var newId = maxId + 1;
+  
+  var now = new Date().toISOString();
+  
+  var row = [
+    newId,
+    master.negara || '',
+    master.flavor || '',
+    master.keterangan || '',
+    master.distributor || '',
+    master.bumbu || '',
+    master.minyakBumbu || '',
+    master.kodeSI || '',
+    master.kodeEtiket || '',
+    master.kodeKarton || '',
+    master.fiveOrSixInOne || '',
+    master.plakban || '',
+    now,                        // createdAt
+    now,                        // updatedAt
+    master.createdBy || '',
+    master.createdBy || ''      // updatedBy = createdBy at creation
   ];
   
-  let lastCol = headers.length;
-  let addedCount = 0;
+  sheet.appendRow(row);
   
-  validationColumns.forEach(colName => {
-    if (!headers.includes(colName)) {
-      lastCol++;
-      sheet.getRange(1, lastCol).setValue(colName);
-      sheet.getRange(1, lastCol).setFontWeight('bold').setBackground('#4a90d9').setFontColor('white');
-      Logger.log('✅ Kolom "' + colName + '" ditambahkan di kolom ' + lastCol);
-      addedCount++;
-      
-      // Set default value 'pending' for validationStatus
-      if (colName === 'validationStatus') {
-        const dataRange = sheet.getDataRange();
-        const numRows = dataRange.getNumRows();
-        if (numRows > 1) {
-          for (let i = 2; i <= numRows; i++) {
-            sheet.getRange(i, lastCol).setValue('pending');
-          }
-          Logger.log('   Set default "pending" untuk ' + (numRows - 1) + ' rows');
-        }
-      }
-    } else {
-      Logger.log('ℹ️ Kolom "' + colName + '" sudah ada');
+  return { 
+    success: true, 
+    message: 'Master data added', 
+    masterId: newId,
+    master: {
+      id: String(newId),
+      negara: master.negara || '',
+      flavor: master.flavor || '',
+      keterangan: master.keterangan || '',
+      distributor: master.distributor || '',
+      bumbu: master.bumbu || '',
+      minyakBumbu: master.minyakBumbu || '',
+      kodeSI: master.kodeSI || '',
+      kodeEtiket: master.kodeEtiket || '',
+      kodeKarton: master.kodeKarton || '',
+      fiveOrSixInOne: master.fiveOrSixInOne || '',
+      plakban: master.plakban || '',
+      createdAt: now,
+      updatedAt: now,
+      createdBy: master.createdBy || '',
+      updatedBy: master.createdBy || ''
     }
-  });
+  };
+}
+
+// Update Master Data
+function updateMasterData(masterId, master) {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
   
-  if (addedCount > 0) {
-    sheet.autoResizeColumns(1, sheet.getLastColumn());
-    Logger.log('');
-    Logger.log('✅ ' + addedCount + ' kolom validasi berhasil ditambahkan!');
-  } else {
-    Logger.log('');
-    Logger.log('ℹ️ Semua kolom validasi sudah ada');
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(masterId)) {
+      var rowIndex = i + 1;  // 1-indexed
+      var now = new Date().toISOString();
+      
+      var row = [
+        masterId,
+        master.negara || data[i][1] || '',
+        master.flavor || data[i][2] || '',
+        master.keterangan || data[i][3] || '',
+        master.distributor || data[i][4] || '',
+        master.bumbu || data[i][5] || '',
+        master.minyakBumbu || data[i][6] || '',
+        master.kodeSI || data[i][7] || '',
+        master.kodeEtiket || data[i][8] || '',
+        master.kodeKarton || data[i][9] || '',
+        master.fiveOrSixInOne || data[i][10] || '',
+        master.plakban || data[i][11] || '',
+        data[i][12] || '',     // Keep original createdAt
+        now,                    // updatedAt
+        data[i][14] || '',     // Keep original createdBy
+        master.updatedBy || '' // updatedBy
+      ];
+      
+      sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+      
+      return { success: true, message: 'Master data updated' };
+    }
   }
   
-  // Show final headers
-  const finalHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  Logger.log('');
-  Logger.log('Final headers (' + finalHeaders.length + ' kolom):');
-  finalHeaders.forEach((h, i) => {
-    Logger.log((i + 1) + '. ' + h);
+  return { success: false, error: 'Master not found' };
+}
+
+// Delete Master Data
+function deleteMasterData(masterId) {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(masterId)) {
+      sheet.deleteRow(i + 1);  // 1-indexed
+      return { success: true, message: 'Master data deleted' };
+    }
+  }
+  
+  return { success: false, error: 'Master not found' };
+}
+
+// Get unique values for dropdown (Negara list)
+function getNegaraList() {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  var idx = getMasterColumnIndexes(sheet);
+  
+  var negaraSet = {};
+  for (var i = 1; i < data.length; i++) {
+    var value = idx.negara >= 0 ? data[i][idx.negara] : '';
+    if (value) {
+      negaraSet[value] = true;
+    }
+  }
+  
+  return { success: true, data: Object.keys(negaraSet).sort() };
+}
+
+// Get unique Flavor list
+function getFlavorList() {
+  var sheet = getMasterSheet();
+  var data = sheet.getDataRange().getValues();
+  var idx = getMasterColumnIndexes(sheet);
+  
+  var flavorSet = {};
+  for (var i = 1; i < data.length; i++) {
+    var value = idx.flavor >= 0 ? data[i][idx.flavor] : '';
+    if (value) {
+      flavorSet[value] = true;
+    }
+  }
+  
+  return { success: true, data: Object.keys(flavorSet).sort() };
+}
+
+// Test Master functions
+function testMaster() {
+  Logger.log('=== TEST MASTER ===');
+  
+  // Test get all
+  var all = getAllMasterData();
+  Logger.log('All Masters: ' + JSON.stringify(all));
+  
+  // Test add
+  var added = addMasterData({
+    negara: 'Indonesia',
+    flavor: 'GSS Original',
+    keterangan: 'Test data',
+    distributor: 'PT ABC',
+    bumbu: 'Bumbu123',
+    minyakBumbu: 'MB456',
+    kodeSI: 'SI789',
+    kodeEtiket: 'ET012',
+    kodeKarton: 'KT345',
+    fiveOrSixInOne: 'FOS678',
+    plakban: 'PLB901',
+    createdBy: 'Admin'
   });
+  Logger.log('Added: ' + JSON.stringify(added));
+  
+  Logger.log('=== TEST END ===');
+}
+
+// =====================================================
+// PHOTO UPLOAD FUNCTIONS (Server-side Google Drive)
+// User tidak perlu login Google - semua upload via akun jasalancer@gmail.com
+// =====================================================
+
+/**
+ * Extract Google Drive file ID from various URL formats
+ */
+function extractDriveFileId(url) {
+  if (!url || typeof url !== 'string') return null;
+  
+  // Format: https://lh3.googleusercontent.com/d/FILE_ID
+  var matchLh3 = url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchLh3) return matchLh3[1];
+  
+  // Format: https://drive.google.com/uc?export=view&id=FILE_ID
+  var match1 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match1) return match1[1];
+  
+  // Format: https://drive.google.com/file/d/FILE_ID/view
+  var match2 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match2) return match2[1];
+  
+  // Format: https://drive.google.com/thumbnail?id=FILE_ID
+  var match3 = url.match(/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+  if (match3) return match3[1];
+  
+  // If it's a plain file ID (long alphanumeric string)
+  if (url.length > 20 && !/[\/\:\.?&]/.test(url)) return url;
+  
+  return null;
+}
+
+/**
+ * Get or create a subfolder in the main photos folder
+ */
+function getOrCreateSubfolder(subfolderName) {
+  try {
+    var parentFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    var subfolders = parentFolder.getFoldersByName(subfolderName);
+    
+    if (subfolders.hasNext()) {
+      return subfolders.next();
+    } else {
+      return parentFolder.createFolder(subfolderName);
+    }
+  } catch (error) {
+    Logger.log('Error getting/creating subfolder: ' + error.message);
+    throw new Error('Failed to access photo folder: ' + error.message);
+  }
+}
+
+/**
+ * Handle photo upload
+ * data.photo = base64 encoded image data (without data:image prefix)
+ * data.fileName = desired file name
+ * data.folder = subfolder name (e.g., 'bumbu', 'si', 'karton', etc.)
+ * data.mimeType = image mime type (default: image/jpeg)
+ */
+function handleUploadPhoto(data) {
+  try {
+    if (!data.photo) {
+      return { success: false, error: 'No photo data provided' };
+    }
+    
+    // Remove data URL prefix if present
+    var base64Data = data.photo;
+    if (base64Data.indexOf('base64,') > -1) {
+      base64Data = base64Data.split('base64,')[1];
+    }
+    
+    // Get target folder
+    var subfolderName = data.folder || 'photos';
+    var targetFolder = getOrCreateSubfolder(subfolderName);
+    
+    // Generate filename if not provided
+    var fileName = data.fileName || ('photo_' + Date.now() + '.jpg');
+    
+    // Decode base64 to blob
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      data.mimeType || 'image/jpeg',
+      fileName
+    );
+    
+    // Upload to Drive
+    var file = targetFolder.createFile(blob);
+    
+    // Make file accessible via link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var fileId = file.getId();
+    var viewUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
+    var directUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
+    var thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400';
+    
+    return {
+      success: true,
+      fileId: fileId,
+      viewUrl: viewUrl,
+      directUrl: directUrl,
+      thumbnailUrl: thumbnailUrl,
+      fileName: file.getName()
+    };
+    
+  } catch (error) {
+    Logger.log('Photo upload error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Handle photo deletion
+ * fileId = Google Drive file ID or URL containing the file ID
+ */
+function handleDeletePhoto(fileIdOrUrl) {
+  try {
+    var fileId = extractDriveFileId(fileIdOrUrl);
+    if (!fileId) {
+      // If it's already a plain file ID
+      fileId = fileIdOrUrl;
+    }
+    
+    var file = DriveApp.getFileById(fileId);
+    file.setTrashed(true);
+    
+    return { success: true, message: 'Photo deleted' };
+    
+  } catch (error) {
+    // File may already be deleted or not accessible - silently ignore
+    Logger.log('Could not delete Drive file ' + fileIdOrUrl + ': ' + error.message);
+    return { success: true, message: 'Photo deleted or not found' };
+  }
+}
+
+/**
+ * Get photo URL from file ID
+ */
+function handleGetPhotoUrl(fileId) {
+  try {
+    return {
+      success: true,
+      viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view',
+      directUrl: 'https://lh3.googleusercontent.com/d/' + fileId,
+      thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400'
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get photo as base64 from Google Drive. Used as a CORS proxy.
+ */
+function handleGetPhotoBase64(fileId) {
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    var mimeType = blob.getContentType();
+    var base64 = Utilities.base64Encode(blob.getBytes());
+    
+    return {
+      success: true,
+      base64: 'data:' + mimeType + ';base64,' + base64,
+      mimeType: mimeType,
+      fileName: file.getName()
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Test photo upload function
+function testPhotoUpload() {
+  Logger.log('=== TEST PHOTO UPLOAD ===');
+  
+  // Create a simple test image (1x1 red pixel)
+  var testBase64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAB//2Q==';
+  
+  var result = handleUploadPhoto({
+    photo: testBase64,
+    fileName: 'test_upload.jpg',
+    folder: 'test'
+  });
+  
+  Logger.log('Upload result: ' + JSON.stringify(result));
+  
+  if (result.success && result.fileId) {
+    // Test delete
+    var deleteResult = handleDeletePhoto(result.fileId);
+    Logger.log('Delete result: ' + JSON.stringify(deleteResult));
+  }
+  
+  Logger.log('=== TEST END ===');
+}
+
+// =====================================================
+// MASTER FILE CRUD HANDLERS
+// For Edit Master page - CRUD files in specific folders
+// =====================================================
+
+// Master folder IDs configuration
+var MASTER_FOLDER_IDS = {
+  'Bumbu': '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n',
+  'Minyak Bumbu': '1AT6PNYBzS-liQnkhhnuZ879aJzW-gqJr',
+  'Five or Six in One': '1le0FW7i-LnKmK_42jNZqeYXIf3trtoEh',
+  'Kode Etiket': '1BFC4dPid2CbSucbKNDiZLF2EjVSJFIWm',
+  'Kode Karton': '1Ir9xspi65occGhji0PgzCWcPCzght0go',
+  'Kode SI': '1i2MtTqMqAX69xOaeG7OD459bZ8-0Jvoe',
+  'Plakban': '1CJvilkGJc6zGqdzYjeKO4ngZSJx0yfqP'
+};
+
+/**
+ * Upload a file to a master folder
+ * data.photo = base64 image data
+ * data.fileName = file name (without extension)
+ * data.folderName = folder name (e.g., 'Bumbu', 'Minyak Bumbu')
+ * data.subfolder = optional subfolder name (e.g., 'Depan', 'Belakang' for Kode Karton)
+ */
+function handleUploadMasterFile(data) {
+  try {
+    if (!data.photo) {
+      return { success: false, error: 'No photo data provided' };
+    }
+    
+    if (!data.folderName) {
+      return { success: false, error: 'Folder name is required' };
+    }
+    
+    // Get folder ID
+    var folderId = MASTER_FOLDER_IDS[data.folderName];
+    if (!folderId) {
+      return { success: false, error: 'Invalid folder name: ' + data.folderName };
+    }
+    
+    var folder = DriveApp.getFolderById(folderId);
+    
+    // Handle subfolder if specified
+    if (data.subfolder) {
+      var subfolders = folder.getFoldersByName(data.subfolder);
+      if (subfolders.hasNext()) {
+        folder = subfolders.next();
+      } else {
+        // Create subfolder if not exists
+        folder = folder.createFolder(data.subfolder);
+      }
+    }
+    
+    // Remove data URL prefix if present
+    var base64Data = data.photo;
+    if (base64Data.indexOf('base64,') > -1) {
+      base64Data = base64Data.split('base64,')[1];
+    }
+    
+    // Determine mime type and extension
+    var mimeType = data.mimeType || 'image/jpeg';
+    var ext = mimeType === 'image/png' ? '.png' : '.jpg';
+    var fileName = (data.fileName || ('file_' + Date.now())) + ext;
+    
+    // Decode base64 to blob
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      mimeType,
+      fileName
+    );
+    
+    // Upload to Drive
+    var file = folder.createFile(blob);
+    
+    // Make file accessible via link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var fileId = file.getId();
+    
+    return {
+      success: true,
+      fileId: fileId,
+      fileName: file.getName(),
+      viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view',
+      directUrl: 'https://lh3.googleusercontent.com/d/' + fileId,
+      thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400'
+    };
+    
+  } catch (error) {
+    Logger.log('Master file upload error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Rename a master file
+ * data.fileId = Google Drive file ID
+ * data.newName = new file name (without extension)
+ */
+function handleRenameMasterFile(data) {
+  try {
+    if (!data.fileId) {
+      return { success: false, error: 'File ID is required' };
+    }
+    if (!data.newName) {
+      return { success: false, error: 'New name is required' };
+    }
+    
+    var file = DriveApp.getFileById(data.fileId);
+    var oldName = file.getName();
+    
+    // Preserve extension
+    var ext = oldName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
+    ext = ext ? ext[0] : '.jpg';
+    
+    var newFullName = data.newName + ext;
+    file.setName(newFullName);
+    
+    return {
+      success: true,
+      fileId: data.fileId,
+      oldName: oldName,
+      newName: newFullName
+    };
+    
+  } catch (error) {
+    Logger.log('Master file rename error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete a master file
+ * data.fileId = Google Drive file ID
+ */
+function handleDeleteMasterFile(data) {
+  try {
+    if (!data.fileId) {
+      return { success: false, error: 'File ID is required' };
+    }
+    
+    var file = DriveApp.getFileById(data.fileId);
+    var fileName = file.getName();
+    file.setTrashed(true);
+    
+    return {
+      success: true,
+      fileId: data.fileId,
+      fileName: fileName,
+      message: 'File deleted successfully'
+    };
+    
+  } catch (error) {
+    Logger.log('Master file delete error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * List files in a master folder
+ * data.folderName = folder name (e.g., 'Bumbu', 'Minyak Bumbu')
+ * data.subfolder = optional subfolder name
+ */
+function handleListMasterFiles(data) {
+  try {
+    if (!data.folderName) {
+      return { success: false, error: 'Folder name is required' };
+    }
+    
+    var folderId = MASTER_FOLDER_IDS[data.folderName];
+    if (!folderId) {
+      return { success: false, error: 'Invalid folder name: ' + data.folderName };
+    }
+    
+    var folder = DriveApp.getFolderById(folderId);
+    
+    // Handle subfolder if specified
+    if (data.subfolder) {
+      var subfolders = folder.getFoldersByName(data.subfolder);
+      if (subfolders.hasNext()) {
+        folder = subfolders.next();
+      } else {
+        return { success: true, files: [], message: 'Subfolder not found' };
+      }
+    }
+    
+    var files = folder.getFiles();
+    var fileList = [];
+    
+    while (files.hasNext()) {
+      var file = files.next();
+      var mimeType = file.getMimeType();
+      
+      // Only include image files
+      if (mimeType.indexOf('image/') === 0) {
+        var fileId = file.getId();
+        fileList.push({
+          id: fileId,
+          name: file.getName(),
+          mimeType: mimeType,
+          createdDate: file.getDateCreated().toISOString(),
+          modifiedDate: file.getLastUpdated().toISOString(),
+          thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400',
+          viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view'
+        });
+      }
+    }
+    
+    // Sort by name
+    fileList.sort(function(a, b) {
+      return a.name.localeCompare(b.name);
+    });
+    
+    return {
+      success: true,
+      folderName: data.folderName,
+      subfolder: data.subfolder || null,
+      files: fileList,
+      count: fileList.length
+    };
+    
+  } catch (error) {
+    Logger.log('List master files error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// =====================================================
+// TEST FUNCTION - Run this to authorize Drive access
+// =====================================================
+function testDriveAccess() {
+  var folderId = '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n'; // Folder Bumbu
+  var folder = DriveApp.getFolderById(folderId);
+  Logger.log('Folder name: ' + folder.getName());
+  var files = folder.getFiles();
+  var count = 0;
+  while (files.hasNext()) {
+    files.next();
+    count++;
+  }
+  Logger.log('File count: ' + count);
 }

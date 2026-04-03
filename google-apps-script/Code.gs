@@ -1,11 +1,14 @@
 // =====================================================
-// VALID DISPLAY - Google Apps Script untuk Google Sheets Database
-// VERSI JSONP - Bypass CORS + User Management + Photo Upload
+// VALID DISPLAY - Google Apps Script Backend
+// Pattern: INSPECTA-style unified request handler
+// Deploy: Execute as ME, Access: Anyone
+// No user login needed for CRUD - all via server
 // =====================================================
-// 
+//
 // SHEETS:
 // 1. Records - Data display produk (24 kolom)
 // 2. Users - Data user (NIK, password, name, role)
+// 3. Master - Data master produk
 //
 // STRUKTUR RECORDS (24 kolom):
 // A:id, B:tanggal, C:flavor, D:nomorMaterial, E:negara, F:distributor, G:createdAt, H:updatedAt,
@@ -15,8 +18,8 @@
 // T:validationStatus, U:validatedBy, V:validatedAt, W:validationReason, X:updatedFields
 // =====================================================
 
-// Google Drive Folder ID untuk upload foto
-// Folder utama yang akan berisi subfolder untuk setiap tipe foto
+// ===== CONFIGURATION =====
+var SPREADSHEET_ID = '1cCQY-y__0g956Zy7dNTZhYTz5zDL5FSkUw7V8tObtVg';
 var DRIVE_FOLDER_ID = '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23';
 
 // Header yang benar untuk Records (24 kolom)
@@ -26,9 +29,198 @@ var CORRECT_HEADERS = ['id', 'tanggal', 'flavor', 'nomorMaterial', 'negara', 'di
                        'photo_etiket', 'photo_etiketbanded', 'photo_plakban', 'kodeProduksi',
                        'validationStatus', 'validatedBy', 'validatedAt', 'validationReason', 'updatedFields'];
 
-// Spreadsheet ID - otomatis dari spreadsheet yang aktif
+// ===== CORS & UNIFIED REQUEST HANDLING =====
+// Both GET and POST go through the same handler (INSPECTA pattern)
+function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  try {
+    var params = e.parameter || {};
+    var action = params.action;
+    var callback = params.callback; // JSONP support (optional)
+    
+    // Parse POST body if present
+    var postData = {};
+    if (e.postData && e.postData.contents) {
+      try {
+        postData = JSON.parse(e.postData.contents);
+      } catch (err) {
+        postData = {};
+      }
+      // If action is in POST body, use it
+      if (postData.action) action = postData.action;
+    }
+    
+    // Also parse data parameter (for JSONP write operations)
+    var data = {};
+    if (params.data) {
+      try {
+        data = JSON.parse(params.data);
+      } catch (err) {}
+      if (data.action) action = data.action;
+    }
+    
+    // Merge all sources: postData > data > params
+    var merged = {};
+    for (var k in params) merged[k] = params[k];
+    for (var k in data) merged[k] = data[k];
+    for (var k in postData) merged[k] = postData[k];
+    
+    var result;
+    
+    switch (action) {
+      // ===== AUTH =====
+      case 'login':
+        result = loginUser(merged.nik || params.nik, merged.password || params.password);
+        break;
+        
+      // ===== USERS =====
+      case 'getUsers':
+        result = getAllUsersData();
+        break;
+      case 'getUser':
+        result = getUserByNik(merged.nik || params.nik);
+        break;
+      case 'addUser':
+        result = addUserData(merged.user || merged);
+        break;
+      case 'updateUser':
+        result = updateUserData(merged.nik, merged.user || merged);
+        break;
+      case 'deleteUser':
+        result = deleteUserData(merged.nik);
+        break;
+        
+      // ===== RECORDS =====
+      case 'getAll':
+        result = getAllRecordsData();
+        break;
+      case 'getRecordsBasic':
+        result = getRecordsBasicData();
+        break;
+      case 'get':
+        result = getRecordByIdData(merged.id || params.id);
+        break;
+      case 'add':
+      case 'addRecord':
+        result = addRecordData(merged.record || merged);
+        break;
+      case 'update':
+      case 'updateRecord':
+        result = updateRecordData(merged.recordId || merged.id, merged.record || merged);
+        break;
+      case 'delete':
+      case 'deleteRecord':
+        result = deleteRecordData(merged.recordId || merged.id);
+        break;
+      case 'validateRecord':
+        result = validateRecordData(merged.id || merged.recordId, merged.validation || merged);
+        break;
+        
+      // ===== MASTER DATA =====
+      case 'getMaster':
+        result = getAllMasterData();
+        break;
+      case 'getMasterByFlavor':
+        result = getMasterByFlavor(merged.flavor || params.flavor);
+        break;
+      case 'addMaster':
+        result = addMasterData(merged.master || merged);
+        break;
+      case 'updateMaster':
+        result = updateMasterData(merged.masterId || merged.id, merged.master || merged);
+        break;
+      case 'deleteMaster':
+        result = deleteMasterData(merged.masterId || merged.id);
+        break;
+        
+      // ===== PHOTO UPLOAD =====
+      case 'uploadPhoto':
+        result = handleUploadPhoto(merged);
+        break;
+      case 'deletePhoto':
+        result = handleDeletePhoto(merged.fileId);
+        break;
+      case 'getPhotoUrl':
+        result = handleGetPhotoUrl(merged.fileId || params.fileId);
+        break;
+      case 'getPhotoBase64':
+        result = handleGetPhotoBase64(merged);
+        break;
+        
+      // ===== MASTER FILE CRUD =====
+      case 'listMasterFiles':
+        result = handleListMasterFiles(merged);
+        break;
+      case 'uploadMasterFile':
+        result = handleUploadMasterFile(merged);
+        break;
+      case 'renameMasterFile':
+        result = handleRenameMasterFile(merged);
+        break;
+      case 'deleteMasterFile':
+        result = handleDeleteMasterFile(merged);
+        break;
+        
+      // ===== UTILITY =====
+      case 'fixStructure':
+        result = fixRecordsStructure();
+        break;
+        
+      default:
+        result = { success: false, error: 'Unknown action: ' + action };
+    }
+    
+    // Return JSONP if callback parameter exists, otherwise plain JSON
+    if (callback) {
+      return ContentService
+        .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    var errorResult = { success: false, error: error.toString() };
+    var cb = (e.parameter || {}).callback;
+    
+    if (cb) {
+      return ContentService
+        .createTextOutput(cb + '(' + JSON.stringify(errorResult) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(errorResult))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ===== UTILITY FUNCTIONS (INSPECTA pattern) =====
+
 function getSpreadsheet() {
-  return SpreadsheetApp.getActiveSpreadsheet();
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+function getSheet(name) {
+  var ss = getSpreadsheet();
+  return ss.getSheetByName(name);
+}
+
+function generateId(prefix) {
+  return (prefix || 'ID') + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+}
+
+function nowISO() {
+  return new Date().toISOString();
 }
 
 // Fungsi untuk memperbaiki struktur sheet Records - JALANKAN INI DULU!
@@ -175,213 +367,7 @@ function getUsersSheet() {
   return sheet;
 }
 
-// Handle GET requests - dengan JSONP support
-function doGet(e) {
-  try {
-    const action = e.parameter.action || 'getAll';
-    const callback = e.parameter.callback; // JSONP callback
-    
-    var result;
-    
-    // Parse data parameter if exists (for write operations via JSONP)
-    var data = null;
-    if (e.parameter.data) {
-      try {
-        data = JSON.parse(e.parameter.data);
-      } catch (parseError) {
-        // Ignore parse error, data remains null
-      }
-    }
-    
-    // Records actions
-    if (action === 'getAll') {
-      result = getAllRecordsData();
-    } else if (action === 'getRecordsBasic') {
-      // FAST endpoint - returns records WITHOUT processing photos (no Google Drive access)
-      result = getRecordsBasicData();
-    } else if (action === 'get') {
-      const id = e.parameter.id;
-      result = getRecordByIdData(id);
-    } else if (action === 'fixStructure') {
-      // Action untuk memperbaiki struktur
-      result = fixRecordsStructure();
-    }
-    // Write operations via JSONP (bypass CORS)
-    else if (action === 'add' && data && data.record) {
-      result = addRecordData(data.record);
-    } else if (action === 'update' && data && data.recordId) {
-      result = updateRecordData(data.recordId, data.record);
-    } else if (action === 'delete' && data && data.recordId) {
-      result = deleteRecordData(data.recordId);
-    }
-    // User actions
-    else if (action === 'getUsers') {
-      result = getAllUsersData();
-    } else if (action === 'login') {
-      const nik = e.parameter.nik;
-      const password = e.parameter.password;
-      result = loginUser(nik, password);
-    } else if (action === 'getUser') {
-      const nik = e.parameter.nik;
-      result = getUserByNik(nik);
-    }
-    // User write operations via JSONP
-    else if (action === 'addUser' && data && data.user) {
-      result = addUserData(data.user);
-    } else if (action === 'updateUser' && data && data.nik) {
-      result = updateUserData(data.nik, data.user);
-    } else if (action === 'deleteUser' && data && data.nik) {
-      result = deleteUserData(data.nik);
-    }
-    // Master Data actions
-    else if (action === 'getMaster') {
-      result = getAllMasterData();
-    } else if (action === 'getMasterByFlavor') {
-      const flavor = e.parameter.flavor;
-      result = getMasterByFlavor(flavor);
-    }
-    // Master write operations via JSONP
-    else if (action === 'addMaster' && data && data.master) {
-      result = addMasterData(data.master);
-    } else if (action === 'updateMaster' && data && data.masterId) {
-      result = updateMasterData(data.masterId, data.master);
-    } else if (action === 'deleteMaster' && data && data.masterId) {
-      result = deleteMasterData(data.masterId);
-    }
-    // Photo upload/delete operations via JSONP
-    else if (action === 'uploadPhoto' && data) {
-      result = handleUploadPhoto(data);
-    } else if (action === 'deletePhoto' && data && data.fileId) {
-      result = handleDeletePhoto(data.fileId);
-    } else if (action === 'getPhotoUrl' && e.parameter.fileId) {
-      result = handleGetPhotoUrl(e.parameter.fileId);
-    }
-    // Master File CRUD operations via JSONP (for Edit Master page)
-    else if (action === 'listMasterFiles') {
-      var folderName = e.parameter.folderName || (data && data.folderName);
-      var subfolder = e.parameter.subfolder || (data && data.subfolder);
-      result = handleListMasterFiles({ folderName: folderName, subfolder: subfolder });
-    } else if (action === 'uploadMasterFile' && data) {
-      result = handleUploadMasterFile(data);
-    } else if (action === 'renameMasterFile' && data) {
-      result = handleRenameMasterFile(data);
-    } else if (action === 'deleteMasterFile' && data) {
-      result = handleDeleteMasterFile(data);
-    } else {
-      result = { success: false, error: 'Invalid action' };
-    }
-    
-    // Return JSONP jika callback ada, otherwise JSON biasa
-    if (callback) {
-      return ContentService
-        .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    } else {
-      return ContentService
-        .createTextOutput(JSON.stringify(result))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-  } catch (error) {
-    const errorResult = { success: false, error: error.message };
-    const callback = e.parameter.callback;
-    
-    if (callback) {
-      return ContentService
-        .createTextOutput(callback + '(' + JSON.stringify(errorResult) + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    } else {
-      return ContentService
-        .createTextOutput(JSON.stringify(errorResult))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-}
-
-// Handle POST requests
-function doPost(e) {
-  try {
-    var data;
-    
-    // Handle form data atau JSON
-    if (e.parameter && e.parameter.data) {
-      data = JSON.parse(e.parameter.data);
-    } else if (e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
-    } else {
-      throw new Error('No data received');
-    }
-    
-    const action = data.action;
-    var result;
-    
-    // Records actions
-    if (action === 'add') {
-      result = addRecordData(data.record);
-    } else if (action === 'update') {
-      result = updateRecordData(data.recordId, data.record);
-    } else if (action === 'delete') {
-      result = deleteRecordData(data.recordId);
-    } 
-    // User actions
-    else if (action === 'addUser') {
-      result = addUserData(data.user);
-    } else if (action === 'updateUser') {
-      result = updateUserData(data.nik, data.user);
-    } else if (action === 'deleteUser') {
-      result = deleteUserData(data.nik);
-    }
-    // Master Data actions
-    else if (action === 'addMaster') {
-      result = addMasterData(data.master);
-    } else if (action === 'updateMaster') {
-      result = updateMasterData(data.masterId, data.master);
-    } else if (action === 'deleteMaster') {
-      result = deleteMasterData(data.masterId);
-    }
-    // Photo upload/delete operations via POST
-    else if (action === 'uploadPhoto') {
-      result = handleUploadPhoto(data);
-    } else if (action === 'deletePhoto' && data.fileId) {
-      result = handleDeletePhoto(data.fileId);
-    }
-    // Master File CRUD operations (for Edit Master page)
-    else if (action === 'uploadMasterFile') {
-      result = handleUploadMasterFile(data);
-    } else if (action === 'renameMasterFile') {
-      result = handleRenameMasterFile(data);
-    } else if (action === 'deleteMasterFile') {
-      result = handleDeleteMasterFile(data);
-    } else if (action === 'listMasterFiles') {
-      result = handleListMasterFiles(data);
-    } else {
-      result = { success: false, error: 'Invalid action' };
-    }
-    
-    // Return HTML dengan postMessage untuk komunikasi ke parent window
-    const callback = data.callback;
-    if (callback) {
-      const html = '<html><body><script>' +
-        'var result = ' + JSON.stringify(result) + ';' +
-        'result.callbackName = "' + callback + '";' +
-        'if (window.parent && window.parent.postMessage) {' +
-        '  window.parent.postMessage(JSON.stringify(result), "*");' +
-        '}' +
-        '</script></body></html>';
-      return HtmlService.createHtmlOutput(html);
-    }
-    
-    return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    const errorResult = { success: false, error: error.message };
-    return ContentService
-      .createTextOutput(JSON.stringify(errorResult))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
+// OLD doGet/doPost REMOVED - now using unified handleRequest() above
 
 // =====================================================
 // USER MANAGEMENT FUNCTIONS
@@ -1041,6 +1027,31 @@ function deleteRecordData(recordId) {
   }
   
   return { success: false, error: 'Record not found' };
+}
+
+// Validate record
+function validateRecordData(recordId, validation) {
+  if (!recordId || !validation) {
+    return { success: false, error: 'Data validasi tidak lengkap' };
+  }
+  
+  var sheet = getRecordsSheet();
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(recordId)) {
+      var rowIndex = i + 1;
+      // validationStatus = col 20, validatedBy = col 21, validatedAt = col 22, validationReason = col 23
+      sheet.getRange(rowIndex, 20).setValue(validation.status || 'valid');
+      sheet.getRange(rowIndex, 21).setValue(validation.validatedBy || '');
+      sheet.getRange(rowIndex, 22).setValue(nowISO());
+      sheet.getRange(rowIndex, 23).setValue(validation.reason || '');
+      
+      return { success: true, message: 'Record berhasil divalidasi' };
+    }
+  }
+  
+  return { success: false, error: 'Record tidak ditemukan' };
 }
 
 // Test function
