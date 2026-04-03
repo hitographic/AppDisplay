@@ -3,6 +3,18 @@
 // Pattern: INSPECTA-style unified request handler
 // Deploy: Execute as ME, Access: Anyone
 // No user login needed for CRUD - all via server
+//
+// IMPORTANT: After pasting this code, you MUST:
+// 1. Open appsscript.json (View > Show manifest file)
+// 2. Add these oauthScopes:
+//    "oauthScopes": [
+//      "https://www.googleapis.com/auth/spreadsheets",
+//      "https://www.googleapis.com/auth/drive",
+//      "https://www.googleapis.com/auth/script.external_request"
+//    ]
+// 3. Run testDriveAccess() manually → Accept permission prompt
+// 4. Deploy > New deployment (NOT "Manage deployments" update)
+// 5. Copy new URL to js/config.js
 // =====================================================
 //
 // SHEETS:
@@ -1897,8 +1909,53 @@ function handleListMasterFiles(data) {
 }
 
 // =====================================================
-// TEST FUNCTION - Run this to authorize Drive access
+// AUTHORIZATION & TEST FUNCTIONS
+// Run these MANUALLY from Apps Script Editor to trigger OAuth prompt
+// After running, re-deploy as NEW deployment
 // =====================================================
+
+/**
+ * Run this FIRST to authorize all required scopes.
+ * This triggers Google's OAuth consent screen for:
+ * - SpreadsheetApp (read/write sheets)
+ * - DriveApp (upload/rename/delete files)
+ * 
+ * Steps:
+ * 1. Click Run ▶ on this function
+ * 2. Click "Review permissions" 
+ * 3. Choose your Google account
+ * 4. Click "Advanced" > "Go to VALID DISPLAY (unsafe)"
+ * 5. Click "Allow"
+ * 6. Check Execution log for success
+ * 7. Then Deploy > New deployment
+ */
+function authorizeAllScopes() {
+  // Touch SpreadsheetApp to authorize spreadsheet access
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  Logger.log('✅ SpreadsheetApp authorized - Sheet: ' + ss.getName());
+  
+  // Touch DriveApp to authorize Drive access
+  var driveFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  Logger.log('✅ DriveApp authorized - Folder: ' + driveFolder.getName());
+  
+  // Test a master folder
+  var bumbuFolder = DriveApp.getFolderById('1g1d10dRO-QN68ql040zPkpkjY6hLVg6n');
+  Logger.log('✅ Master folder access - Bumbu: ' + bumbuFolder.getName());
+  
+  // Test creating and deleting a temp file (full write permission)
+  var blob = Utilities.newBlob('test', 'text/plain', 'auth_test.txt');
+  var testFile = driveFolder.createFile(blob);
+  Logger.log('✅ File creation works - ID: ' + testFile.getId());
+  testFile.setTrashed(true);
+  Logger.log('✅ File deletion works');
+  
+  Logger.log('');
+  Logger.log('🎉 ALL SCOPES AUTHORIZED SUCCESSFULLY!');
+  Logger.log('👉 Now go to Deploy > New deployment > Web app');
+  Logger.log('   Execute as: Me, Access: Anyone');
+  Logger.log('   Copy the new URL to js/config.js');
+}
+
 function testDriveAccess() {
   var folderId = '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n'; // Folder Bumbu
   var folder = DriveApp.getFolderById(folderId);
