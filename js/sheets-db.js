@@ -67,6 +67,7 @@ class GoogleSheetsDB {
         console.log(`📤 POST ${action}`, Object.keys(body));
 
         // Try fetch() POST with text/plain (INSPECTA pattern)
+        // Google Apps Script returns 302 redirect → follow it to get JSON response
         try {
             const response = await fetch(url.toString(), {
                 method: 'POST',
@@ -75,18 +76,34 @@ class GoogleSheetsDB {
                 redirect: 'follow'
             });
 
-            if (response.ok) {
+            // Check if we got JSON response (doPost executed, redirect delivered result)
+            const contentType = response.headers.get('content-type') || '';
+            if (response.ok && contentType.includes('application/json')) {
                 const data = await response.json();
                 console.log(`✅ POST ${action} success:`, data);
                 return data;
-            } else {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+
+            // Sometimes the redirect chain returns text/plain JSON
+            if (response.ok) {
+                const text = await response.text();
+                try {
+                    const data = JSON.parse(text);
+                    console.log(`✅ POST ${action} success (text):`, data);
+                    return data;
+                } catch (e) {
+                    // Not JSON - the redirect chain failed
+                    throw new Error(`Non-JSON response: ${text.substring(0, 100)}`);
+                }
+            }
+
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         } catch (fetchError) {
             console.warn(`⚠️ fetch() POST failed for ${action}, trying JSONP fallback...`, fetchError.message);
         }
 
         // Fallback: Send data as URL parameter via JSONP GET
+        // The unified handleRequest() in Code.gs parses `data` param from GET too
         try {
             const encodedData = encodeURIComponent(JSON.stringify(body));
             const fallbackUrl = `${this.webAppUrl}?action=${action}&data=${encodedData}`;
