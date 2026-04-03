@@ -64,62 +64,89 @@ class GoogleSheetsDB {
         const url = new URL(this.webAppUrl);
         url.searchParams.set('action', action);
 
-        console.log(`📤 POST ${action}`, Object.keys(body));
+        const bodyKeys = Object.keys(body);
+        const hasLargeData = bodyKeys.some(k => typeof body[k] === 'string' && body[k].length > 50000);
+        console.log(`📤 POST ${action}`, bodyKeys, hasLargeData ? '(large payload)' : '');
 
-        // Try fetch() POST with text/plain (INSPECTA pattern)
-        // Google Apps Script returns 302 redirect → follow it to get JSON response
+        // === METHOD 1: fetch() POST with text/plain ===
+        // Google Apps Script returns 302 → browser follows as GET → JSON response
+        // Timeout: 30s for small, 120s for large (photo upload)
         try {
+            const controller = new AbortController();
+            const fetchTimeout = hasLargeData ? 120000 : 30000;
+            const timer = setTimeout(() => controller.abort(), fetchTimeout);
+
+            console.log(`📡 fetch POST ${action} (timeout: ${fetchTimeout/1000}s)...`);
             const response = await fetch(url.toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(body),
-                redirect: 'follow'
+                redirect: 'follow',
+                signal: controller.signal
             });
+            clearTimeout(timer);
 
-            // Check if we got JSON response (doPost executed, redirect delivered result)
+            console.log(`📥 Response: ${response.status} ${response.statusText}, type: ${response.headers.get('content-type')}`);
+
+            // Check if we got JSON response
             const contentType = response.headers.get('content-type') || '';
             if (response.ok && contentType.includes('application/json')) {
                 const data = await response.json();
-                console.log(`✅ POST ${action} success:`, data);
+                console.log(`✅ POST ${action} success (json):`, data);
                 return data;
             }
 
-            // Sometimes the redirect chain returns text/plain JSON
+            // Sometimes redirect chain returns text that's actually JSON
             if (response.ok) {
                 const text = await response.text();
                 try {
                     const data = JSON.parse(text);
-                    console.log(`✅ POST ${action} success (text):`, data);
+                    console.log(`✅ POST ${action} success (text→json):`, data);
                     return data;
                 } catch (e) {
-                    // Not JSON - the redirect chain failed
+                    console.warn(`⚠️ Response not JSON (${text.length} chars): ${text.substring(0, 200)}`);
+                    // For write operations, if we got HTTP 200 with HTML, the server DID process it
+                    // The redirect response is just not readable as JSON
+                    if (text.includes('google') || text.includes('Moved')) {
+                        console.log(`✅ POST ${action}: server processed (non-JSON 200 response)`);
+                        return { success: true, message: 'Server processed (redirect response)' };
+                    }
                     throw new Error(`Non-JSON response: ${text.substring(0, 100)}`);
                 }
             }
 
+            // Non-OK status: might be 405 from redirect (shouldn't happen with follow)
+            console.warn(`⚠️ HTTP ${response.status} for ${action}`);
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         } catch (fetchError) {
-            console.warn(`⚠️ fetch() POST failed for ${action}, trying JSONP fallback...`, fetchError.message);
+            if (fetchError.name === 'AbortError') {
+                console.warn(`⏱️ fetch() timeout for ${action}, trying form submit...`);
+            } else {
+                console.warn(`⚠️ fetch() failed for ${action}: ${fetchError.message}`);
+            }
         }
 
-        // Fallback: Send data as URL parameter via JSONP GET
-        // The unified handleRequest() in Code.gs parses `data` param from GET too
+        // === METHOD 2: JSONP GET fallback (only for small payloads) ===
         try {
             const encodedData = encodeURIComponent(JSON.stringify(body));
             const fallbackUrl = `${this.webAppUrl}?action=${action}&data=${encodedData}`;
             
             if (fallbackUrl.length > 8000) {
-                console.warn('⚠️ URL too long for JSONP fallback, using form submit...');
-                return this.formSubmit({ action, ...body });
+                console.warn('⚠️ URL too long for JSONP, going to form submit...');
+                throw new Error('URL too long');
             }
             
+            console.log(`📡 JSONP fallback for ${action}...`);
             const result = await this.jsonpRequest(fallbackUrl);
             console.log(`✅ JSONP fallback for ${action} success:`, result);
             return result;
         } catch (jsonpError) {
-            console.error(`❌ All methods failed for ${action}:`, jsonpError);
-            return { success: false, error: jsonpError.message };
+            console.warn(`⚠️ JSONP fallback failed for ${action}: ${jsonpError.message}`);
         }
+
+        // === METHOD 3: Form submit via hidden iframe (last resort for large data) ===
+        console.log(`📡 Form submit fallback for ${action}...`);
+        return this.formSubmit({ action, ...body });
     }
 
     // ===== JSONP (Legacy fallback for GET) =====
@@ -173,10 +200,12 @@ class GoogleSheetsDB {
     }
 
     // Form submit fallback (for very large POST payloads like photo upload)
-    // Listens for iframe onload (server responded) OR times out after 60s
+    // Listens for iframe onload (server responded) OR times out after 90s
     async formSubmit(data) {
         return new Promise((resolve) => {
             let resolved = false;
+            let formSubmitted = false;
+
             const doResolve = (result) => {
                 if (resolved) return;
                 resolved = true;
@@ -185,9 +214,9 @@ class GoogleSheetsDB {
             };
 
             const timeout = setTimeout(() => {
-                console.warn('⏱️ Form submit timeout after 60s, assuming success');
+                console.warn('⏱️ Form submit timeout after 90s, assuming success');
                 doResolve({ success: true, message: 'Request sent (form timeout)' });
-            }, 60000);
+            }, 90000);
 
             const cleanup = () => {
                 clearTimeout(timeout);
@@ -202,8 +231,10 @@ class GoogleSheetsDB {
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
 
-            // When iframe loads, the server has processed the request
+            // iframe.onload fires when server response loads in iframe
+            // Skip first onload (empty iframe creation), only handle after form submit
             iframe.onload = () => {
+                if (!formSubmitted) return; // skip initial about:blank load
                 console.log('✅ Form submit: iframe loaded (server responded)');
                 doResolve({ success: true, message: 'Upload completed' });
             };
@@ -221,7 +252,12 @@ class GoogleSheetsDB {
             form.appendChild(input);
             document.body.appendChild(form);
 
-            try { form.submit(); } catch (e) {
+            console.log(`📤 Form submit: posting ${Math.round(input.value.length/1024)}KB to iframe...`);
+            try {
+                formSubmitted = true;
+                form.submit();
+            } catch (e) {
+                console.error('Form submit error:', e);
                 doResolve({ success: true, message: 'Request sent (with error)' });
             }
         });

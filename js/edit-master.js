@@ -413,22 +413,27 @@ async function saveFile() {
             if (selectedImageData) {
                 // Replace: delete old + upload new
                 console.log('Replacing file:', editingFile.id);
+                showLoading('Menghapus file lama...');
                 await deleteMasterFileAPI(editingFile.id);
+                showLoading('Mengupload file baru...');
                 await uploadNewFile(fileName);
             } else {
                 // Rename only
                 console.log('Renaming file:', editingFile.id, 'to', fileName);
+                showLoading('Mengubah nama file...');
                 var result = await renameMasterFileAPI(editingFile.id, fileName);
                 if (!result || !result.success) throw new Error((result && result.error) || 'Rename failed');
             }
-            showToast('File berhasil diupdate', 'success');
+            showToast('File berhasil diupdate ✓', 'success');
         } else {
             // New file
             console.log('Uploading new file:', fileName);
+            showLoading('Mengupload foto... (mohon tunggu)');
             await uploadNewFile(fileName);
-            showToast('File berhasil ditambahkan', 'success');
+            showToast('File berhasil ditambahkan ✓', 'success');
         }
         closeModal();
+        showLoading('Memuat ulang folder...');
         await refreshCurrentFolder();
     } catch (error) {
         console.error('Save error:', error);
