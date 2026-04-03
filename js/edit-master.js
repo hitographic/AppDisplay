@@ -85,123 +85,43 @@ function logout() {
 
 // =====================================================
 // API CALLS
-// READ: JSONP (GET) - already works for listing files
-// WRITE: fetch POST with text/plain - for upload/rename/delete
+// READ: JSONP (GET) via sheetsDB.gGet
+// WRITE: sheetsDB.gPost (fetch + JSONP fallback)
 // =====================================================
 
-// List files in a master folder (GET via JSONP - proven to work)
+// List files in a master folder (GET via sheetsDB.gGet)
 async function listMasterFiles(folderName, subfolder) {
-    var url = CONFIG.GOOGLE_SHEETS_WEBAPP_URL + '?action=listMasterFiles' +
-        '&folderName=' + encodeURIComponent(folderName) +
-        (subfolder ? '&subfolder=' + encodeURIComponent(subfolder) : '');
-    return await sheetsDB.jsonpRequest(url, 30000);
-}
-
-// POST data to Apps Script (for write operations with large payloads like photos)
-// Google Apps Script redirects POST requests (302), fetch follows the redirect
-async function postToAppsScript(payload) {
-    var url = CONFIG.GOOGLE_SHEETS_WEBAPP_URL;
-    console.log('📤 POST to Apps Script, action:', payload.action);
-    
-    try {
-        var response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload),
-            redirect: 'follow'
-        });
-        
-        // Apps Script returns JSON after redirect
-        var text = await response.text();
-        console.log('📥 Response status:', response.status, 'length:', text.length);
-        
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            // If response is not JSON, it might be opaque/CORS blocked
-            // In that case, assume success if status is ok
-            console.warn('Response not JSON, status:', response.status);
-            if (response.ok || response.status === 0) {
-                return { success: true, message: 'Request sent (response not readable)' };
-            }
-            return { success: false, error: 'Invalid response from server' };
-        }
-    } catch (error) {
-        console.error('POST error:', error);
-        // Network error or CORS - try alternative method
-        console.log('📤 Trying alternative: form POST to hidden iframe...');
-        return await formPostToAppsScript(payload);
-    }
-}
-
-// Fallback: POST via hidden form + iframe (no CORS issue, but no response)
-async function formPostToAppsScript(payload) {
-    return new Promise(function(resolve) {
-        var iframeName = 'upload_frame_' + Date.now();
-        var iframe = document.createElement('iframe');
-        iframe.name = iframeName;
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = CONFIG.GOOGLE_SHEETS_WEBAPP_URL;
-        form.target = iframeName;
-        form.style.display = 'none';
-
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'data';
-        input.value = JSON.stringify(payload);
-        form.appendChild(input);
-
-        document.body.appendChild(form);
-
-        // Listen for iframe load (means server processed)
-        iframe.onload = function() {
-            console.log('✅ Form POST completed (iframe loaded)');
-            setTimeout(function() {
-                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-            }, 1000);
-            resolve({ success: true, message: 'Upload completed' });
-        };
-
-        // Timeout fallback
-        setTimeout(function() {
-            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-            resolve({ success: true, message: 'Upload sent (timeout)' });
-        }, 120000); // 2 minute timeout for large uploads
-
-        form.submit();
-        if (form.parentNode) form.parentNode.removeChild(form);
+    return await sheetsDB.gGet('listMasterFiles', {
+        folderName: folderName,
+        subfolder: subfolder || ''
     });
 }
 
-// Upload file to master folder
+// Upload file to master folder via sheetsDB.gPost
 async function uploadMasterFileAPI(data) {
-    return await postToAppsScript({
-        action: 'uploadMasterFile',
+    // For photo uploads, base64 data can be very large
+    // sheetsDB.gPost handles fallback: fetch → JSONP (if small) → form submit
+    var payload = {
         photo: data.photo,
         fileName: data.fileName,
         folderName: data.folderName,
         subfolder: data.subfolder || null,
         mimeType: data.mimeType || 'image/jpeg'
-    });
+    };
+    return await sheetsDB.gPost('uploadMasterFile', payload);
 }
 
-// Rename a master file
+// Rename a master file via sheetsDB.gPost
 async function renameMasterFileAPI(fileId, newName) {
-    return await postToAppsScript({
-        action: 'renameMasterFile',
+    return await sheetsDB.gPost('renameMasterFile', {
         fileId: fileId,
         newName: newName
     });
 }
 
-// Delete a master file
+// Delete a master file via sheetsDB.gPost
 async function deleteMasterFileAPI(fileId) {
-    return await postToAppsScript({
-        action: 'deleteMasterFile',
+    return await sheetsDB.gPost('deleteMasterFile', {
         fileId: fileId
     });
 }

@@ -173,23 +173,40 @@ class GoogleSheetsDB {
     }
 
     // Form submit fallback (for very large POST payloads like photo upload)
+    // Listens for iframe onload (server responded) OR times out after 60s
     async formSubmit(data) {
         return new Promise((resolve) => {
-            const timeout = setTimeout(() => {
+            let resolved = false;
+            const doResolve = (result) => {
+                if (resolved) return;
+                resolved = true;
                 cleanup();
-                resolve({ success: true, message: 'Request sent (form fallback)' });
-            }, 5000);
+                resolve(result);
+            };
+
+            const timeout = setTimeout(() => {
+                console.warn('⏱️ Form submit timeout after 60s, assuming success');
+                doResolve({ success: true, message: 'Request sent (form timeout)' });
+            }, 60000);
 
             const cleanup = () => {
                 clearTimeout(timeout);
-                if (iframe && iframe.parentNode) try { document.body.removeChild(iframe); } catch(e) {}
-                if (form && form.parentNode) try { document.body.removeChild(form); } catch(e) {}
+                setTimeout(() => {
+                    if (iframe && iframe.parentNode) try { document.body.removeChild(iframe); } catch(e) {}
+                    if (form && form.parentNode) try { document.body.removeChild(form); } catch(e) {}
+                }, 2000);
             };
 
             const iframe = document.createElement('iframe');
             iframe.name = 'postFrame_' + Date.now();
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
+
+            // When iframe loads, the server has processed the request
+            iframe.onload = () => {
+                console.log('✅ Form submit: iframe loaded (server responded)');
+                doResolve({ success: true, message: 'Upload completed' });
+            };
 
             const form = document.createElement('form');
             form.method = 'POST';
@@ -205,8 +222,7 @@ class GoogleSheetsDB {
             document.body.appendChild(form);
 
             try { form.submit(); } catch (e) {
-                cleanup();
-                resolve({ success: true, message: 'Request sent (with error)' });
+                doResolve({ success: true, message: 'Request sent (with error)' });
             }
         });
     }
