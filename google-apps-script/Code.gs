@@ -1884,3 +1884,19 @@ function handleListMasterFiles(data) {
     return { success: false, error: error.message };
   }
 }
+
+// =====================================================
+// TEST FUNCTION - Run this to authorize Drive access
+// =====================================================
+function testDriveAccess() {
+  var folderId = '1g1d10dRO-QN68ql040zPkpkjY6hLVg6n'; // Folder Bumbu
+  var folder = DriveApp.getFolderById(folderId);
+  Logger.log('Folder name: ' + folder.getName());
+  var files = folder.getFiles();
+  var count = 0;
+  while (files.hasNext()) {
+    files.next();
+    count++;
+  }
+  Logger.log('File count: ' + count);
+}
