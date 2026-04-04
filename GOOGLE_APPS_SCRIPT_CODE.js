@@ -1727,13 +1727,33 @@ function handleUploadMasterFile(data) {
       return { success: false, error: 'Folder name is required' };
     }
     
-    // Get folder ID
+    // Try primary folder first, fallback to DRIVE_FOLDER_ID/folderName
+    var folder = null;
     var folderId = MASTER_FOLDER_IDS[data.folderName];
-    if (!folderId) {
-      return { success: false, error: 'Invalid folder name: ' + data.folderName };
+    
+    if (folderId) {
+      try {
+        folder = DriveApp.getFolderById(folderId);
+        // Test write access by checking if we can list (getFoldersByName)
+        folder.getFoldersByName('__test__');
+      } catch (accessErr) {
+        Logger.log('Cannot access folder ' + data.folderName + ' (' + folderId + '): ' + accessErr.message);
+        Logger.log('Falling back to DRIVE_FOLDER_ID subfolder...');
+        folder = null;
+      }
     }
     
-    var folder = DriveApp.getFolderById(folderId);
+    // Fallback: create/find subfolder in main DRIVE_FOLDER_ID
+    if (!folder) {
+      var rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      var subs = rootFolder.getFoldersByName(data.folderName);
+      if (subs.hasNext()) {
+        folder = subs.next();
+      } else {
+        folder = rootFolder.createFolder(data.folderName);
+        Logger.log('Created fallback folder: ' + data.folderName);
+      }
+    }
     
     // Handle subfolder if specified
     if (data.subfolder) {
@@ -1741,7 +1761,6 @@ function handleUploadMasterFile(data) {
       if (subfolders.hasNext()) {
         folder = subfolders.next();
       } else {
-        // Create subfolder if not exists
         folder = folder.createFolder(data.subfolder);
       }
     }
@@ -1801,7 +1820,14 @@ function handleRenameMasterFile(data) {
       return { success: false, error: 'New name is required' };
     }
     
-    var file = DriveApp.getFileById(data.fileId);
+    var file;
+    try {
+      file = DriveApp.getFileById(data.fileId);
+    } catch (accessErr) {
+      Logger.log('Cannot access file ' + data.fileId + ': ' + accessErr.message);
+      return { success: false, error: 'Tidak bisa mengakses file. File mungkin berada di folder yang tidak bisa diedit.' };
+    }
+    
     var oldName = file.getName();
     
     // Preserve extension
@@ -1809,7 +1835,13 @@ function handleRenameMasterFile(data) {
     ext = ext ? ext[0] : '.jpg';
     
     var newFullName = data.newName + ext;
-    file.setName(newFullName);
+    
+    try {
+      file.setName(newFullName);
+    } catch (writeErr) {
+      Logger.log('Cannot rename file ' + data.fileId + ': ' + writeErr.message);
+      return { success: false, error: 'Tidak bisa rename file. Anda tidak memiliki izin edit untuk file ini.' };
+    }
     
     return {
       success: true,
@@ -1834,9 +1866,22 @@ function handleDeleteMasterFile(data) {
       return { success: false, error: 'File ID is required' };
     }
     
-    var file = DriveApp.getFileById(data.fileId);
+    var file;
+    try {
+      file = DriveApp.getFileById(data.fileId);
+    } catch (accessErr) {
+      Logger.log('Cannot access file ' + data.fileId + ': ' + accessErr.message);
+      return { success: false, error: 'Tidak bisa mengakses file. File mungkin sudah dihapus atau tidak bisa diakses.' };
+    }
+    
     var fileName = file.getName();
-    file.setTrashed(true);
+    
+    try {
+      file.setTrashed(true);
+    } catch (writeErr) {
+      Logger.log('Cannot delete file ' + data.fileId + ': ' + writeErr.message);
+      return { success: false, error: 'Tidak bisa menghapus file. Anda tidak memiliki izin untuk menghapus file ini.' };
+    }
     
     return {
       success: true,
@@ -1862,43 +1907,68 @@ function handleListMasterFiles(data) {
       return { success: false, error: 'Folder name is required' };
     }
     
-    var folderId = MASTER_FOLDER_IDS[data.folderName];
-    if (!folderId) {
-      return { success: false, error: 'Invalid folder name: ' + data.folderName };
-    }
-    
-    var folder = DriveApp.getFolderById(folderId);
-    
-    // Handle subfolder if specified
-    if (data.subfolder) {
-      var subfolders = folder.getFoldersByName(data.subfolder);
-      if (subfolders.hasNext()) {
-        folder = subfolders.next();
-      } else {
-        return { success: true, files: [], message: 'Subfolder not found' };
-      }
-    }
-    
-    var files = folder.getFiles();
     var fileList = [];
+    var seenIds = {};
     
-    while (files.hasNext()) {
-      var file = files.next();
-      var mimeType = file.getMimeType();
-      
-      // Only include image files
-      if (mimeType.indexOf('image/') === 0) {
-        var fileId = file.getId();
-        fileList.push({
-          id: fileId,
-          name: file.getName(),
-          mimeType: mimeType,
-          createdDate: file.getDateCreated().toISOString(),
-          modifiedDate: file.getLastUpdated().toISOString(),
-          thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400',
-          viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view'
-        });
+    // Helper: collect image files from a folder
+    function collectFiles(folder) {
+      var files = folder.getFiles();
+      while (files.hasNext()) {
+        var file = files.next();
+        var mimeType = file.getMimeType();
+        if (mimeType.indexOf('image/') === 0) {
+          var fileId = file.getId();
+          if (!seenIds[fileId]) {
+            seenIds[fileId] = true;
+            fileList.push({
+              id: fileId,
+              name: file.getName(),
+              mimeType: mimeType,
+              createdDate: file.getDateCreated().toISOString(),
+              modifiedDate: file.getLastUpdated().toISOString(),
+              thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400',
+              viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view'
+            });
+          }
+        }
       }
+    }
+    
+    // 1) Try primary MASTER_FOLDER_IDS folder
+    var folderId = MASTER_FOLDER_IDS[data.folderName];
+    if (folderId) {
+      try {
+        var primaryFolder = DriveApp.getFolderById(folderId);
+        if (data.subfolder) {
+          var subs = primaryFolder.getFoldersByName(data.subfolder);
+          if (subs.hasNext()) {
+            collectFiles(subs.next());
+          }
+        } else {
+          collectFiles(primaryFolder);
+        }
+      } catch (primaryErr) {
+        Logger.log('Cannot read primary folder ' + data.folderName + ': ' + primaryErr.message);
+      }
+    }
+    
+    // 2) Also check fallback folder (DRIVE_FOLDER_ID/folderName)
+    try {
+      var rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      var fallbackFolders = rootFolder.getFoldersByName(data.folderName);
+      if (fallbackFolders.hasNext()) {
+        var fallbackFolder = fallbackFolders.next();
+        if (data.subfolder) {
+          var fallbackSubs = fallbackFolder.getFoldersByName(data.subfolder);
+          if (fallbackSubs.hasNext()) {
+            collectFiles(fallbackSubs.next());
+          }
+        } else {
+          collectFiles(fallbackFolder);
+        }
+      }
+    } catch (fallbackErr) {
+      Logger.log('Cannot read fallback folder: ' + fallbackErr.message);
     }
     
     // Sort by name
