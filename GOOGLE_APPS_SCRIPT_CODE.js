@@ -184,6 +184,18 @@ function handleRequest(e) {
       case 'fixStructure':
         result = fixRecordsStructure();
         break;
+      case 'testDriveWrite':
+        try {
+          var testFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          var testBlob = Utilities.newBlob('test', 'text/plain', 'permission_test.txt');
+          var testFile = testFolder.createFile(testBlob);
+          var testId = testFile.getId();
+          testFile.setTrashed(true);
+          result = { success: true, message: 'Drive write OK', testFileId: testId };
+        } catch(driveErr) {
+          result = { success: false, error: 'Drive write FAILED: ' + driveErr.toString() };
+        }
+        break;
         
       default:
         result = { success: false, error: 'Unknown action: ' + action };
