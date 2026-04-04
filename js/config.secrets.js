@@ -12,5 +12,5 @@ const CONFIG_SECRETS = {
     GOOGLE_FOLDER_ID: '1oVQJZfkorSrsSd49CPzRsmAybUHX7J23',
     
     // Google Sheets Web App URL
-    GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxskbRPzUvJVqEr3TQoLcNvxknfAVlt-JIfcoeYZ-N8OsWegajeUgCxoytuD5yNd_Pdyw/exec'
+    GOOGLE_SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbyQP9DRD3M2fhZXvC_rByO3HFKtx8a0pSt8wPjlC3GVnIq7H91GhZmx_xBo43ujutE-Qg/exec'
 };

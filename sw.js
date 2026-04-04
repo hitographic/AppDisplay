@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
 // Version 2.30.0 - Add Kode Produksi checkbox to Data yang Diupdate
 
-const CACHE_NAME = 'mds-track-v2.43.0';
+const CACHE_NAME = 'mds-track-v2.44.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
