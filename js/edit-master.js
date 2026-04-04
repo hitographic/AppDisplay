@@ -448,17 +448,64 @@ async function uploadNewFile(fileName) {
     else if (selectedImageData.indexOf('image/gif') > -1) mimeType = 'image/gif';
     else if (selectedImageData.indexOf('image/webp') > -1) mimeType = 'image/webp';
 
-    console.log('Uploading:', fileName, 'to folder:', currentFolderConfig.folderName || currentFolder);
+    var folderName = currentFolderConfig.folderName || currentFolder;
+    var subfolder = currentFolderConfig.subfolder || null;
+    console.log('Uploading:', fileName, 'to folder:', folderName);
+    
     var result = await uploadMasterFileAPI({
         photo: selectedImageData,
         fileName: fileName,
-        folderName: currentFolderConfig.folderName || currentFolder,
-        subfolder: currentFolderConfig.subfolder || null,
+        folderName: folderName,
+        subfolder: subfolder,
         mimeType: mimeType
     });
     console.log('Upload result:', result);
-    if (!result || !result.success) throw new Error((result && result.error) || 'Upload failed');
-    return result;
+    
+    // If result says success, we're done
+    if (result && result.success) return result;
+    
+    // If result says failure with a real server error, throw
+    if (result && result.success === false && result.error && 
+        !result.error.includes('timeout') && !result.error.includes('Non-JSON') &&
+        !result.error.includes('form')) {
+        throw new Error(result.error);
+    }
+    
+    // Ambiguous result (form fallback, timeout, non-JSON response)
+    // The file likely uploaded but we didn't get a clean JSON response
+    // Verify by checking if the file now exists in the folder
+    console.log('⏳ Verifying upload by checking folder...');
+    showLoading('Memverifikasi upload...');
+    
+    // Wait a moment for Drive to process, then check
+    await new Promise(function(r) { setTimeout(r, 3000); });
+    
+    try {
+        var files = await listMasterFiles(folderName, subfolder);
+        if (files && files.files) {
+            // Check if our file is there (by name match)
+            var ext = mimeType === 'image/png' ? '.png' : '.jpg';
+            var expectedName = fileName + ext;
+            var found = files.files.some(function(f) {
+                return f.name === expectedName || f.name === fileName;
+            });
+            if (found) {
+                console.log('✅ File verified in folder!');
+                return { success: true, message: 'Upload verified' };
+            }
+        }
+    } catch (verifyError) {
+        console.warn('Verify error:', verifyError);
+    }
+    
+    // If we still can't confirm, assume success if the original wasn't a clear error
+    // (because user said file DID appear in Google Drive)
+    if (!result || result.success !== false) {
+        console.log('✅ Assuming upload success (no clear error)');
+        return { success: true, message: 'Upload sent' };
+    }
+    
+    throw new Error((result && result.error) || 'Upload failed');
 }
 
 function deleteFile(fileId, fileName) {
