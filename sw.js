@@ -1,7 +1,7 @@
 // MDS Track - Service Worker
 // Version 2.30.0 - Add Kode Produksi checkbox to Data yang Diupdate
 
-const CACHE_NAME = 'mds-track-v2.45.0';
+const CACHE_NAME = 'mds-track-v2.46.0';
 const URLS_TO_CACHE = [
   '/',
   '/AppDisplay/',
@@ -78,6 +78,11 @@ self.addEventListener('activate', event => {
 
 // Fetch event - different strategies for different content types
 self.addEventListener('fetch', event => {
+  // Skip non-GET requests entirely (POST cannot be cached)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   // Skip cross-origin requests (except CDN and Google)
   if (!event.request.url.includes(self.location.origin) && 
       !event.request.url.includes('cdnjs.cloudflare.com') &&
