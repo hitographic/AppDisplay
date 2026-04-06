@@ -464,16 +464,8 @@ async function uploadNewFile(fileName) {
     // If result says success, we're done
     if (result && result.success) return result;
     
-    // If result says failure with a real server error, throw
-    if (result && result.success === false && result.error && 
-        !result.error.includes('timeout') && !result.error.includes('Non-JSON') &&
-        !result.error.includes('form')) {
-        throw new Error(result.error);
-    }
-    
-    // Ambiguous result (form fallback, timeout, non-JSON response)
-    // The file likely uploaded but we didn't get a clean JSON response
-    // Verify by checking if the file now exists in the folder
+    // For ANY non-success result, always verify by checking the folder
+    // (Sometimes server returns error but file actually uploaded - e.g. DriveApp permission issues)
     console.log('⏳ Verifying upload by checking folder...');
     showLoading('Memverifikasi upload...');
     
@@ -484,28 +476,28 @@ async function uploadNewFile(fileName) {
         var files = await listMasterFiles(folderName, subfolder);
         if (files && files.files) {
             // Check if our file is there (by name match)
-            var ext = mimeType === 'image/png' ? '.png' : '.jpg';
+            var ext = mimeType === 'image/png' ? '.png' : (mimeType === 'image/gif' ? '.gif' : '.jpg');
             var expectedName = fileName + ext;
             var found = files.files.some(function(f) {
                 return f.name === expectedName || f.name === fileName;
             });
             if (found) {
-                console.log('✅ File verified in folder!');
-                return { success: true, message: 'Upload verified' };
+                console.log('✅ File verified in folder despite server error!');
+                return { success: true, message: 'Upload verified in folder' };
             }
         }
     } catch (verifyError) {
         console.warn('Verify error:', verifyError);
     }
     
-    // If we still can't confirm, assume success if the original wasn't a clear error
-    // (because user said file DID appear in Google Drive)
-    if (!result || result.success !== false) {
-        console.log('✅ Assuming upload success (no clear error)');
-        return { success: true, message: 'Upload sent' };
+    // If verification failed AND we had a clear server error, throw it
+    if (result && result.success === false && result.error) {
+        throw new Error(result.error);
     }
     
-    throw new Error((result && result.error) || 'Upload failed');
+    // No clear error but can't confirm - assume success
+    console.log('✅ Assuming upload success (no clear error)');
+    return { success: true, message: 'Upload sent' };
 }
 
 function deleteFile(fileId, fileName) {
