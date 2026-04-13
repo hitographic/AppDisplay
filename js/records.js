@@ -600,12 +600,14 @@ async function applySearch() {
 
         // Filter by validation status
         if (validationStatus) {
-            const recordStatus = record.isValidated ? (record.validationStatus || 'valid') : 'pending';
+            // Normalize validation status from Google Sheets (can be 'valid', 'invalid', or empty)
+            const recordStatus = record.validationStatus ? record.validationStatus.toLowerCase().trim() : 'pending';
+            
             if (validationStatus === 'valid' && recordStatus !== 'valid') {
                 match = false;
             } else if (validationStatus === 'invalid' && recordStatus !== 'invalid') {
                 match = false;
-            } else if (validationStatus === 'pending' && record.isValidated) {
+            } else if (validationStatus === 'pending' && recordStatus !== 'pending' && recordStatus !== '') {
                 match = false;
             }
         }
