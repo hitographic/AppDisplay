@@ -989,7 +989,80 @@ function renderValidationInPreview() {
         if (currentPreviewRecord.validationStatus === 'invalid' && currentPreviewRecord.validationReason) {
             document.getElementById('previewInvalidReason').value = currentPreviewRecord.validationReason;
         }
+        
+        // Show metadata if validation exists
+        showValidationMetadata();
+    } else {
+        // Hide metadata if no validation yet
+        document.getElementById('previewValidationMetadata').classList.add('hidden');
     }
+}
+
+function showValidationMetadata() {
+    const metadataSection = document.getElementById('previewValidationMetadata');
+    const record = currentPreviewRecord;
+    
+    if (!record.validatedAt || !record.validatedBy) {
+        metadataSection.classList.add('hidden');
+        return;
+    }
+    
+    metadataSection.classList.remove('hidden');
+    
+    // Format date
+    const validatedDate = new Date(record.validatedAt);
+    const formattedDate = validatedDate.toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    document.getElementById('previewValidationDate').textContent = formattedDate;
+    document.getElementById('previewValidatedBy').textContent = record.validatedBy;
+    
+    // Render validation changes checklist
+    renderValidationChanges();
+}
+
+function renderValidationChanges() {
+    const changesList = document.getElementById('previewValidationChanges');
+    const record = currentPreviewRecord;
+    
+    // Map photos to display elements
+    const validationElements = [
+        { key: 'photo_bumbu', label: 'Bumbu' },
+        { key: 'photo_kartonDepan', label: 'Karton Depan' },
+        { key: 'photo_kartonBelakang', label: 'Karton Belakang' },
+        { key: 'photo_etiket', label: 'Etiket' },
+        { key: 'photo_etiketbanded', label: 'Etiket Banded' }
+    ];
+    
+    // Clear previous content
+    changesList.innerHTML = '';
+    
+    // Get the photos object from the record
+    const photos = record.photos || {};
+    
+    // Render each element
+    validationElements.forEach(element => {
+        // Check if the photo exists and is not null/empty
+        const hasPhoto = photos[element.key] && photos[element.key].trim() !== '';
+        const changeItem = document.createElement('div');
+        changeItem.className = `change-item ${hasPhoto ? 'checked' : 'unchecked'}`;
+        
+        const icon = document.createElement('i');
+        icon.className = hasPhoto ? 'fas fa-check-circle' : 'fas fa-circle';
+        
+        const text = document.createElement('span');
+        text.className = 'change-item-text';
+        text.textContent = element.label;
+        
+        changeItem.appendChild(icon);
+        changeItem.appendChild(text);
+        changesList.appendChild(changeItem);
+    });
 }
 
 function selectValidationInPreview(status) {
@@ -1035,12 +1108,31 @@ async function submitValidationFromPreview() {
     showLoading('💾 Menyimpan validasi...');
     
     try {
+        // Collect which elements/photos are present (being validated)
+        const validatedElements = [];
+        const photos = currentPreviewRecord.photos || {};
+        
+        const photoMapping = [
+            { key: 'photo_bumbu', label: 'Bumbu' },
+            { key: 'photo_kartonDepan', label: 'Karton Depan' },
+            { key: 'photo_kartonBelakang', label: 'Karton Belakang' },
+            { key: 'photo_etiket', label: 'Etiket' },
+            { key: 'photo_etiketbanded', label: 'Etiket Banded' }
+        ];
+        
+        photoMapping.forEach(mapping => {
+            if (photos[mapping.key] && photos[mapping.key].trim() !== '') {
+                validatedElements.push(mapping.label);
+            }
+        });
+        
         const validationData = {
             id: recordId,
             validationStatus: status,
             validatedBy: auth.getUser().email,
             validatedAt: new Date().toISOString(),
-            validationReason: status === 'invalid' ? reason : ''
+            validationReason: status === 'invalid' ? reason : '',
+            updatedFields: validatedElements  // Track which elements were validated
         };
         
         console.log('📝 Submitting validation from preview:', validationData);
@@ -1055,6 +1147,7 @@ async function submitValidationFromPreview() {
             currentPreviewRecord.validatedBy = validationData.validatedBy;
             currentPreviewRecord.validatedAt = validationData.validatedAt;
             currentPreviewRecord.validationReason = validationData.validationReason;
+            currentPreviewRecord.updatedFields = validationData.updatedFields;
         }
         
         // Update in allRecords array (with string comparison for ID)

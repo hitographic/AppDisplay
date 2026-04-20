@@ -3456,6 +3456,104 @@ body {
     transform: scale(0.98);
 }
 
+/* Validation Metadata Section */
+.validation-metadata {
+    margin-top: 15px;
+}
+
+.validation-metadata.hidden {
+    display: none;
+}
+
+.metadata-info {
+    background-color: #f5f5f5;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.metadata-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.9rem;
+}
+
+.metadata-row:not(:last-child) {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.metadata-label {
+    color: #666;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.metadata-label i {
+    color: var(--primary-color);
+    width: 18px;
+    text-align: center;
+}
+
+.metadata-value {
+    color: #333;
+    font-weight: 600;
+    text-align: right;
+}
+
+.changes-section {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+.changes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.change-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.change-item i {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-right: 10px;
+    font-size: 0.8rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.change-item.checked i {
+    background-color: #4caf50;
+}
+
+.change-item.unchecked i {
+    background-color: #ccc;
+}
+
+.change-item-text {
+    color: #333;
+    flex: 1;
+}
+
 @media (max-width: 768px) {
     .preview-validation-section {
         margin-top: 15px;
@@ -3469,5 +3567,15 @@ body {
     
     .preview-validation-section .validation-icon {
         font-size: 20px;
+    }
+    
+    .metadata-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .metadata-value {
+        text-align: left;
     }
 }

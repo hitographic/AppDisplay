@@ -262,6 +262,29 @@
                 <button type="button" class="btn-primary btn-submit-validation" onclick="submitValidationFromPreview()" style="width: 100%; margin-top: 10px;">
                     <i class="fas fa-save"></i> Simpan Validasi
                 </button>
+                
+                <!-- Validation Metadata Section -->
+                <div id="previewValidationMetadata" class="validation-metadata hidden">
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e5e5;">
+                    
+                    <div class="metadata-info">
+                        <div class="metadata-row">
+                            <span class="metadata-label"><i class="fas fa-calendar-alt"></i> Tanggal Update:</span>
+                            <span id="previewValidationDate" class="metadata-value">-</span>
+                        </div>
+                        <div class="metadata-row">
+                            <span class="metadata-label"><i class="fas fa-user-circle"></i> Diupdate oleh:</span>
+                            <span id="previewValidatedBy" class="metadata-value">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="changes-section">
+                        <h4 style="margin: 15px 0 10px 0; color: #333;"><i class="fas fa-list-check"></i> Elemen yang Divalidasi:</h4>
+                        <div id="previewValidationChanges" class="changes-list">
+                            <!-- Checklist will be rendered here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
