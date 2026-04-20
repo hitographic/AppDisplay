@@ -224,6 +224,45 @@
                 <p><strong>Kode Produksi:</strong></p>
                 <div id="previewKodeProduksi" class="kode-produksi-list"></div>
             </div>
+            
+            <!-- Validation Section dalam Preview Popup -->
+            <div id="previewValidationSection" class="preview-validation-section hidden">
+                <hr style="margin: 15px 0; border: none; border-top: 1px solid #e5e5e5;">
+                <h3 style="margin: 15px 0 10px 0;"><i class="fas fa-check-double"></i> Validasi Data</h3>
+                
+                <div class="validation-options">
+                    <label class="validation-option valid-option" onclick="selectValidationInPreview('valid')">
+                        <input type="radio" name="previewValidationStatus" value="valid">
+                        <span class="validation-icon"><i class="fas fa-check-circle"></i></span>
+                        <span class="validation-text">
+                            <strong>Valid</strong>
+                            <small>Data sudah sesuai</small>
+                        </span>
+                    </label>
+                    
+                    <label class="validation-option invalid-option" onclick="selectValidationInPreview('invalid')">
+                        <input type="radio" name="previewValidationStatus" value="invalid">
+                        <span class="validation-icon"><i class="fas fa-times-circle"></i></span>
+                        <span class="validation-text">
+                            <strong>Invalid</strong>
+                            <small>Ada ketidaksesuaian</small>
+                        </span>
+                    </label>
+                </div>
+                
+                <div id="previewInvalidReasonContainer" class="invalid-reason-container">
+                    <label for="previewInvalidReason" class="form-label">
+                        <i class="fas fa-comment-dots"></i> Keterangan Invalid
+                    </label>
+                    <textarea id="previewInvalidReason" rows="3" placeholder="Jelaskan alasan data tidak valid..." class="form-textarea"></textarea>
+                </div>
+                
+                <input type="hidden" id="previewValidationRecordId">
+                
+                <button type="button" class="btn-primary btn-submit-validation" onclick="submitValidationFromPreview()" style="width: 100%; margin-top: 10px;">
+                    <i class="fas fa-save"></i> Simpan Validasi
+                </button>
+            </div>
         </div>
     </div>
 
@@ -300,7 +339,7 @@
     <script src="js/sheets-db.js?v=5.1"></script>
     <script src="js/storage.js?v=5.0"></script>
     <script src="js/test-data.js"></script>
-    <script src="js/records.js?v=5.9"></script>
+    <script src="js/records.js?v=6.0"></script>
     <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
     
     <!-- Service Worker Registration for PWA -->

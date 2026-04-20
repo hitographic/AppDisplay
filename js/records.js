@@ -329,11 +329,6 @@ function renderAllRecordsAsCardList() {
                             <i class="fas fa-info-circle"></i>
                         </button>
                         ` : ''}
-                        ${userCanValidate ? `
-                        <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
-                            <i class="fas fa-check-double"></i>
-                        </button>
-                        ` : ''}
                     </div>
                 </div>
                 
@@ -680,11 +675,6 @@ function renderSearchResultsList(records) {
                             <i class="fas fa-info-circle"></i>
                         </button>
                         ` : ''}
-                        ${userCanValidate ? `
-                        <button class="btn-action validate" onclick="openValidationPopup('${record.id}')" title="Validasi">
-                            <i class="fas fa-check-double"></i>
-                        </button>
-                        ` : ''}
                     </div>
                 </div>
                 
@@ -937,6 +927,9 @@ async function openPreview(recordId) {
             // 🔥 Dynamic tabs: hide tabs with no data, show only tabs with data
             updatePreviewTabs(currentPreviewRecord.photos);
             
+            // Render validation section in preview
+            renderValidationInPreview();
+            
         } else {
             console.warn('⚠️ Could not fetch full record, using basic data');
             // Hide all tabs when no data
@@ -958,6 +951,136 @@ async function openPreview(recordId) {
                 <small>${escapeHtml(error.message)}</small>
             </div>
         `;
+    }
+}
+
+function renderValidationInPreview() {
+    // Only show validation section for users with permission
+    const validationSection = document.getElementById('previewValidationSection');
+    
+    if (!canValidate()) {
+        // Hide validation section for users without permission
+        validationSection.classList.add('hidden');
+        return;
+    }
+    
+    // Show validation section for authorized users
+    validationSection.classList.remove('hidden');
+    
+    // Store current record ID for validation
+    const recordId = currentPreviewRecord?.id;
+    if (!recordId) return;
+    
+    document.getElementById('previewValidationRecordId').value = recordId;
+    
+    // Reset selection
+    document.querySelectorAll('[name="previewValidationStatus"]').forEach(radio => {
+        radio.checked = false;
+    });
+    document.querySelectorAll('.preview-validation-section .validation-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    document.getElementById('previewInvalidReasonContainer').style.display = 'none';
+    document.getElementById('previewInvalidReason').value = '';
+    
+    // Pre-select if already validated
+    if (currentPreviewRecord.validationStatus) {
+        selectValidationInPreview(currentPreviewRecord.validationStatus);
+        if (currentPreviewRecord.validationStatus === 'invalid' && currentPreviewRecord.validationReason) {
+            document.getElementById('previewInvalidReason').value = currentPreviewRecord.validationReason;
+        }
+    }
+}
+
+function selectValidationInPreview(status) {
+    // Update radio buttons
+    document.querySelectorAll('[name="previewValidationStatus"]').forEach(radio => {
+        radio.checked = radio.value === status;
+    });
+    
+    // Update visual selection
+    document.querySelectorAll('.preview-validation-section .validation-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    
+    const selectedOption = document.querySelector(`.preview-validation-section .${status}-option`);
+    if (selectedOption) {
+        selectedOption.classList.add('selected');
+    }
+    
+    // Show/hide invalid reason textarea
+    const invalidReasonContainer = document.getElementById('previewInvalidReasonContainer');
+    if (status === 'invalid') {
+        invalidReasonContainer.style.display = 'block';
+    } else {
+        invalidReasonContainer.style.display = 'none';
+    }
+}
+
+async function submitValidationFromPreview() {
+    const recordId = document.getElementById('previewValidationRecordId').value;
+    const status = document.querySelector('[name="previewValidationStatus"]:checked')?.value;
+    const reason = document.getElementById('previewInvalidReason').value.trim();
+    
+    if (!status) {
+        showToast('Pilih status validasi', 'error');
+        return;
+    }
+    
+    if (status === 'invalid' && !reason) {
+        showToast('Jelaskan alasan data invalid', 'error');
+        return;
+    }
+    
+    showLoading('💾 Menyimpan validasi...');
+    
+    try {
+        const validationData = {
+            id: recordId,
+            validationStatus: status,
+            validatedBy: auth.getUser().email,
+            validatedAt: new Date().toISOString(),
+            validationReason: status === 'invalid' ? reason : ''
+        };
+        
+        console.log('📝 Submitting validation from preview:', validationData);
+        
+        // Update in storage
+        const result = await storage.updateRecord(recordId, validationData);
+        
+        if (result) {
+            // Update currentPreviewRecord to reflect changes
+            if (currentPreviewRecord) {
+                currentPreviewRecord.validationStatus = status;
+                currentPreviewRecord.validatedBy = validationData.validatedBy;
+                currentPreviewRecord.validatedAt = validationData.validatedAt;
+                currentPreviewRecord.validationReason = validationData.validationReason;
+            }
+            
+            // Update in allRecords array
+            const recordIndex = allRecords.findIndex(r => String(r.id) === String(recordId));
+            if (recordIndex !== -1) {
+                allRecords[recordIndex] = { ...allRecords[recordIndex], ...validationData };
+            }
+            
+            hideLoading();
+            showToast(`✅ Record berhasil di-${status === 'valid' ? 'validasi' : 'invalid'}kan`, 'success');
+            
+            // Re-render the records list to update validation status
+            renderAllRecordsAsCardList();
+            
+            // Close validation section or update display
+            setTimeout(() => {
+                closePreviewPopup();
+            }, 1000);
+        } else {
+            hideLoading();
+            showToast('❌ Gagal menyimpan validasi', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('❌ Error submitting validation:', error);
+        showToast(`❌ Error: ${error.message}`, 'error');
     }
 }
 
