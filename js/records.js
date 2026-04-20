@@ -1046,37 +1046,35 @@ async function submitValidationFromPreview() {
         console.log('📝 Submitting validation from preview:', validationData);
         
         // Update in storage
-        const result = await storage.updateRecord(recordId, validationData);
+        await storage.updateRecord(recordId, validationData);
+        console.log('✅ Storage updated successfully');
         
-        if (result) {
-            // Update currentPreviewRecord to reflect changes
-            if (currentPreviewRecord) {
-                currentPreviewRecord.validationStatus = status;
-                currentPreviewRecord.validatedBy = validationData.validatedBy;
-                currentPreviewRecord.validatedAt = validationData.validatedAt;
-                currentPreviewRecord.validationReason = validationData.validationReason;
-            }
-            
-            // Update in allRecords array
-            const recordIndex = allRecords.findIndex(r => String(r.id) === String(recordId));
-            if (recordIndex !== -1) {
-                allRecords[recordIndex] = { ...allRecords[recordIndex], ...validationData };
-            }
-            
-            hideLoading();
-            showToast(`✅ Record berhasil di-${status === 'valid' ? 'validasi' : 'invalid'}kan`, 'success');
-            
-            // Re-render the records list to update validation status
-            renderAllRecordsAsCardList();
-            
-            // Close validation section or update display
-            setTimeout(() => {
-                closePreviewPopup();
-            }, 1000);
-        } else {
-            hideLoading();
-            showToast('❌ Gagal menyimpan validasi', 'error');
+        // Always update currentPreviewRecord to reflect changes
+        if (currentPreviewRecord) {
+            currentPreviewRecord.validationStatus = status;
+            currentPreviewRecord.validatedBy = validationData.validatedBy;
+            currentPreviewRecord.validatedAt = validationData.validatedAt;
+            currentPreviewRecord.validationReason = validationData.validationReason;
         }
+        
+        // Update in allRecords array (with string comparison for ID)
+        const recordIndex = allRecords.findIndex(r => String(r.id) === String(recordId));
+        if (recordIndex !== -1) {
+            allRecords[recordIndex] = { ...allRecords[recordIndex], ...validationData };
+            console.log('✅ Updated allRecords at index:', recordIndex);
+        }
+        
+        hideLoading();
+        showToast(`✅ Record berhasil di-${status === 'valid' ? 'validasi' : 'invalid'}kan`, 'success');
+        
+        // Re-render the records list to update validation status
+        renderAllRecordsAsCardList();
+        
+        // Close validation section or update display
+        setTimeout(() => {
+            closePreviewPopup();
+        }, 1000);
+        
     } catch (error) {
         hideLoading();
         console.error('❌ Error submitting validation:', error);
