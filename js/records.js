@@ -989,40 +989,43 @@ function renderValidationInPreview() {
         if (currentPreviewRecord.validationStatus === 'invalid' && currentPreviewRecord.validationReason) {
             document.getElementById('previewInvalidReason').value = currentPreviewRecord.validationReason;
         }
-        
-        // Show metadata if validation exists
-        showValidationMetadata();
-    } else {
-        // Hide metadata if no validation yet
-        document.getElementById('previewValidationMetadata').classList.add('hidden');
     }
+    
+    // ALWAYS show metadata section (tidak peduli status validasi)
+    // Tanggal dan email hanya tampil saat ada validasi, 
+    // tapi checklist selalu tampil dari column X
+    showValidationMetadata();
 }
 
 function showValidationMetadata() {
     const metadataSection = document.getElementById('previewValidationMetadata');
     const record = currentPreviewRecord;
     
-    if (!record.validatedAt || !record.validatedBy) {
-        metadataSection.classList.add('hidden');
-        return;
-    }
-    
+    // ALWAYS show metadata section
     metadataSection.classList.remove('hidden');
     
-    // Format date
-    const validatedDate = new Date(record.validatedAt);
-    const formattedDate = validatedDate.toLocaleDateString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    // Show tanggal dan email hanya jika ada validasi
+    const metadataInfo = document.getElementById('previewValidationMetadataInfo');
+    if (record.validatedAt && record.validatedBy) {
+        // Format date
+        const validatedDate = new Date(record.validatedAt);
+        const formattedDate = validatedDate.toLocaleDateString('id-ID', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        document.getElementById('previewValidationDate').textContent = formattedDate;
+        document.getElementById('previewValidatedBy').textContent = record.validatedBy;
+        metadataInfo.style.display = 'block';
+    } else {
+        // Hide tanggal dan email jika belum ada validasi
+        metadataInfo.style.display = 'none';
+    }
     
-    document.getElementById('previewValidationDate').textContent = formattedDate;
-    document.getElementById('previewValidatedBy').textContent = record.validatedBy;
-    
-    // Render validation changes checklist
+    // Render validation changes checklist (ALWAYS show)
     renderValidationChanges();
 }
 
@@ -1030,30 +1033,31 @@ function renderValidationChanges() {
     const changesList = document.getElementById('previewValidationChanges');
     const record = currentPreviewRecord;
     
-    // Map photos to display elements
+    // Element mapping dari create-display.html
     const validationElements = [
-        { key: 'photo_bumbu', label: 'Bumbu' },
-        { key: 'photo_kartonDepan', label: 'Karton Depan' },
-        { key: 'photo_kartonBelakang', label: 'Karton Belakang' },
-        { key: 'photo_etiket', label: 'Etiket' },
-        { key: 'photo_etiketbanded', label: 'Etiket Banded' }
+        { label: 'Bumbu' },
+        { label: 'M. Bumbu' },
+        { label: 'Karton Depan' },
+        { label: 'Karton Belakang' },
+        { label: 'Etiket' },
+        { label: 'Etiket Banded' }
     ];
     
     // Clear previous content
     changesList.innerHTML = '';
     
-    // Get the photos object from the record
-    const photos = record.photos || {};
+    // Get updatedFields dari column X (dari create-display checklist)
+    const updatedFields = record.updatedFields || [];
     
     // Render each element
     validationElements.forEach(element => {
-        // Check if the photo exists and is not null/empty
-        const hasPhoto = photos[element.key] && photos[element.key].trim() !== '';
+        // Check if this element is in updatedFields array
+        const isChecked = updatedFields.includes(element.label);
         const changeItem = document.createElement('div');
-        changeItem.className = `change-item ${hasPhoto ? 'checked' : 'unchecked'}`;
+        changeItem.className = `change-item ${isChecked ? 'checked' : 'unchecked'}`;
         
         const icon = document.createElement('i');
-        icon.className = hasPhoto ? 'fas fa-check-circle' : 'fas fa-circle';
+        icon.className = isChecked ? 'fas fa-check-circle' : 'fas fa-circle';
         
         const text = document.createElement('span');
         text.className = 'change-item-text';
@@ -1108,23 +1112,29 @@ async function submitValidationFromPreview() {
     showLoading('💾 Menyimpan validasi...');
     
     try {
-        // Collect which elements/photos are present (being validated)
-        const validatedElements = [];
-        const photos = currentPreviewRecord.photos || {};
+        // Get validated elements from existing updatedFields or collect from photos
+        let validatedElements = currentPreviewRecord.updatedFields || [];
         
-        const photoMapping = [
-            { key: 'photo_bumbu', label: 'Bumbu' },
-            { key: 'photo_kartonDepan', label: 'Karton Depan' },
-            { key: 'photo_kartonBelakang', label: 'Karton Belakang' },
-            { key: 'photo_etiket', label: 'Etiket' },
-            { key: 'photo_etiketbanded', label: 'Etiket Banded' }
-        ];
-        
-        photoMapping.forEach(mapping => {
-            if (photos[mapping.key] && photos[mapping.key].trim() !== '') {
-                validatedElements.push(mapping.label);
-            }
-        });
+        // If updatedFields is empty, collect from photos
+        if (!validatedElements || validatedElements.length === 0) {
+            validatedElements = [];
+            const photos = currentPreviewRecord.photos || {};
+            
+            const photoMapping = [
+                { key: 'photo_bumbu', label: 'Bumbu' },
+                { key: 'photo_mbumbu', label: 'M. Bumbu' },
+                { key: 'photo_kartonDepan', label: 'Karton Depan' },
+                { key: 'photo_kartonBelakang', label: 'Karton Belakang' },
+                { key: 'photo_etiket', label: 'Etiket' },
+                { key: 'photo_etiketbanded', label: 'Etiket Banded' }
+            ];
+            
+            photoMapping.forEach(mapping => {
+                if (photos[mapping.key] && photos[mapping.key].trim() !== '') {
+                    validatedElements.push(mapping.label);
+                }
+            });
+        }
         
         const validationData = {
             id: recordId,
@@ -1132,7 +1142,7 @@ async function submitValidationFromPreview() {
             validatedBy: auth.getUser().email,
             validatedAt: new Date().toISOString(),
             validationReason: status === 'invalid' ? reason : '',
-            updatedFields: validatedElements  // Track which elements were validated
+            updatedFields: validatedElements  // Keep the checklist from create-display
         };
         
         console.log('📝 Submitting validation from preview:', validationData);
