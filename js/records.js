@@ -1139,7 +1139,7 @@ async function submitValidationFromPreview() {
         const validationData = {
             id: recordId,
             validationStatus: status,
-            validatedBy: auth.getUser().email,
+            validatedBy: auth.getUser().name,
             validatedAt: new Date().toISOString(),
             validationReason: status === 'invalid' ? reason : '',
             updatedFields: validatedElements  // Keep the checklist from create-display
