@@ -1004,12 +1004,12 @@ function showValidationMetadata() {
     // ALWAYS show metadata section
     metadataSection.classList.remove('hidden');
     
-    // Show tanggal dan email hanya jika ada validasi
+    // Show tanggal dan editor hanya jika ada data updatedAt (dari editor/creator)
     const metadataInfo = document.getElementById('previewValidationMetadataInfo');
-    if (record.validatedAt && record.validatedBy) {
-        // Format date
-        const validatedDate = new Date(record.validatedAt);
-        const formattedDate = validatedDate.toLocaleDateString('id-ID', {
+    if (record.updatedAt && record.updatedBy) {
+        // Format date - GUNAKAN updatedAt (tanggal saat editor membuat/edit)
+        const updatedDate = new Date(record.updatedAt);
+        const formattedDate = updatedDate.toLocaleDateString('id-ID', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -1018,10 +1018,10 @@ function showValidationMetadata() {
         });
         
         document.getElementById('previewValidationDate').textContent = formattedDate;
-        document.getElementById('previewValidatedBy').textContent = record.validatedBy;
+        document.getElementById('previewValidatedBy').textContent = record.updatedBy;
         metadataInfo.style.display = 'block';
     } else {
-        // Hide tanggal dan email jika belum ada validasi
+        // Hide tanggal dan editor jika belum ada data
         metadataInfo.style.display = 'none';
     }
     

@@ -1008,7 +1008,7 @@ function updateRecordData(recordId, updatedRecord) {
         updatedRecord.negara || data[i][4],
         updatedRecord.distributor || data[i][5] || '',
         data[i][6],
-        new Date().toISOString(),
+        updatedRecord.updatedAt || new Date().toISOString(),
         updatedRecord.createdBy || data[i][8] || '',
         updatedRecord.updatedBy || updatedRecord.createdBy || data[i][9] || '',
         photoBumbu,

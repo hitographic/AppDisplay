@@ -809,7 +809,8 @@ async function saveAll() {
             updatedFields: temporarySave.updatedFields || [],
             createdBy: getCurrentUserName(),
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            updatedBy: getCurrentUserName()
         };
         
         console.log('📤 Record to save:', JSON.stringify(record, null, 2));
